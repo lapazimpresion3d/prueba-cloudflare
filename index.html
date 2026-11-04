@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/>
+<title>Bahía La Paz Paseos Recreativos</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;1,500&amp;family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800&amp;family=Figtree:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<style>
+:root{--bg:#F6EFE0;--ink:#0A2F3A;--muted:#4A6670;--sea:#0E7C86;--deep:#0A2F3A;--sun:#F2B544;--line:#D9CDB4;--card:#FFFBF1;--on-deep:#F6EFE0;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+html{scroll-padding-top:env(safe-area-inset-top,0px);scroll-behavior:smooth}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 1.05rem/1.6 Figtree,system-ui,sans-serif}
+h1,h2,h3{font-family:'Bricolage Grotesque',Georgia,serif;line-height:1.05;margin:0}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--sun);outline-offset:3px}
+.wrap{max-width:1040px;margin:0 auto;padding:0 1.25rem}
+nav{display:flex;justify-content:space-between;align-items:center;padding:1rem 0;font-weight:600}
+nav a{text-decoration:none}
+nav .btn{padding:.5rem 1rem}
+.btn{display:inline-block;background:var(--sun);color:#0A2F3A;font-weight:700;text-decoration:none;padding:.9rem 1.5rem;border-radius:999px;border:0;font:inherit;font-weight:700;cursor:pointer}
+.btn:hover{filter:brightness(1.06)}
+.hero{background:var(--deep);color:var(--on-deep);position:relative;overflow:hidden}
+.hero .wrap{padding-top:.5rem;padding-bottom:0}
+.hero h1{font-family:'Cormorant Garamond',Georgia,serif;font-size:clamp(3rem,10vw,6.5rem);font-weight:600;letter-spacing:-.01em;max-width:11ch;margin-top:2.5rem}
+.hero p.lead{max-width:34rem;font-size:1.2rem;opacity:.9;margin:1.25rem 0 1.75rem}
+.facts{display:flex;gap:2rem;flex-wrap:wrap;margin:2rem 0 0;padding:0;list-style:none}
+.facts li{font-family:'Bricolage Grotesque',sans-serif;font-size:1.4rem;font-weight:700}
+.facts span{display:block;font:500 .9rem Figtree,sans-serif;opacity:.7}
+.sea{display:block;width:100%;height:auto;margin-top:0;position:relative;z-index:1}
+.boat{display:block;width:min(460px,82%);height:auto;margin:2rem auto calc(-10.8vw - 00.127 * min(460px, 82vw));position:relative;z-index:2;animation:bob 5s ease-in-out infinite;transform-origin:center}
+@keyframes bob{50%{transform:translateY(7px) rotate(-1.2deg)}}
+@media (prefers-reduced-motion:reduce){.boat{animation:none}html{scroll-behavior:auto}}
+.ctas{display:flex;gap:.75rem;flex-wrap:wrap}
+.btn.alt{background:transparent;color:inherit;border:2px solid currentColor;padding:calc(.9rem - 2px) calc(1.5rem - 2px)}
+section{padding:4.5rem 0}
+h2{font-size:clamp(1.9rem,5vw,3rem);letter-spacing:-.02em;margin-bottom:1rem}
+.sub{color:var(--muted);max-width:36rem;margin:0 0 2rem}
+.incl{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.5rem 2rem;list-style:none;padding:0;margin:0}
+.incl li{border-top:3px solid var(--sea);padding-top:.75rem}
+.incl b{display:block;font-family:'Bricolage Grotesque',sans-serif;font-size:1.2rem}
+.incl span{color:var(--muted)}
+.time{list-style:none;margin:0;padding:0;border-left:3px solid var(--sea)}
+.time li{padding:0 0 1.75rem 1.5rem;position:relative}
+.time li::before{content:"";position:absolute;left:-9px;top:.45rem;width:15px;height:15px;border-radius:50%;background:var(--sun);border:3px solid var(--bg)}
+.time b{font-family:'Bricolage Grotesque',sans-serif;font-size:1.25rem}
+.time em{font-style:normal;color:var(--sea);font-weight:600;margin-left:.5rem}
+.book{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:2rem;display:grid;gap:2rem;grid-template-columns:1fr;max-width:100%}
+@media(min-width:760px){.book{grid-template-columns:1fr 1fr;align-items:start}}
+form{display:grid;gap:1rem}
+label{font-weight:600;display:grid;gap:.35rem}
+input,select,textarea{font:inherit;padding:.75rem;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);width:100%}
+.usd-reference{font-weight:700;font-size:1.22rem;line-height:1.35;margin:.35rem 0 .15rem}.usd-reference[hidden]{display:none}.usd-disclaimer{margin:.1rem 0 1rem}.usd-disclaimer[hidden]{display:none}
+.price{font-family:'Bricolage Grotesque',sans-serif;font-size:2.6rem;font-weight:800}
+.note{color:var(--muted);font-size:.95rem}
+details{border-top:1px solid var(--line);padding:1rem 0}
+details:last-of-type{border-bottom:1px solid var(--line)}
+summary{font-weight:600;cursor:pointer}
+details p{margin:.6rem 0 0;color:var(--muted)}
+footer{background:var(--deep);color:var(--on-deep);padding:2rem 0;font-size:.95rem}
+footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:.5rem}
+
+/* Distribución adaptada a teléfonos: conserva intacto el diseño de escritorio. */
+@media (max-width: 600px) {
+  body {font-size: 1rem;line-height: 1.55;}
+  .wrap {padding-inline: 1.35rem;}
+  nav {gap: 1rem;padding: 1rem 0 .65rem;align-items:center;}
+  nav > a:first-child {max-width: 12rem;font-size: .91rem;line-height: 1.25;}
+  nav .btn {white-space:nowrap;font-size:.9rem;padding:.58rem .95rem;}
+  .hero .wrap {padding-top: .15rem;}
+  .hero h1 {font-size: clamp(3.2rem, 12.7vw, 4.6rem);line-height:.98;max-width: 12ch;margin-top: 2.25rem;letter-spacing:-.025em;}
+  .hero p.lead {font-size:1.05rem;line-height:1.6;margin:1.5rem 0 1.65rem;max-width:31rem;}
+  .ctas {display:grid;grid-template-columns:1fr 1fr;gap:.75rem;}
+  .ctas .btn {display:flex;align-items:center;justify-content:center;text-align:center;min-height:3.15rem;padding:.7rem .8rem;font-size:.95rem;line-height:1.2;}
+  .ctas .btn:first-child {grid-column:1 / -1;}
+  .facts {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.55rem;margin:2rem 0 .4rem;}
+  .facts li {font-size:1.08rem;line-height:1.2;min-width:0;padding:.1rem .45rem .1rem 0;}
+  .facts li+li {border-left:1px solid rgba(246,239,224,.24);padding-left:.65rem;}
+  .facts span {font-size:.75rem;line-height:1.35;margin-top:.35rem;}
+  .boat {width:min(360px,82%);margin:1.85rem auto -3.6rem;}
+  .sea {min-height:5.4rem;object-fit:cover;}
+  section {padding:3.6rem 0;}
+  h2 {font-size:clamp(1.85rem,7.6vw,2.35rem);line-height:1.12;margin-bottom:1rem;}
+  .sub {margin-bottom:2rem;line-height:1.6;}
+  .incl {grid-template-columns:1fr;gap:1.3rem;}
+  .incl li {padding-top:1rem;}
+  .incl b {font-size:1.13rem;margin-bottom:.28rem;}
+  .incl span {display:block;line-height:1.5;}
+  .time li {padding:0 0 2rem 1.25rem;}
+  .time li:last-child {padding-bottom:0;}
+  .time b,.time em {display:block;}
+  .time em {margin:.25rem 0 .38rem;font-size:.93rem;}
+  .time .note {display:block;line-height:1.55;}
+  .book {padding:1.4rem;gap:1.6rem;border-radius:18px;}
+  .price {font-size:clamp(1.8rem,8vw,2.25rem);line-height:1.14;}
+  .book .note {margin:.8rem 0 0;}
+  form {gap:1.2rem;}
+  label {gap:.45rem;line-height:1.35;}
+  input,select,textarea {font-size:16px;min-height:3rem;}
+  form .btn {width:100%;min-height:3.2rem;}
+  details {padding:1.15rem 0;}
+  summary {line-height:1.4;padding-right:.5rem;}
+  footer {padding:2.4rem 0 6rem;}
+  footer .wrap {display:grid;gap:.85rem;}
+  footer span {overflow-wrap:anywhere;}
+}
+@media (max-width: 355px) {
+  .wrap {padding-inline:1.05rem;}
+  nav > a:first-child {font-size:.84rem;max-width:10rem;}
+  .hero h1 {font-size:3rem;}
+  .facts {gap:.2rem;}
+  .facts li {font-size:.96rem;}
+  .facts span {font-size:.68rem;}
+  .book {padding:1.1rem;}
+}
+
+/* Selector bilingüe integrado en el encabezado */
+.nav-actions{display:flex;align-items:center;gap:.7rem;flex-shrink:0}
+.lang-switch{display:inline-flex;align-items:center;border:1px solid rgba(246,239,224,.48);border-radius:999px;padding:3px;gap:2px;white-space:nowrap}
+.lang-option{border:0;background:transparent;color:var(--on-deep);font:700 .78rem/1 Figtree,system-ui,sans-serif;border-radius:999px;padding:.58rem .65rem;cursor:pointer;min-height:34px}
+.lang-option[aria-pressed="true"]{background:var(--sun);color:#0A2F3A}
+@media(max-width:600px){
+ nav{gap:.6rem}
+ nav>a:first-child{min-width:0;max-width:10rem;font-size:.83rem}
+ .nav-actions{gap:.4rem}
+ nav .btn{padding:.53rem .72rem;font-size:.85rem}
+ .lang-option{padding:.52rem .52rem;font-size:.73rem;min-height:32px}
+}
+@media(max-width:375px){
+ nav>a:first-child{max-width:8.1rem;font-size:.77rem}
+ .nav-actions{gap:.25rem}
+ nav .btn{padding:.48rem .55rem;font-size:.78rem}
+ .lang-option{padding:.48rem .43rem}
+}
+
+/* Marca más legible, con espacio propio en pantallas pequeñas. */
+.site-brand{display:flex;flex-direction:column;gap:.12rem;min-width:0;line-height:1.08;text-decoration:none}
+.site-brand .brand-name{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:clamp(2.1rem,3.4vw,2.65rem);letter-spacing:-.035em}
+.site-brand .brand-subtitle{font-family:Figtree,sans-serif;font-size:1.1rem;letter-spacing:.045em;font-weight:500;opacity:.82}
+@media(max-width:600px){
+ nav{display:grid;grid-template-columns:1fr;gap:.85rem;padding:1.1rem 0 .5rem}
+ nav>a.site-brand:first-child{max-width:none;font-size:inherit}
+ .site-brand .brand-name{font-size:clamp(2.35rem,10.5vw,3.15rem)}
+ .site-brand .brand-subtitle{font-size:1.08rem}
+ .nav-actions{justify-content:space-between;gap:.75rem}
+ .nav-actions>.btn{font-size:.9rem;padding:.63rem 1.15rem}
+ .hero h1{margin-top:1.9rem}
+}
+@media(max-width:375px){
+ nav>a.site-brand:first-child{max-width:none;font-size:inherit}
+ .site-brand .brand-name{font-size:clamp(2.1rem,10.5vw,2.6rem)}
+}
+</style>
+</head>
+<body>
+<header class="hero">
+<div class="wrap">
+<nav>
+<a class="site-brand" href="#inicio" aria-label="Bahía La Paz"><span class="brand-name">Bahía La Paz</span><span class="brand-subtitle" data-i18n="Paseos recreativos">Paseos recreativos</span></a>
+
+<div class="nav-actions"><a class="btn" data-i18n="Reservar" href="#reservar">Reservar</a><div aria-label="Idioma / Language" class="lang-switch" role="group"><button aria-pressed="true" class="lang-option" data-lang="es" lang="es" type="button">ES</button><button aria-pressed="false" class="lang-option" data-lang="en" lang="en" type="button">EN</button></div></div></nav>
+<h1 data-i18n="La mejor experiencia en la bahía." id="inicio">La mejor experiencia en la bahía.</h1>
+<p class="lead" data-i18n="Un paseo privado en barco para hasta 12 personas. Sin prisas, sin multitudes: solo tu grupo, el mar y el horizonte.">Un paseo privado en barco para hasta 12 personas. Sin prisas, sin multitudes: solo tu grupo, el mar y el horizonte.</p>
+<div class="ctas">
+<a class="btn" data-i18n="Reserva tu paseo" href="#reservar">Reserva tu paseo</a>
+<a class="btn alt" href="https://wa.me/526121528402?text=Hola%2C%20quiero%20informaci%C3%B3n%20del%20paseo%20en%20barco" rel="noopener" target="_blank">WhatsApp</a>
+<a class="btn alt" href="https://instagram.com/bahia_la_paz" rel="noopener" target="_blank">Instagram</a>
+</div>
+<ul class="facts">
+<li><span data-i18n="Máximo 12">Máximo 12</span><span data-i18n="personas por salida">personas por salida</span></li>
+<li><span data-i18n="4 horas">4 horas</span><span data-i18n="en el agua">en el agua</span></li>
+<li><span data-i18n="Privado">Privado</span><span data-i18n="solo tu grupo">solo tu grupo</span></li>
+</ul>
+</div>
+<img alt="Chubasco, el barco de los paseos por la bahía" class="boat" data-i18n-alt="Chubasco, el barco de los paseos por la bahía" height="483" src="images/chubasco.webp" width="760"/>
+<svg aria-hidden="true" class="sea" preserveaspectratio="xMidYMax slice" viewbox="0 0 1200 220">
+<path d="M0 130 C200 110 380 150 600 130 S1000 110 1200 130 V220 H0Z" fill="#0E7C86"></path>
+<path d="M0 158 C220 140 420 180 640 160 S1000 142 1200 162 V220 H0Z" fill="#0A5D69"></path>
+<path d="M0 190 C260 176 480 208 700 190 S1040 178 1200 192 V220 H0Z" fill="#F6EFE0"></path>
+</svg>
+</header>
+<main>
+<section>
+<div class="wrap">
+<h2 data-i18n="Todo para un buen día de mar">Todo para un buen día de mar</h2>
+<p class="sub" data-i18n="Un paseo recreativo pensado para grupos de amigos, parejas y celebraciones pequeñas entre adultos.">Un paseo recreativo pensado para grupos de amigos, parejas y celebraciones pequeñas entre adultos.</p>
+<ul class="incl">
+<li><b data-i18n="Capitán y tripulación">Capitán y tripulación</b><span data-i18n="Personal con experiencia en la bahía.">Personal con experiencia en la bahía.</span></li>
+<li><b data-i18n="Chalecos salvavidas">Chalecos salvavidas</b><span data-i18n="Para todas las personas a bordo.">Para todas las personas a bordo.</span></li>
+<li><b data-i18n="Hielera y agua">Hielera y agua</b><span data-i18n="Trae tus bebidas y botanas; nosotros las mantenemos frías.">Trae tus bebidas y botanas; nosotros las mantenemos frías.</span></li>
+<li><b data-i18n="Paradas para nadar">Paradas para nadar</b><span data-i18n="Fondeamos en aguas tranquilas para que te metas al mar.">Fondeamos en aguas tranquilas para que te metas al mar.</span></li>
+</ul>
+</div>
+</section>
+<section style="background:var(--card)">
+<div class="wrap">
+<h2 data-i18n="Así pasan las 4 horas">Así pasan las 4 horas</h2>
+<p class="sub" data-i18n="Un ritmo tranquilo. El capitán ajusta el recorrido según el viento y el ánimo del grupo.">Un ritmo tranquilo. El capitán ajusta el recorrido según el viento y el ánimo del grupo.</p>
+<ol class="time">
+<li><b data-i18n="Zarpe">Zarpe</b><em data-i18n="Hora 0">Hora 0</em><br/><span class="note" data-i18n="Abordaje, indicaciones de seguridad y salida de la marina.">Abordaje, indicaciones de seguridad y salida de la marina.</span></li>
+<li><b data-i18n="Navegar la bahía">Navegar la bahía</b><em data-i18n="Hora 1">Hora 1</em><br/><span class="note" data-i18n="Recorrido por la costa con vista a la ciudad y a las islas.">Recorrido por la costa con vista a la ciudad y a las islas.</span></li>
+<li><b data-i18n="Parada para nadar">Parada para nadar</b><em data-i18n="Hora 2">Hora 2</em><br/><span class="note" data-i18n="Fondeo en aguas calmas: nadar, esnorquelear, comer algo.">Fondeo en aguas calmas: nadar, esnorquelear, comer algo.</span></li>
+<li><b data-i18n="Regreso al atardecer">Regreso al atardecer</b><em data-i18n="Hora 3 a 4">Hora 3 a 4</em><br/><span class="note" data-i18n="Navegación de vuelta y llegada a puerto.">Navegación de vuelta y llegada a puerto.</span></li>
+</ol>
+</div>
+</section>
+<section id="reservar">
+<div class="wrap">
+<h2 data-i18n="Reserva tu salida">Reserva tu salida</h2>
+<p class="sub" data-i18n="Elige fecha y número de personas. Te responderemos por WhatsApp para confirmar.">Elige fecha y número de personas. Te responderemos por WhatsApp para confirmar.</p>
+<div class="book">
+<div>
+<div class="price" data-i18n="Desde $12,000 MXN">Desde $12,000 MXN</div>
+<div class="usd-reference" id="usd-reference" hidden>Approx. $650 USD</div>
+<p class="note usd-disclaimer" id="usd-disclaimer" hidden>USD amount is approximate and may vary with the exchange rate. Final price is in Mexican pesos (MXN).</p>
+<p class="note" data-i18n="Paseos privados: el barco completo para tu grupo, hasta 12 personas, 4 horas.">Paseos privados: el barco completo para tu grupo, hasta 12 personas, 4 horas.</p>
+<p class="note" data-i18n="Anticipo para apartar la fecha. Si el clima no permite salir, reprogramamos sin costo.">Anticipo para apartar la fecha. Si el clima no permite salir, reprogramamos sin costo.</p>
+</div>
+<form id="f">
+<label><span data-i18n="Nombre">Nombre</span><input autocomplete="name" id="n" required=""/></label>
+<label><span data-i18n="Fecha deseada">Fecha deseada</span><input id="d" required="" type="date"/></label>
+<label><span data-i18n="Personas">Personas</span><span class="note" data-i18n="Máximo 12 personas, (no se admiten niños).">Máximo 12 personas, (no se admiten niños).</span><input id="p" max="12" min="1" required="" type="number" value="6"/></label>
+<label><span data-i18n="Comentarios">Comentarios</span><textarea data-i18n-placeholder="Cumpleaños, hora preferida…" id="c" placeholder="Cumpleaños, hora preferida…" rows="2"></textarea></label>
+<button class="btn" data-i18n="Enviar por WhatsApp" type="submit">Enviar por WhatsApp</button>
+</form>
+</div>
+</div>
+</section>
+<section style="padding-top:0">
+<div class="wrap">
+<h2 data-i18n="Preguntas frecuentes">Preguntas frecuentes</h2>
+<details><summary data-i18n="¿Cuántas personas caben?">¿Cuántas personas caben?</summary><p data-i18n="Hasta 12 personas por salida.">Hasta 12 personas por salida.</p></details>
+<details><summary data-i18n="¿Pueden ir niños?">¿Pueden ir niños?</summary><p data-i18n="No. Por ahora el paseo no admite niños.">No. Por ahora el paseo no admite niños.</p></details>
+<details><summary data-i18n="¿Puedo llevar comida y bebidas?">¿Puedo llevar comida y bebidas?</summary><p data-i18n="Sí. Contamos con hielera para mantener todo frío.">Sí. Contamos con hielera para mantener todo frío.</p></details>
+<details><summary data-i18n="¿Qué pasa si hay mal clima?">¿Qué pasa si hay mal clima?</summary><p data-i18n="Si las condiciones no son seguras, reprogramamos tu paseo a otra fecha.">Si las condiciones no son seguras, reprogramamos tu paseo a otra fecha.</p></details>
+<details><summary data-i18n="¿A qué hora sale?">¿A qué hora sale?</summary><p data-i18n="Acordamos la hora contigo al confirmar la reservación.">Acordamos la hora contigo al confirmar la reservación.</p></details>
+</div>
+</section>
+</main>
+<footer>
+<div class="wrap">
+<span data-i18n="Bahía La Paz Paseos Recreativos">Bahía La Paz Paseos Recreativos</span>
+<span><span data-i18n="Reservaciones:">Reservaciones:</span><a href="tel:+526121528402">612 152 8402</a> · <a href="tel:+526121999963">612 199 9963</a> · <a href="https://instagram.com/bahia_la_paz" rel="noopener">@bahia_la_paz</a></span>
+</div>
+</footer>
+<script>
+const translations = {"Bahía La Paz · Paseos recreativos": "Bahía La Paz · Boat tours", "Paseos recreativos": "Boat tours", "Reservar": "Book", "La mejor experiencia en la bahía.": "The best experience on the bay.", "Un paseo privado en barco para hasta 12 personas. Sin prisas, sin multitudes: solo tu grupo, el mar y el horizonte.": "A private boat tour for up to 12 people. No rush, no crowds: just your group, the sea, and the horizon.", "Reserva tu paseo": "Book your tour", "Máximo 12": "Up to 12", "personas por salida": "people per trip", "4 horas": "4 hours", "en el agua": "on the water", "Privado": "Private", "solo tu grupo": "just your group", "Todo para un buen día de mar": "Everything for a great day at sea", "Un paseo recreativo pensado para grupos de amigos, parejas y celebraciones pequeñas entre adultos.": "A relaxing boat trip for groups of friends, couples, and small adult celebrations.", "Capitán y tripulación": "Captain and crew", "Personal con experiencia en la bahía.": "An experienced team that knows the bay.", "Chalecos salvavidas": "Life jackets", "Para todas las personas a bordo.": "For everyone on board.", "Hielera y agua": "Cooler and water", "Trae tus bebidas y botanas; nosotros las mantenemos frías.": "Bring your drinks and snacks; we’ll keep them cold.", "Paradas para nadar": "Swimming stops", "Fondeamos en aguas tranquilas para que te metas al mar.": "We anchor in calm waters so you can enjoy a swim.", "Así pasan las 4 horas": "Your 4-hour itinerary", "Un ritmo tranquilo. El capitán ajusta el recorrido según el viento y el ánimo del grupo.": "Enjoy a relaxed pace. The captain adjusts the route according to the wind and your group’s preferences.", "Zarpe": "Departure", "Hora 0": "Hour 0", "Abordaje, indicaciones de seguridad y salida de la marina.": "Boarding, safety briefing, and departure from the marina.", "Navegar la bahía": "Cruising the bay", "Hora 1": "Hour 1", "Recorrido por la costa con vista a la ciudad y a las islas.": "Cruise along the coast with views of the city and islands.", "Parada para nadar": "Swimming stop", "Hora 2": "Hour 2", "Fondeo en aguas calmas: nadar, esnorquelear, comer algo.": "Anchor in calm waters to swim, snorkel, or enjoy a snack.", "Regreso al atardecer": "Sunset return", "Hora 3 a 4": "Hours 3–4", "Navegación de vuelta y llegada a puerto.": "Cruise back and return to port.", "Reserva tu salida": "Book your trip", "Elige fecha y número de personas. Te responderemos por WhatsApp para confirmar.": "Choose your date and group size. We’ll confirm the details with you on WhatsApp.", "Desde $12,000 MXN": "From $12,000 MXN", "Paseos privados: el barco completo para tu grupo, hasta 12 personas, 4 horas.": "Private tours: the entire boat for your group, up to 12 people, for 4 hours.", "Anticipo para apartar la fecha. Si el clima no permite salir, reprogramamos sin costo.": "A deposit is required to reserve your date. If the weather prevents departure, we’ll reschedule at no extra cost.", "Nombre": "Name", "Fecha deseada": "Preferred date", "Personas": "Guests", "Máximo 12 personas, (no se admiten niños).": "Maximum 12 guests, (children are not allowed).", "Comentarios": "Comments", "Enviar por WhatsApp": "Send via WhatsApp", "Preguntas frecuentes": "Frequently asked questions", "¿Cuántas personas caben?": "How many people can come?", "Hasta 12 personas por salida.": "Up to 12 guests per trip.", "¿Pueden ir niños?": "Are children allowed?", "No. Por ahora el paseo no admite niños.": "No. Children are not allowed on these tours at this time.", "¿Puedo llevar comida y bebidas?": "Can I bring food and drinks?", "Sí. Contamos con hielera para mantener todo frío.": "Yes. We have a cooler to keep everything cold.", "¿Qué pasa si hay mal clima?": "What happens in bad weather?", "Si las condiciones no son seguras, reprogramamos tu paseo a otra fecha.": "If conditions are unsafe, we’ll reschedule your tour.", "¿A qué hora sale?": "What time does the tour depart?", "Acordamos la hora contigo al confirmar la reservación.": "We’ll agree on a departure time when confirming your booking.", "Bahía La Paz Paseos Recreativos": "Bahía La Paz Recreational Boat Tours", "Reservaciones:": "Bookings:", "Cumpleaños, hora preferida…": "Birthday, preferred time…", "Chubasco, el barco de los paseos por la bahía": "Chubasco, the boat used for tours of the bay"};
+const STORAGE_KEY = 'bahiaLaPazLanguage';
+let currentLanguage = 'es';
+const tourWhatsApp = document.querySelector('.ctas a[href^="https://wa.me/"]');
+function infoLink(language) {
+  const message = language === 'en'
+    ? 'Hello, I would like information about the boat tour.'
+    : 'Hola, quiero información del paseo en barco';
+  return 'https://wa.me/526121528402?text=' + encodeURIComponent(message);
+}
+function setLanguage(language) {
+  currentLanguage = language === 'en' ? 'en' : 'es';
+  document.documentElement.lang = currentLanguage;
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (currentLanguage === 'es') el.textContent = key;
+    else if (translations[key]) el.textContent = translations[key];
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    el.placeholder = currentLanguage === 'es' ? key : (translations[key] || key);
+  });
+  document.querySelectorAll('[data-i18n-alt]').forEach(el => {
+    const key = el.getAttribute('data-i18n-alt');
+    el.alt = currentLanguage === 'es' ? key : (translations[key] || key);
+  });
+  document.querySelectorAll('.lang-option').forEach(button => {
+    button.setAttribute('aria-pressed', String(button.dataset.lang === currentLanguage));
+  });
+  if(tourWhatsApp) tourWhatsApp.href = infoLink(currentLanguage);
+  document.getElementById('usd-reference').hidden = currentLanguage !== 'en';
+  document.getElementById('usd-disclaimer').hidden = currentLanguage !== 'en';
+  document.title = currentLanguage === 'en' ? 'Bahía La Paz Recreational Boat Tours' : 'Bahía La Paz Paseos Recreativos';
+  try { localStorage.setItem(STORAGE_KEY, currentLanguage); } catch(e) {}
+}
+document.querySelectorAll('.lang-option').forEach(button => {
+  button.addEventListener('click', () => setLanguage(button.dataset.lang));
+});
+const form = document.getElementById('f');
+form.addEventListener('submit', function(event) {
+  event.preventDefault();
+  const name = document.getElementById('n').value;
+  const date = document.getElementById('d').value;
+  const people = document.getElementById('p').value;
+  const comments = document.getElementById('c').value;
+  const message = currentLanguage === 'en'
+    ? 'Hello, I would like to book a boat tour.\nName: ' + name + '\nDate: ' + date + '\nGuests: ' + people + (comments ? '\nComments: ' + comments : '')
+    : 'Hola, quiero reservar un paseo en barco.\nNombre: ' + name + '\nFecha: ' + date + '\nPersonas: ' + people + (comments ? '\nComentarios: ' + comments : '');
+  window.open('https://wa.me/526121528402?text=' + encodeURIComponent(message), '_blank', 'noopener');
+});
+let initialLanguage = 'es';
+try { if(localStorage.getItem(STORAGE_KEY) === 'en') initialLanguage = 'en'; } catch(e) {}
+setLanguage(initialLanguage);
+</script>
+</body>
+</html>
