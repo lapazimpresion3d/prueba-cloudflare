@@ -1,0 +1,37 @@
+
+{
+  "negocio": "Taquería El Comal",
+  "moneda": "MXN",
+  "categorias": [
+    {
+      "id": "tacos",
+      "nombre": "Tacos",
+      "productos": [
+        {
+          "id": "pastor",
+          "nombre": "Taco al pastor",
+          "descripcion": "Carne al pastor, cebolla y cilantro.",
+          "precio": 25
+        },
+        {
+          "id": "asada",
+          "nombre": "Taco de asada",
+          "descripcion": "Carne asada con cebolla y cilantro.",
+          "precio": 30
+        }
+      ]
+    },
+    {
+      "id": "especialidades",
+      "nombre": "Especialidades",
+      "productos": [
+        {
+          "id": "quesadilla",
+          "nombre": "Quesadilla",
+          "descripcion": "Tortilla de harina con queso fundido.",
+          "precio": 45
+        }
+      ]
+    }
+  ]
+}
