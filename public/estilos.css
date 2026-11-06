@@ -1,0 +1,121 @@
+
+/* Colores principales */
+:root {
+  --rojo: #b63822;
+  --amarillo: #f5b841;
+  --crema: #fff6e7;
+  --oscuro: #29211c;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: var(--crema);
+  color: var(--oscuro);
+}
+
+/* Encabezado principal */
+header {
+  background: var(--oscuro);
+  color: white;
+  text-align: center;
+  padding: 90px 20px;
+  border-bottom: 8px solid var(--amarillo);
+}
+
+header h1 {
+  font-size: clamp(2.4rem, 8vw, 5rem);
+  margin: 15px 0;
+  color: var(--amarillo);
+  font-weight: 900;
+}
+
+.subtitulo {
+  letter-spacing: 5px;
+  font-size: 0.85rem;
+}
+
+.boton {
+  display: inline-block;
+  background: var(--rojo);
+  color: white;
+  padding: 15px 28px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: bold;
+  margin-top: 20px;
+}
+
+.boton:hover {
+  background: #922c1a;
+}
+
+/* Menú */
+main {
+  max-width: 1100px;
+  margin: auto;
+  padding: 50px 20px;
+}
+
+#menu h2 {
+  font-size: 2.3rem;
+  margin-bottom: 5px;
+}
+
+#productos {
+  margin-top: 35px;
+  display: grid;
+  grid-template-columns:
+    repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+  gap: 20px;
+}
+
+/* Tarjetas de productos */
+.producto {
+  background: white;
+  border-radius: 14px;
+  padding: 22px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+}
+
+.producto h3 {
+  margin-top: 0;
+  color: var(--rojo);
+}
+
+.precio {
+  color: var(--oscuro);
+  font-size: 1.4rem;
+  font-weight: bold;
+}
+
+/* Pie de página */
+footer {
+  background: var(--oscuro);
+  color: white;
+  text-align: center;
+  padding: 25px;
+}
+
+/* Adaptación a teléfonos */
+@media (max-width: 600px) {
+  header {
+    padding: 65px 15px;
+  }
+
+  main {
+    padding: 35px 15px;
+  }
+
+  #menu h2 {
+    font-size: 1.9rem;
+  }
+}
