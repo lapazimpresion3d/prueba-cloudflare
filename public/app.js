@@ -30,6 +30,12 @@ async function cargarMenu() {
         const tarjeta = document.createElement("article");
         tarjeta.className = "producto";
 
+const imagen = document.createElement("img");
+imagen.src = producto.imagen;
+imagen.alt = producto.nombre;
+imagen.className = "producto-imagen";
+imagen.loading = "lazy";
+
         const nombre = document.createElement("h3");
         nombre.textContent = producto.nombre;
 
@@ -43,7 +49,7 @@ async function cargarMenu() {
           currency: menu.moneda
         }).format(producto.precio);
 
-        tarjeta.append(nombre, descripcion, precio);
+        tarjeta.append(imagen, nombre, descripcion, precio);
         contenedor.appendChild(tarjeta);
       });
     });
