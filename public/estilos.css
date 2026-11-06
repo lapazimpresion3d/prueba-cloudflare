@@ -118,4 +118,19 @@ footer {
   #menu h2 {
     font-size: 1.9rem;
   }
+
+  /* Fotografías del menú */
+  .producto {
+    overflow: hidden;
+  }
+  
+  .producto-imagen {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: 10px;
+    margin-bottom: 15px;
+  }
+
 }
