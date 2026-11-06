@@ -11,13 +11,15 @@
           "id": "pastor",
           "nombre": "Taco al pastor",
           "descripcion": "Carne al pastor, cebolla y cilantro.",
-          "precio": 25
+          "precio": 25,
+          "imagen": "imagenes/pastor.webp"
         },
         {
           "id": "asada",
           "nombre": "Taco de asada",
-          "descripcion": "Carne asada con cebolla y cilantro.",
-          "precio": 30
+          "descripcion": "Carne asada, cebolla y cilantro.",
+          "precio": 30,
+          "imagen": "imagenes/asada.webp"
         }
       ]
     },
@@ -29,7 +31,8 @@
           "id": "quesadilla",
           "nombre": "Quesadilla",
           "descripcion": "Tortilla de harina con queso fundido.",
-          "precio": 45
+          "precio": 45,
+          "imagen": "imagenes/quesadilla.webp"
         }
       ]
     }
