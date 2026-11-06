@@ -78,13 +78,29 @@ main {
   gap: 20px;
 }
 
-/* Tarjetas de productos */
+/* Tarjeta de producto */
 .producto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
   background: white;
   border-radius: 14px;
-  padding: 22px;
+  padding: 15px;
+  overflow: hidden;
   box-shadow: 0 4px 15px rgba(0,0,0,0.08);
 }
+
+/* Fotografías de los productos */
+.producto-imagen {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 10px;
+  margin-bottom: 15px;
+}
+
 
 .producto h3 {
   margin-top: 0;
@@ -105,6 +121,7 @@ footer {
   padding: 25px;
 }
 
+
 /* Adaptación a teléfonos */
 @media (max-width: 600px) {
   header {
@@ -118,6 +135,8 @@ footer {
   #menu h2 {
     font-size: 1.9rem;
   }
+}
+
 
   /* Fotografías del menú */
   .producto {
