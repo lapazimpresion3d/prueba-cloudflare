@@ -27,20 +27,25 @@ header {
   background: var(--oscuro);
   color: white;
   text-align: center;
-  padding: 90px 20px;
+  padding: 110px 20px 100px;
   border-bottom: 8px solid var(--amarillo);
 }
 
 header h1 {
-  font-size: clamp(2.4rem, 8vw, 5rem);
-  margin: 15px 0;
+  font-size: clamp(2.5rem, 7vw, 5.5rem);
+  line-height: 1.05;
+  letter-spacing: -2px;
+  margin: 20px 0;
   color: var(--amarillo);
   font-weight: 900;
 }
 
 .subtitulo {
+  color: var(--amarillo);
   letter-spacing: 5px;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
+  font-weight: bold;
+  text-transform: uppercase;
 }
 
 .boton {
