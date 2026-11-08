@@ -370,3 +370,14 @@ document.addEventListener("keydown", (evento) => {
 
 // Recuperar el pedido al abrir la página
 actualizarCarrito();
+
+/* Vaciar todos los productos del carrito */
+document.getElementById("vaciar-carrito")
+  .addEventListener("click", () => {
+    if (carrito.length === 0) return;
+
+    if (confirm("¿Quieres vaciar todo el carrito?")) {
+      carrito.length = 0;
+      actualizarCarrito();
+    }
+  });
