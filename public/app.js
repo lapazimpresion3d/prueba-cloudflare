@@ -252,3 +252,24 @@ agregar.addEventListener("click", () => {
 }
 
 cargarMenu();
+
+
+/* Abrir y cerrar el carrito */
+const botonCarrito = document.getElementById("abrir-carrito");
+const seccionCarrito = document.getElementById("carrito");
+
+seccionCarrito.hidden = true;
+
+botonCarrito.addEventListener("click", () => {
+  const abrir = seccionCarrito.hidden;
+
+  seccionCarrito.hidden = !abrir;
+  botonCarrito.setAttribute("aria-expanded", String(abrir));
+
+  if (abrir) {
+    seccionCarrito.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }
+});
