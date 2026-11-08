@@ -335,8 +335,19 @@ botonCarrito.addEventListener("click", () => {
 });
 
 
+
 /* Cerrar el carrito al hacer clic fuera */
 document.addEventListener("click", (evento) => {
+
+  // No cerrar al interactuar con los productos del menú
+  if (
+    evento.target.closest(".producto") ||
+    evento.target.closest("#categorias")
+  ) {
+    return;
+  }
+
+  // Cerrar solamente si el clic fue fuera del carrito
   if (
     !seccionCarrito.hidden &&
     !seccionCarrito.contains(evento.target) &&
@@ -346,6 +357,7 @@ document.addEventListener("click", (evento) => {
     botonCarrito.setAttribute("aria-expanded", "false");
   }
 });
+
 
 /* Cerrar el carrito con la tecla Escape */
 document.addEventListener("keydown", (evento) => {
