@@ -262,3 +262,21 @@ footer {
   color: var(--oscuro);
 }
 
+/* Botón para agregar al pedido */
+.agregar-pedido {
+  width: 100%;
+  background: var(--rojo);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 14px;
+  margin-top: 15px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.agregar-pedido:hover {
+  background: #922c1a;
+}
+
