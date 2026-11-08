@@ -52,8 +52,68 @@ async function cargarMenu() {
             currency: menu.moneda
           }).format(producto.precio);
 
-          tarjeta.append(imagen, nombre, descripcion, precio);
-          contenedor.appendChild(tarjeta);
+
+        // Selector de cantidad
+        let cantidad = 1;
+
+        const controles = document.createElement("div");
+        controles.className = "cantidad-controles";
+
+        const disminuir = document.createElement("button");
+        disminuir.type = "button";
+        disminuir.textContent = "−";
+
+        const numero = document.createElement("span");
+        numero.textContent = cantidad;
+
+        const aumentar = document.createElement("button");
+        aumentar.type = "button";
+        aumentar.textContent = "+";
+
+        // Subtotal del producto
+        const subtotal = document.createElement("p");
+        subtotal.className = "subtotal";
+
+        const formatoPrecio = new Intl.NumberFormat("es-MX", {
+          style: "currency",
+          currency: menu.moneda
+        });
+
+        function actualizarCantidad() {
+          numero.textContent = cantidad;
+          disminuir.disabled = cantidad === 1;
+          subtotal.textContent =
+            "Subtotal: " + formatoPrecio.format(
+              cantidad * producto.precio
+            );
+        }
+
+        disminuir.addEventListener("click", () => {
+          if (cantidad > 1) {
+            cantidad--;
+            actualizarCantidad();
+          }
+        });
+
+        aumentar.addEventListener("click", () => {
+          cantidad++;
+          actualizarCantidad();
+        });
+
+        controles.append(disminuir, numero, aumentar);
+        actualizarCantidad();
+
+        tarjeta.append(
+          imagen,
+          nombre,
+          descripcion,
+          precio,
+          controles,
+          subtotal
+        );
+
+        contenedor.appendChild(tarjeta);
+
         });
       });
     }
