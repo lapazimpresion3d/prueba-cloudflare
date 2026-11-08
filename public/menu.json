@@ -20,6 +20,20 @@
           "descripcion": "Carne asada, cebolla y cilantro.",
           "precio": 30,
           "imagen": "imagenes/asada.webp"
+        },
+        {
+          "id": "birria",
+          "nombre": "Taco de birria",
+          "descripcion": "Carne de birria con cebolla y cilantro.",
+          "precio": 35,
+          "imagen": "imagenes/birria.webp"
+        },
+        {
+          "id": "carnitas",
+          "nombre": "Taco de carnitas",
+          "descripcion": "Carnitas de cerdo con cebolla y cilantro.",
+          "precio": 30,
+          "imagen": "imagenes/carnitas.webp"
         }
       ]
     },
