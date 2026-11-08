@@ -97,14 +97,16 @@ eliminar.addEventListener("click", (evento) => {
     aumentar.textContent = "+";
     aumentar.setAttribute("aria-label", "Aumentar " + item.nombre);
 
-    disminuir.addEventListener("click", () => {
+disminuir.addEventListener("click", (evento) => {
+  evento.stopPropagation();
       if (item.cantidad > 1) {
         item.cantidad--;
         actualizarCarrito();
       }
     });
 
-    aumentar.addEventListener("click", () => {
+aumentar.addEventListener("click", (evento) => {
+  evento.stopPropagation();
       item.cantidad++;
       actualizarCarrito();
     });
