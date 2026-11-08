@@ -376,3 +376,40 @@ header {
     max-height: calc(100dvh - 85px);
   }
 }
+
+
+/* Controles de cantidad dentro del carrito */
+.carrito-cantidad {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 12px 10px 0;
+}
+
+.carrito-cantidad button {
+  width: 32px;
+  height: 32px;
+  background: var(--rojo);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.carrito-cantidad button:hover:not(:disabled) {
+  background: #922c1a;
+}
+
+.carrito-cantidad button:disabled {
+  background: #c9c2bb;
+  cursor: not-allowed;
+}
+
+.carrito-cantidad span {
+  min-width: 20px;
+  text-align: center;
+  font-weight: bold;
+}
+
