@@ -1,7 +1,34 @@
 
+
 const carrito = [];
 
+try {
+  const guardado = JSON.parse(
+    localStorage.getItem("elComalCarrito") || "[]"
+  );
+
+  if (Array.isArray(guardado)) {
+    carrito.push(...guardado);
+  }
+} catch (error) {
+  console.warn("No se pudo recuperar el carrito", error);
+}
+
+
 function actualizarCarrito() {
+
+  
+  // Guardar el pedido en el navegador
+  try {
+    localStorage.setItem(
+      "elComalCarrito",
+      JSON.stringify(carrito)
+    );
+  } catch (error) {
+    console.warn("No se pudo guardar el carrito", error);
+  }
+
+  
   const contenedor = document.getElementById("carrito-productos");
   const totalElemento = document.getElementById("carrito-total");
 
@@ -40,7 +67,8 @@ function actualizarCarrito() {
     eliminar.textContent = "Eliminar";
     eliminar.setAttribute("aria-label", "Eliminar " + item.nombre);
 
-    eliminar.addEventListener("click", () => {
+eliminar.addEventListener("click", (evento) => {
+  evento.stopPropagation();
       const indice = carrito.findIndex(
         producto => producto.id === item.id
       );
@@ -326,3 +354,5 @@ document.addEventListener("keydown", (evento) => {
   }
 });
 
+// Recuperar el pedido al abrir la página
+actualizarCarrito();
