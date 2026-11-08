@@ -5,6 +5,18 @@ function actualizarCarrito() {
   const contenedor = document.getElementById("carrito-productos");
   const totalElemento = document.getElementById("carrito-total");
 
+
+  // Actualizar el contador del carrito flotante
+  const contador = document.getElementById("carrito-contador");
+
+  const cantidadTotal = carrito.reduce(
+    (suma, item) => suma + item.cantidad,
+    0
+  );
+
+  contador.textContent = cantidadTotal;
+
+  
   contenedor.innerHTML = "";
   let total = 0;
 
