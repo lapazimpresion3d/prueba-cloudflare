@@ -303,7 +303,8 @@ header {
 }
 
 #abrir-carrito {
-  position: absolute;
+  position: fixed;
+  z-index: 1000;
   top: 20px;
   right: 25px;
   display: flex;
