@@ -389,3 +389,20 @@ document.getElementById("vaciar-carrito")
       actualizarCarrito();
     }
   });
+
+/* Cerrar al tocar el espacio vacío del carrito */
+seccionCarrito.addEventListener("click", (evento) => {
+
+  // No cerrar al interactuar con productos o botones
+  if (
+    evento.target.closest("#carrito-productos") ||
+    evento.target.closest(".carrito-resumen") ||
+    evento.target.closest("button")
+  ) {
+    return;
+  }
+
+  // Cerrar al tocar el fondo del panel
+  seccionCarrito.hidden = true;
+  botonCarrito.setAttribute("aria-expanded", "false");
+});
