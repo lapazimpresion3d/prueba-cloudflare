@@ -21,7 +21,27 @@ function actualizarCarrito() {
     fila.textContent =
       `${item.cantidad} × ${item.nombre} — $${subtotal.toFixed(2)}`;
 
+
+    const eliminar = document.createElement("button");
+    eliminar.type = "button";
+    eliminar.className = "eliminar-producto";
+    eliminar.textContent = "Eliminar";
+    eliminar.setAttribute("aria-label", "Eliminar " + item.nombre);
+
+    eliminar.addEventListener("click", () => {
+      const indice = carrito.findIndex(
+        producto => producto.id === item.id
+      );
+
+      if (indice !== -1) {
+        carrito.splice(indice, 1);
+        actualizarCarrito();
+      }
+    });
+
+    fila.appendChild(eliminar);
     contenedor.appendChild(fila);
+
   });
 
   totalElemento.textContent = `$${total.toFixed(2)}`;
