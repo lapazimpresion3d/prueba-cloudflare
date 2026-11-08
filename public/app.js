@@ -266,10 +266,5 @@ botonCarrito.addEventListener("click", () => {
   seccionCarrito.hidden = !abrir;
   botonCarrito.setAttribute("aria-expanded", String(abrir));
 
-  if (abrir) {
-    seccionCarrito.scrollIntoView({
-      behavior: "smooth",
-      block: "start"
-    });
-  }
+
 });
