@@ -51,8 +51,43 @@ function actualizarCarrito() {
       }
     });
 
-    fila.appendChild(eliminar);
+
+    // Controles de cantidad dentro del carrito
+    const controles = document.createElement("div");
+    controles.className = "carrito-cantidad";
+
+    const disminuir = document.createElement("button");
+    disminuir.type = "button";
+    disminuir.textContent = "−";
+    disminuir.setAttribute("aria-label", "Disminuir " + item.nombre);
+
+    const numero = document.createElement("span");
+    numero.textContent = item.cantidad;
+
+    const aumentar = document.createElement("button");
+    aumentar.type = "button";
+    aumentar.textContent = "+";
+    aumentar.setAttribute("aria-label", "Aumentar " + item.nombre);
+
+    disminuir.addEventListener("click", () => {
+      if (item.cantidad > 1) {
+        item.cantidad--;
+        actualizarCarrito();
+      }
+    });
+
+    aumentar.addEventListener("click", () => {
+      item.cantidad++;
+      actualizarCarrito();
+    });
+
+    disminuir.disabled = item.cantidad === 1;
+
+    controles.append(disminuir, numero, aumentar);
+
+    fila.append(controles, eliminar);
     contenedor.appendChild(fila);
+
 
   });
 
