@@ -340,12 +340,18 @@ botonCarrito.addEventListener("click", () => {
 document.addEventListener("click", (evento) => {
 
   // No cerrar al interactuar con los productos del menú
-  if (
-    evento.target.closest(".producto") ||
-    evento.target.closest("#categorias")
-  ) {
-    return;
-  }
+
+if (
+  evento.target.closest(".producto") &&
+  !evento.target.closest(".producto-imagen")
+) {
+  return;
+}
+
+if (evento.target.closest("#categorias")) {
+  return;
+}
+
 
   // Cerrar solamente si el clic fue fuera del carrito
   if (
