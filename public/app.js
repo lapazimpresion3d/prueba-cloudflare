@@ -103,14 +103,35 @@ async function cargarMenu() {
         controles.append(disminuir, numero, aumentar);
         actualizarCantidad();
 
+
+        // Botón para agregar productos al pedido
+        const agregar = document.createElement("button");
+        agregar.type = "button";
+        agregar.className = "agregar-pedido";
+        agregar.textContent = "Agregar al pedido";
+
+        agregar.addEventListener("click", () => {
+          alert(
+            "Producto agregado:\n" +
+            producto.nombre +
+            "\nCantidad: " + cantidad +
+            "\nSubtotal: " +
+            formatoPrecio.format(cantidad * producto.precio)
+          );
+        });
+
+          
+
         tarjeta.append(
           imagen,
           nombre,
           descripcion,
           precio,
           controles,
-          subtotal
+          subtotal,
+          agregar
         );
+
 
         contenedor.appendChild(tarjeta);
 
