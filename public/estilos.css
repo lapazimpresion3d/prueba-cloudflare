@@ -344,3 +344,8 @@ header {
   }
 }
 
+
+/* Ocultar el carrito cuando está cerrado */
+#carrito[hidden] {
+  display: none;
+}
