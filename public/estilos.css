@@ -349,3 +349,30 @@ header {
 #carrito[hidden] {
   display: none;
 }
+
+
+/* Panel flotante del carrito */
+#carrito {
+  position: fixed;
+  top: 80px;
+  right: 25px;
+  z-index: 999;
+  width: min(380px, calc(100vw - 30px));
+  max-height: calc(100dvh - 100px);
+  overflow-y: auto;
+  background: white;
+  padding: 25px;
+  border: 2px solid var(--amarillo);
+  border-radius: 16px;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.25);
+}
+
+/* Adaptación a teléfonos */
+@media (max-width: 600px) {
+  #carrito {
+    top: 70px;
+    right: 15px;
+    padding: 18px;
+    max-height: calc(100dvh - 85px);
+  }
+}
