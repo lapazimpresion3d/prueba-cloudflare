@@ -173,4 +173,46 @@ footer {
   }
 
 
+/* Navegación por categorías */
+#categorias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 30px 0;
 }
+
+.categoria-boton {
+  background: white;
+  color: var(--oscuro);
+  border: 2px solid var(--rojo);
+  border-radius: 30px;
+  padding: 12px 24px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.categoria-boton:hover {
+  background: var(--crema);
+  transform: translateY(-2px);
+}
+
+/* Categoría seleccionada */
+.categoria-boton.activo {
+  background: var(--rojo);
+  color: white;
+}
+
+/* Adaptación a teléfonos */
+@media (max-width: 600px) {
+  #categorias {
+    gap: 8px;
+  }
+
+  .categoria-boton {
+    padding: 10px 16px;
+    font-size: 0.9rem;
+  }
+}
+
