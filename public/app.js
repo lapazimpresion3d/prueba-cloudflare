@@ -341,12 +341,14 @@ document.addEventListener("click", (evento) => {
 
   // No cerrar al interactuar con los productos del menú
 
+
 if (
-  evento.target.closest(".producto") &&
-  !evento.target.closest(".producto-imagen")
+  evento.target.closest(".cantidad-controles") ||
+  evento.target.closest(".agregar-pedido")
 ) {
   return;
 }
+
 
 if (evento.target.closest("#categorias")) {
   return;
