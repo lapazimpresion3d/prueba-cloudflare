@@ -99,23 +99,33 @@ main {
   flex-direction: column;
   min-width: 0;
   background: white;
-  border-radius: 14px;
+  border-radius: 16px;
   padding: 15px;
   overflow: hidden;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+  box-shadow: 0 5px 18px rgba(0, 0, 0, 0.08);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.producto:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
 }
 
 /* Fotografías de los productos */
 .producto-imagen {
   display: block;
   width: 100%;
-  height: auto;
   aspect-ratio: 4 / 3;
+  height: auto;
   object-fit: cover;
-  border-radius: 10px;
+  border-radius: 12px;
   margin-bottom: 15px;
+  transition: transform 0.3s ease;
 }
 
+.producto:hover .producto-imagen {
+  transform: scale(1.025);
+}
 
 .producto h3 {
   margin-top: 0;
