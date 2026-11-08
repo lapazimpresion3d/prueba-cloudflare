@@ -413,3 +413,31 @@ header {
   font-weight: bold;
 }
 
+
+/* Presentación de productos dentro del carrito */
+#carrito-productos > p {
+  background: var(--crema);
+  padding: 15px;
+  margin: 12px 0;
+  border-radius: 12px;
+  border: 1px solid #e5ddd3;
+  line-height: 1.8;
+}
+
+/* Separación visual del total */
+.carrito-resumen {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 2px solid var(--amarillo);
+  font-size: 1.2rem;
+}
+
+#carrito-total {
+  color: var(--rojo);
+  font-size: 1.4rem;
+}
+
