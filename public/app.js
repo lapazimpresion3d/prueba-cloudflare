@@ -268,3 +268,26 @@ botonCarrito.addEventListener("click", () => {
 
 
 });
+
+
+/* Cerrar el carrito al hacer clic fuera */
+document.addEventListener("click", (evento) => {
+  if (
+    !seccionCarrito.hidden &&
+    !seccionCarrito.contains(evento.target) &&
+    !botonCarrito.contains(evento.target)
+  ) {
+    seccionCarrito.hidden = true;
+    botonCarrito.setAttribute("aria-expanded", "false");
+  }
+});
+
+/* Cerrar el carrito con la tecla Escape */
+document.addEventListener("keydown", (evento) => {
+  if (evento.key === "Escape" && !seccionCarrito.hidden) {
+    seccionCarrito.hidden = true;
+    botonCarrito.setAttribute("aria-expanded", "false");
+    botonCarrito.focus();
+  }
+});
+
