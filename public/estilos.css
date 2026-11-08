@@ -280,3 +280,20 @@ footer {
   background: #922c1a;
 }
 
+/* Botón para eliminar productos del carrito */
+.eliminar-producto {
+  margin-left: 15px;
+  padding: 7px 12px;
+  background: transparent;
+  color: var(--rojo);
+  border: 1px solid var(--rojo);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.eliminar-producto:hover {
+  background: var(--rojo);
+  color: white;
+}
+
