@@ -13,8 +13,21 @@
 </head>
 
 <body>
-  <header>
-    <p class="subtitulo">SABOR DE MÉXICO</p>
+
+<header>
+  <!-- Acceso al carrito -->
+  <button
+    id="abrir-carrito"
+    type="button"
+    aria-label="Ver carrito de compras"
+    aria-controls="carrito"
+    aria-expanded="false"
+  >
+    🛒 <span id="carrito-contador">0</span>
+  </button>
+
+  <p class="subtitulo">SABOR DE MÉXICO</p>
+
     <h1>TAQUERÍA EL COMAL</h1>
     <p>Tacos preparados al momento</p>
     <a href="#menu" class="boton">Explorar menú</a>
