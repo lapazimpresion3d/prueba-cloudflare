@@ -7,13 +7,33 @@
       "id": "tacos",
       "nombre": "Tacos",
       "productos": [
-        {
-          "id": "pastor",
-          "nombre": "Taco al pastor",
-          "descripcion": "Carne al pastor, cebolla y cilantro.",
-          "precio": 25,
-          "imagen": "imagenes/pastor.webp"
-        },
+
+{
+  "id": "pastor",
+  "nombre": "Taco al pastor",
+  "descripcion": "Carne al pastor, cebolla y cilantro.",
+  "precio": 25,
+  "imagen": "imagenes/pastor.webp",
+  "ingredientes": [
+    {
+      "id": "cebolla",
+      "nombre": "Cebolla",
+      "incluido": true
+    },
+    {
+      "id": "cilantro",
+      "nombre": "Cilantro",
+      "incluido": true
+    }
+  ],
+  "extras": [
+    {
+      "id": "queso",
+      "nombre": "Queso extra",
+      "precio": 10
+    }
+  ]
+},
         {
           "id": "asada",
           "nombre": "Taco de asada",
