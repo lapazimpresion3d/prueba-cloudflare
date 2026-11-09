@@ -291,9 +291,17 @@ async function cargarMenu() {
               const etiqueta = document.createElement("label");
               const casilla = document.createElement("input");
 
-              casilla.type = "checkbox";
-              casilla.value = ingrediente.id;
-              casilla.checked = ingrediente.incluido;
+
+               casilla.type = "checkbox";
+               casilla.value = ingrediente.id;
+               casilla.checked = ingrediente.incluido || ingrediente.obligatorio === true;
+               
+               // Impedir que se quiten ingredientes obligatorios
+               if (ingrediente.obligatorio === true) {
+                 casilla.disabled = true;
+                 casilla.title = "Ingrediente obligatorio";
+               }
+
 
               etiqueta.append(
                 casilla,
