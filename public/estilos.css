@@ -635,3 +635,17 @@ header {
   flex-shrink: 0;
 }
 
+
+/* Ingredientes obligatorios */
+.ingrediente-obligatorio {
+  color: #705c4d;
+  font-weight: bold;
+}
+
+.ingrediente-obligatorio::after {
+  content: "(obligatorio)";
+  font-size: 0.8rem;
+  font-weight: normal;
+  color: #80766d;
+}
+
