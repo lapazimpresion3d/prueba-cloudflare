@@ -379,22 +379,9 @@ agregar.addEventListener("click", () => {
 });
 
 
-  if (existente) {
-    existente.cantidad += cantidad;
-  } else {
-    carrito.push({
-      id: producto.id,
-      nombre: producto.nombre,
-      precio: producto.precio,
-      cantidad: cantidad
-    });
-  }
 
-  actualizarCarrito();
-});
 
           
-
 
     tarjeta.append(
       imagen,
