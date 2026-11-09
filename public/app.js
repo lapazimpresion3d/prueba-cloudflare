@@ -402,13 +402,14 @@ document.getElementById("vaciar-carrito")
 seccionCarrito.addEventListener("click", (evento) => {
 
   // No cerrar al interactuar con productos o botones
-  if (
-    evento.target.closest("#carrito-productos") ||
-    evento.target.closest(".carrito-resumen") ||
-    evento.target.closest("button")
-  ) {
-    return;
-  }
+ if (
+  evento.target.closest("#carrito-productos") ||
+  evento.target.closest(".carrito-resumen") ||
+  evento.target.closest("button") ||
+  evento.target.closest(".datos-cliente")
+) {
+  return;
+}
 
   // Cerrar al tocar el fondo del panel
   seccionCarrito.hidden = true;
