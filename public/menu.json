@@ -71,34 +71,109 @@
               }
             ]
           },
-        {
-          "id": "birria",
-          "nombre": "Taco de birria",
-          "descripcion": "Carne de birria con cebolla y cilantro.",
-          "precio": 35,
-          "imagen": "imagenes/birria.webp"
-        },
-        {
-          "id": "carnitas",
-          "nombre": "Taco de carnitas",
-          "descripcion": "Carnitas de cerdo con cebolla y cilantro.",
-          "precio": 30,
-          "imagen": "imagenes/carnitas.webp"
-        }
-      ]
-    },
-    {
-      "id": "especialidades",
-      "nombre": "Especialidades",
-      "productos": [
-        {
-          "id": "quesadilla",
-          "nombre": "Quesadilla",
-          "descripcion": "Tortilla de harina con queso fundido.",
-          "precio": 45,
-          "imagen": "imagenes/quesadilla.webp"
-        }
-      ]
-    }
+
+            {
+              "id": "birria",
+              "nombre": "Taco de birria",
+              "descripcion": "Carne de birria con cebolla y cilantro.",
+              "precio": 35,
+              "imagen": "imagenes/birria.webp",
+              "ingredientes": [
+                {
+                  "id": "cebolla",
+                  "nombre": "Cebolla",
+                  "incluido": true
+                },
+                {
+                  "id": "cilantro",
+                  "nombre": "Cilantro",
+                  "incluido": true
+                }
+              ],
+              "extras": [
+                {
+                  "id": "queso",
+                  "nombre": "Queso extra",
+                  "precio": 10
+                },
+                {
+                  "id": "consome",
+                  "nombre": "Consomé extra",
+                  "precio": 15
+                }
+              ]
+            }
+,
+
+                {
+                  "id": "carnitas",
+                  "nombre": "Taco de carnitas",
+                  "descripcion": "Carnitas de cerdo con cebolla y cilantro.",
+                  "precio": 30,
+                  "imagen": "imagenes/carnitas.webp",
+                  "ingredientes": [
+                    {
+                      "id": "cebolla",
+                      "nombre": "Cebolla",
+                      "incluido": true
+                    },
+                    {
+                      "id": "cilantro",
+                      "nombre": "Cilantro",
+                      "incluido": true
+                    },
+                    {
+                      "id": "salsa_verde",
+                      "nombre": "Salsa verde",
+                      "incluido": true
+                    }
+                  ],
+                  "extras": [
+                    {
+                      "id": "aguacate",
+                      "nombre": "Aguacate extra",
+                      "precio": 15
+                    },
+                    {
+                      "id": "queso",
+                      "nombre": "Queso extra",
+                      "precio": 10
+                    }
+                  ]
+                }
+,
+
+{
+                      "id": "quesadilla",
+                      "nombre": "Quesadilla",
+                      "descripcion": "Tortilla de harina con queso fundido.",
+                      "precio": 45,
+                      "imagen": "imagenes/quesadilla.webp",
+                      "ingredientes": [
+                        {
+                          "id": "queso",
+                          "nombre": "Queso",
+                          "incluido": true
+                        }
+                      ],
+                      "extras": [
+                        {
+                          "id": "carne_asada",
+                          "nombre": "Carne asada",
+                          "precio": 20
+                        },
+                        {
+                          "id": "champiñones",
+                          "nombre": "Champiñones",
+                          "precio": 15
+                        },
+                        {
+                          "id": "aguacate",
+                          "nombre": "Aguacate extra",
+                          "precio": 15
+                        }
+                      ]
+                    }
+
   ]
 }
