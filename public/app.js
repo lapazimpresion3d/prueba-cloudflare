@@ -178,6 +178,57 @@ async function cargarMenu() {
           const descripcion = document.createElement("p");
           descripcion.textContent = producto.descripcion;
 
+
+          // Opciones de personalización del producto
+          const personalizacion = document.createElement("div");
+          personalizacion.className = "personalizacion";
+
+          if (producto.ingredientes?.length) {
+            const tituloIngredientes = document.createElement("h4");
+            tituloIngredientes.textContent = "Ingredientes";
+            personalizacion.appendChild(tituloIngredientes);
+
+            producto.ingredientes.forEach(ingrediente => {
+              const etiqueta = document.createElement("label");
+              const casilla = document.createElement("input");
+
+              casilla.type = "checkbox";
+              casilla.value = ingrediente.id;
+              casilla.checked = ingrediente.incluido;
+
+              etiqueta.append(
+                casilla,
+                document.createTextNode(" " + ingrediente.nombre)
+              );
+
+              personalizacion.appendChild(etiqueta);
+            });
+          }
+
+          if (producto.extras?.length) {
+            const tituloExtras = document.createElement("h4");
+            tituloExtras.textContent = "Extras";
+            personalizacion.appendChild(tituloExtras);
+
+            producto.extras.forEach(extra => {
+              const etiqueta = document.createElement("label");
+              const casilla = document.createElement("input");
+
+              casilla.type = "checkbox";
+              casilla.value = extra.id;
+
+              etiqueta.append(
+                casilla,
+                document.createTextNode(
+                  ` ${extra.nombre} (+$${extra.precio})`
+                )
+              );
+
+              personalizacion.appendChild(etiqueta);
+            });
+          }
+
+          
           const precio = document.createElement("p");
           precio.className = "precio";
           precio.textContent = new Intl.NumberFormat("es-MX", {
@@ -265,15 +316,18 @@ agregar.addEventListener("click", () => {
 
           
 
-        tarjeta.append(
-          imagen,
-          nombre,
-          descripcion,
-          precio,
-          controles,
-          subtotal,
-          agregar
-        );
+
+    tarjeta.append(
+      imagen,
+      nombre,
+      descripcion,
+      precio,
+      personalizacion,
+      controles,
+      subtotal,
+      agregar
+    );
+
 
 
         contenedor.appendChild(tarjeta);
