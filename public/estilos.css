@@ -1,3 +1,515 @@
+/*
+=========================================================
+PROYECTO: TAQUERÍA EL COMAL
+DESARROLLADOR: LAPAZIMPRESION3D
+ARCHIVO: estilos.css
+=========================================================
+
+DESCRIPCIÓN:
+Controla la presentación visual de la página,
+las tarjetas de productos, el menú interactivo,
+el carrito flotante y la adaptación a pantallas.
+
+ARCHIVOS RELACIONADOS:
+- index.html: estructura HTML.
+- app.js: funciones e interactividad.
+- menu.json: productos y configuraciones.
+
+REGLAS DE MANTENIMIENTO:
+- Mantener los colores principales en :root.
+- No cambiar nombres de clases sin revisar HTML y JS.
+- Conservar el diseño adaptable.
+- No eliminar reglas sin comprobar dónde se utilizan.
+- Realizar modificaciones en la rama desarrollo.
+
+=========================================================
+*/
+
+
+/* =====================================================
+   SECCIÓN 1 — COLORES Y CONFIGURACIÓN GENERAL
+   Variables de color y estilos base de la página.
+   ===================================================== */
+/* Colores principales */
+:root {
+  --rojo: #b63822;
+  --amarillo: #f5b841;
+  --crema: #fff6e7;
+  --oscuro: #29211c;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: var(--crema);
+  color: var(--oscuro);
+}
+
+/* =====================================================
+   SECCIÓN 2 — ENCABEZADO PRINCIPAL
+   Presentación de la identidad de Taquería El Comal.
+   ===================================================== */
+/* Encabezado principal */
+header {
+  background: var(--oscuro);
+  color: white;
+  text-align: center;
+  padding: 110px 20px 100px;
+  border-bottom: 8px solid var(--amarillo);
+}
+
+header h1 {
+  font-size: clamp(2.5rem, 7vw, 5.5rem);
+  line-height: 1.05;
+  letter-spacing: -2px;
+  margin: 20px 0;
+  color: var(--amarillo);
+  font-weight: 900;
+}
+
+.subtitulo {
+  color: var(--amarillo);
+  letter-spacing: 5px;
+  font-size: 0.9rem;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+/* =====================================================
+   SECCIÓN 3 — BOTONES GENERALES
+   Estilo del botón principal y su interacción.
+   ===================================================== */
+.boton {
+  display: inline-block;
+  background: var(--amarillo);
+  color: var(--oscuro);
+  padding: 16px 32px;
+  border-radius: 30px;
+  text-decoration: none;
+  font-weight: bold;
+  margin-top: 25px;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.boton:hover {
+  background: #ffd06b;
+  transform: translateY(-2px);
+}
+
+/* =====================================================
+   SECCIÓN 4 — ESTRUCTURA DEL MENÚ
+   Contenedor, títulos y cuadrícula de productos.
+   ===================================================== */
+/* Menú */
+main {
+  width: 100%;
+  max-width: 1400px;
+  margin: auto;
+  padding: 50px 30px;
+}
+
+/* Encabezado de la sección del menú */
+#menu h2 {
+  font-size: clamp(2rem, 4vw, 3rem);
+  color: var(--rojo);
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+#menu > p {
+  font-size: 1.1rem;
+  color: #705c4d;
+  margin-top: 0;
+}
+#productos {
+  margin-top: 35px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 25px;
+}
+
+/* =====================================================
+   SECCIÓN 5 — TARJETAS Y FOTOGRAFÍAS
+   Tarjetas, imágenes, nombres y precios.
+   ===================================================== */
+/* Tarjeta de producto */
+.producto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: white;
+  border-radius: 16px;
+  padding: 15px;
+  overflow: hidden;
+  box-shadow: 0 5px 18px rgba(0, 0, 0, 0.08);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.producto:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Fotografías de los productos */
+.producto-imagen {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  height: auto;
+  object-fit: cover;
+  border-radius: 12px;
+  margin-bottom: 15px;
+  transition: transform 0.3s ease;
+}
+
+.producto:hover .producto-imagen {
+  transform: scale(1.025);
+}
+
+.producto h3 {
+  margin-top: 0;
+  color: var(--rojo);
+}
+
+.precio {
+  color: var(--oscuro);
+  font-size: 1.4rem;
+  font-weight: bold;
+}
+
+/* =====================================================
+   SECCIÓN 6 — PIE DE PÁGINA
+   Estilos del pie de la página.
+   ===================================================== */
+/* Pie de página */
+footer {
+  background: var(--oscuro);
+  color: white;
+  text-align: center;
+  padding: 25px;
+}
+
+
+/* =====================================================
+   SECCIÓN 7 — DISEÑO ADAPTABLE
+   Distribución del menú en teléfonos y tabletas.
+   ===================================================== */
+/* Adaptación a teléfonos */
+@media (max-width: 600px) {
+  header {
+    padding: 65px 15px;
+  }
+
+  main {
+    padding: 35px 15px;
+  }
+
+  #menu h2 {
+    font-size: 1.9rem;
+  }
+
+  #productos {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Adaptación a tabletas */
+@media (min-width: 601px) and (max-width: 900px) {
+  #productos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* =====================================================
+   SECCIÓN 8 — NAVEGACIÓN POR CATEGORÍAS
+   Botones de filtro y categoría activa.
+   ===================================================== */
+/* Navegación por categorías */
+#categorias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 30px 0;
+}
+
+.categoria-boton {
+  background: white;
+  color: var(--oscuro);
+  border: 2px solid var(--rojo);
+  border-radius: 30px;
+  padding: 12px 24px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.categoria-boton:hover {
+  background: var(--crema);
+  transform: translateY(-2px);
+}
+
+/* Categoría seleccionada */
+.categoria-boton.activo {
+  background: var(--rojo);
+  color: white;
+}
+
+/* Adaptación a teléfonos */
+@media (max-width: 600px) {
+  #categorias {
+    gap: 8px;
+  }
+
+  .categoria-boton {
+    padding: 10px 16px;
+    font-size: 0.9rem;
+  }
+}
+
+/* =====================================================
+   SECCIÓN 9 — SELECTORES DE CANTIDAD
+   Controles y subtotal en cada tarjeta.
+   ===================================================== */
+/* Selector de cantidades */
+.cantidad-controles {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-top: auto;
+  padding-top: 15px;
+}
+
+.cantidad-controles button {
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 8px;
+  background: var(--rojo);
+  color: white;
+  font-size: 1.4rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.cantidad-controles button:hover:not(:disabled) {
+  background: #922c1a;
+}
+
+.cantidad-controles button:disabled {
+  background: #c9c2bb;
+  cursor: not-allowed;
+}
+
+.cantidad-controles span {
+  min-width: 25px;
+  text-align: center;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+/* Subtotal */
+.subtotal {
+  margin: 15px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid #e5ddd3;
+  font-weight: bold;
+  color: var(--oscuro);
+}
+
+/* Botón para agregar al pedido */
+.agregar-pedido {
+  width: 100%;
+  background: var(--rojo);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 14px;
+  margin-top: 15px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.agregar-pedido:hover {
+  background: #922c1a;
+}
+
+/* Botón para eliminar productos del carrito */
+.eliminar-producto {
+  margin-left: 15px;
+  padding: 7px 12px;
+  background: transparent;
+  color: var(--rojo);
+  border: 1px solid var(--rojo);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.eliminar-producto:hover {
+  background: var(--rojo);
+  color: white;
+}
+
+/* =====================================================
+   SECCIÓN 10 — CARRITO FLOTANTE Y PEDIDOS
+   Acceso fijo, panel, controles, total y acciones del pedido.
+   ===================================================== */
+/* Acceso al carrito en el encabezado */
+header {
+  position: relative;
+}
+
+#abrir-carrito {
+  position: fixed;
+  z-index: 1000;
+  top: 20px;
+  right: 25px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--rojo);
+  color: white;
+  border: none;
+  border-radius: 30px;
+  padding: 12px 18px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+#abrir-carrito:hover {
+  background: #922c1a;
+}
+
+#carrito-contador {
+  background: var(--amarillo);
+  color: var(--oscuro);
+  border-radius: 50%;
+  min-width: 25px;
+  height: 25px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 600px) {
+  #abrir-carrito {
+    top: 15px;
+    right: 15px;
+    padding: 9px 13px;
+  }
+}
+
+
+/* Ocultar el carrito cuando está cerrado */
+#carrito[hidden] {
+  display: none;
+}
+
+
+/* Panel flotante del carrito */
+#carrito {
+  position: fixed;
+  top: 80px;
+  right: 25px;
+  z-index: 999;
+  width: min(380px, calc(100vw - 30px));
+  max-height: calc(100dvh - 100px);
+  overflow-y: auto;
+  background: white;
+  padding: 25px;
+  border: 2px solid var(--amarillo);
+  border-radius: 16px;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.25);
+}
+
+/* Adaptación a teléfonos */
+@media (max-width: 600px) {
+  #carrito {
+    top: 70px;
+    right: 15px;
+    padding: 18px;
+    max-height: calc(100dvh - 85px);
+  }
+}
+
+
+/* Controles de cantidad dentro del carrito */
+.carrito-cantidad {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 12px 10px 0;
+}
+
+.carrito-cantidad button {
+  width: 32px;
+  height: 32px;
+  background: var(--rojo);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.carrito-cantidad button:hover:not(:disabled) {
+  background: #922c1a;
+}
+
+.carrito-cantidad button:disabled {
+  background: #c9c2bb;
+  cursor: not-allowed;
+}
+
+.carrito-cantidad span {
+  min-width: 20px;
+  text-align: center;
+  font-weight: bold;
+}
+
+
+/* Presentación de productos dentro del carrito */
+#carrito-productos > p {
+  background: var(--crema);
+  padding: 15px;
+  margin: 12px 0;
+  border-radius: 12px;
+  border: 1px solid #e5ddd3;
+  line-height: 1.8;
+}
+
+/* Separación visual del total */
+.carrito-resumen {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 2px solid var(--amarillo);
+  font-size: 1.2rem;
+}
+
+#carrito-total {
+  color: var(--rojo);
+  font-size: 1.4rem;
+}
+
+
+/* Botón para vaciar el carrito */
 #vaciar-carrito {
   display: block;
   width: 100%;
