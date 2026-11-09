@@ -758,11 +758,13 @@ document.getElementById("enviar-pedido")
     }
 
     // Abrir WhatsApp con el pedido preparado
-    const url =
-      "https://wa.me/" +
-      telefono +
-      "?text=" +
-      encodeURIComponent(mensaje);
+
+      const url =
+        "https://web.whatsapp.com/send?phone=" +
+        telefono +
+        "&text=" +
+        encodeURIComponent(mensaje);
+
 
       console.log("Mensaje original:", mensaje);
       console.log("Mensaje codificado:", encodeURIComponent(mensaje));
