@@ -297,10 +297,14 @@ async function cargarMenu() {
                casilla.checked = ingrediente.incluido || ingrediente.obligatorio === true;
                
                // Impedir que se quiten ingredientes obligatorios
+
                if (ingrediente.obligatorio === true) {
                  casilla.disabled = true;
                  casilla.title = "Ingrediente obligatorio";
+               
+                 etiqueta.classList.add("ingrediente-obligatorio");
                }
+
 
 
               etiqueta.append(
