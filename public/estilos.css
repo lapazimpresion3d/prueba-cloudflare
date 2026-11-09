@@ -30,7 +30,9 @@ REGLAS DE MANTENIMIENTO:
    SECCIÓN 1 — COLORES Y CONFIGURACIÓN GENERAL
    Variables de color y estilos base de la página.
    ===================================================== */
+
 /* Colores principales */
+
 :root {
   --rojo: #b63822;
   --amarillo: #f5b841;
