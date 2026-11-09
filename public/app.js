@@ -74,7 +74,7 @@ function actualizarCarrito() {
     if (Array.isArray(item.ingredientes)) {
       const detalles = document.createElement("small");
 
-      const ingredientesOriginales = ["Cebolla", "Cilantro"];
+      const ingredientesOriginales = item.ingredientesOriginales || [];
       const omitidos = ingredientesOriginales.filter(
         nombre => !item.ingredientes.includes(nombre)
       );
@@ -613,7 +613,7 @@ document.getElementById("enviar-pedido")
 
       // Ingredientes eliminados
       if (Array.isArray(item.ingredientes)) {
-        const originales = ["Cebolla", "Cilantro"];
+        const originales = item.ingredientesOriginales || [];
 
         const omitidos = originales.filter(
           nombre => !item.ingredientes.includes(nombre)
