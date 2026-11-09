@@ -175,6 +175,35 @@
           ]
         }
       ]
-    }
+    },
+    
+            {
+              "id": "bebidas",
+              "nombre": "Bebidas",
+              "productos": [
+                {
+                  "id": "agua",
+                  "nombre": "Agua natural",
+                  "descripcion": "Vaso de agua natural fría con hielo.",
+                  "precio": 20,
+                  "imagen": "imagenes/agua.webp"
+                },
+                {
+                  "id": "refresco",
+                  "nombre": "Refresco",
+                  "descripcion": "Refresco frío acompañado de hielo.",
+                  "precio": 25,
+                  "imagen": "imagenes/refresco.webp"
+                },
+                {
+                  "id": "jamaica",
+                  "nombre": "Agua de jamaica",
+                  "descripcion": "Agua fresca de jamaica servida con hielo.",
+                  "precio": 25,
+                  "imagen": "imagenes/jamaica.webp"
+                }
+              ]
+            }
+
   ]
 }
