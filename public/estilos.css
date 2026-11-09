@@ -492,3 +492,16 @@ header {
   opacity: 0.55;
   cursor: not-allowed;
 }
+
+
+/* Aviso de demostración comercial */
+.aviso-demo {
+  background: #fff0cf;
+  border-left: 4px solid var(--amarillo);
+  padding: 14px 18px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 20px 0;
+}
+
