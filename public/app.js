@@ -49,6 +49,17 @@ function actualizarCarrito() {
   botonEnviar.disabled = carrito.length === 0;
 
   
+const nombreCliente = document
+  .getElementById("nombre-cliente")
+  .value.trim();
+
+if (!nombreCliente) {
+  alert("Por favor, escribe tu nombre.");
+  document.getElementById("nombre-cliente").focus();
+  return;
+}
+
+  
   contenedor.innerHTML = "";
   let total = 0;
 
@@ -419,12 +430,13 @@ document.getElementById("enviar-pedido")
 
     if (carrito.length === 0) return;
 
-
 let mensaje =
   "🌮 DEMOSTRACIÓN - TAQUERÍA EL COMAL\n\n" +
+  "Cliente: " + nombreCliente + "\n\n" +
   "Hola, estoy probando el sistema de pedidos " +
   "desarrollado por Lapazimpresion3d.\n\n" +
   "Este es mi pedido de prueba:\n\n";
+
 
     let total = 0;
 
