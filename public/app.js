@@ -258,19 +258,53 @@ async function cargarMenu() {
         const subtotal = document.createElement("p");
         subtotal.className = "subtotal";
 
+
+        // Calcular el precio de los extras seleccionados
+        function calcularPrecioUnitario() {
+          let precioUnitario = producto.precio;
+
+          const casillas = personalizacion.querySelectorAll(
+            'input[type="checkbox"]:checked'
+          );
+
+          casillas.forEach(casilla => {
+            const extra = producto.extras?.find(
+              item => item.id === casilla.value
+            );
+
+            if (extra) {
+              precioUnitario += extra.precio;
+            }
+          });
+
+          return precioUnitario;
+        }
+
+          
         const formatoPrecio = new Intl.NumberFormat("es-MX", {
           style: "currency",
           currency: menu.moneda
         });
 
+
         function actualizarCantidad() {
+          const precioUnitario = calcularPrecioUnitario();
+
           numero.textContent = cantidad;
           disminuir.disabled = cantidad === 1;
+
+          precio.textContent = formatoPrecio.format(precioUnitario);
+
           subtotal.textContent =
-            "Subtotal: " + formatoPrecio.format(
-              cantidad * producto.precio
-            );
+            "Subtotal: " +
+            formatoPrecio.format(cantidad * precioUnitario);
         }
+
+        // Actualizar precios cuando cambien los extras
+        personalizacion.addEventListener("change", () => {
+          actualizarCantidad();
+        });
+
 
         disminuir.addEventListener("click", () => {
           if (cantidad > 1) {
