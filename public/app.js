@@ -411,3 +411,31 @@ seccionCarrito.addEventListener("click", (evento) => {
   seccionCarrito.hidden = true;
   botonCarrito.setAttribute("aria-expanded", "false");
 });
+
+
+/* Preparar el mensaje del pedido */
+document.getElementById("enviar-pedido")
+  .addEventListener("click", () => {
+
+    if (carrito.length === 0) return;
+
+    let mensaje = "🌮 PEDIDO - TAQUERÍA EL COMAL\n\n";
+    let total = 0;
+
+    carrito.forEach(item => {
+      const subtotal = item.precio * item.cantidad;
+      total += subtotal;
+
+      mensaje +=
+        `${item.cantidad} × ${item.nombre}\n` +
+        `Precio: $${item.precio.toFixed(2)}\n` +
+        `Subtotal: $${subtotal.toFixed(2)}\n\n`;
+    });
+
+    mensaje += `TOTAL: $${total.toFixed(2)} MXN\n\n`;
+    mensaje += "Pedido sujeto a confirmación del restaurante.";
+
+    // Mostrar el mensaje para verificarlo
+    alert(mensaje);
+  });
+
