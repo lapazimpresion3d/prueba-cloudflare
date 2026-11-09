@@ -468,3 +468,27 @@ header {
   outline-offset: 3px;
 }
 
+
+/* Botón de envío por WhatsApp */
+#enviar-pedido {
+  display: block;
+  width: 100%;
+  margin-top: 20px;
+  padding: 15px;
+  background: #25d366;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+#enviar-pedido:hover:not(:disabled) {
+  background: #1da851;
+}
+
+#enviar-pedido:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
