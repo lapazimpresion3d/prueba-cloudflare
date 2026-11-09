@@ -419,7 +419,13 @@ document.getElementById("enviar-pedido")
 
     if (carrito.length === 0) return;
 
-    let mensaje = "🌮 PEDIDO - TAQUERÍA EL COMAL\n\n";
+
+let mensaje =
+  "🌮 DEMOSTRACIÓN - TAQUERÍA EL COMAL\n\n" +
+  "Hola, estoy probando el sistema de pedidos " +
+  "desarrollado por Lapazimpresion3d.\n\n" +
+  "Este es mi pedido de prueba:\n\n";
+
     let total = 0;
 
     carrito.forEach(item => {
@@ -433,9 +439,34 @@ document.getElementById("enviar-pedido")
     });
 
     mensaje += `TOTAL: $${total.toFixed(2)} MXN\n\n`;
-    mensaje += "Pedido sujeto a confirmación del restaurante.";
+    mensaje +=
+      "Este pedido es una demostración y no representa una compra real.\n\n" +
+      "Me interesa conocer las funciones de este sistema.";
+
 
     // Mostrar el mensaje para verificarlo
-    alert(mensaje);
+
+    // Número de WhatsApp del restaurante.
+    // Sustituir por un número autorizado para pruebas.
+    const telefono = "";
+
+    if (!telefono) {
+      alert(
+        "Mensaje preparado correctamente.\n\n" +
+        mensaje +
+        "\n\nFalta configurar el número de WhatsApp."
+      );
+      return;
+    }
+
+    // Abrir WhatsApp con el pedido preparado
+    const url =
+      "https://wa.me/" +
+      telefono +
+      "?text=" +
+      encodeURIComponent(mensaje);
+
+    window.open(url, "_blank", "noopener");
+
   });
 
