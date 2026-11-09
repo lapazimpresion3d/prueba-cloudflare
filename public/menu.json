@@ -34,13 +34,43 @@
     }
   ]
 },
-        {
-          "id": "asada",
-          "nombre": "Taco de asada",
-          "descripcion": "Carne asada, cebolla y cilantro.",
-          "precio": 30,
-          "imagen": "imagenes/asada.webp"
-        },
+
+          {
+            "id": "asada",
+            "nombre": "Taco de asada",
+            "descripcion": "Carne asada, cebolla y cilantro.",
+            "precio": 30,
+            "imagen": "imagenes/asada.webp",
+            "ingredientes": [
+              {
+                "id": "cebolla",
+                "nombre": "Cebolla",
+                "incluido": true
+              },
+              {
+                "id": "cilantro",
+                "nombre": "Cilantro",
+                "incluido": true
+              },
+              {
+                "id": "salsa",
+                "nombre": "Salsa roja",
+                "incluido": true
+              }
+            ],
+            "extras": [
+              {
+                "id": "queso",
+                "nombre": "Queso extra",
+                "precio": 10
+              },
+              {
+                "id": "aguacate",
+                "nombre": "Aguacate extra",
+                "precio": 15
+              }
+            ]
+          },
         {
           "id": "birria",
           "nombre": "Taco de birria",
