@@ -502,16 +502,17 @@ agregar.addEventListener("click", () => {
 
           
 
-    tarjeta.append(
-      imagen,
-      nombre,
-      descripcion,
-      precio,
-      personalizacion,
-      controles,
-      subtotal,
-      agregar
-    );
+            tarjeta.append(imagen, nombre, descripcion, precio);
+            
+            // Mostrar personalización solamente si existen opciones
+            if (
+              producto.ingredientes?.length ||
+              producto.extras?.length
+            ) {
+              tarjeta.appendChild(personalizacion);
+            }
+            
+            tarjeta.append(controles, subtotal, agregar);
 
 
 
