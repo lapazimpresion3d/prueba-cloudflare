@@ -692,7 +692,7 @@ document.getElementById("enviar-pedido")
     }
 
     let mensaje =
-      "🌮 DEMOSTRACIÓN - TAQUERÍA EL COMAL\n\n" +
+      "\uD83C\uDF2E DEMOSTRACIÓN - TAQUERÍA EL COMAL\n\n" +
       "Cliente: " + nombreCliente + "\n\n" +
       "Hola, estoy probando el sistema de pedidos " +
       "desarrollado por Lapazimpresion3d.\n\n" +
