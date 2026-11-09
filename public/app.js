@@ -43,6 +43,11 @@ function actualizarCarrito() {
 
   contador.textContent = cantidadTotal;
 
+  // Activar WhatsApp solamente si hay productos
+  const botonEnviar = document.getElementById("enviar-pedido");
+
+  botonEnviar.disabled = carrito.length === 0;
+
   
   contenedor.innerHTML = "";
   let total = 0;
