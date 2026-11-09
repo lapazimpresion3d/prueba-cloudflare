@@ -448,7 +448,7 @@ let mensaje =
 
     // Número de WhatsApp del restaurante.
     // Sustituir por un número autorizado para pruebas.
-    const telefono = "";
+    const telefono = "526121992396";
 
     if (!telefono) {
       alert(
