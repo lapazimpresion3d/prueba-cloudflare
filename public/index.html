@@ -1,5 +1,33 @@
+
 <!DOCTYPE html>
 <html lang="es">
+
+<!-- ==================================================
+     PROYECTO: TAQUERÍA EL COMAL
+     DESARROLLADOR: LAPAZIMPRESION3D
+     ARCHIVO: index.html
+
+     DESCRIPCIÓN:
+     Estructura principal de la demostración comercial.
+
+     ARCHIVOS RELACIONADOS:
+     - estilos.css: presentación visual.
+     - app.js: interactividad, carrito y WhatsApp.
+     - menu.json: categorías, productos y precios.
+
+     REGLAS DE MANTENIMIENTO:
+     - No cambiar identificadores (id) sin revisar app.js.
+     - No cambiar clases sin revisar estilos.css.
+     - Los productos se generan desde menu.json.
+     - Probar siempre en la rama desarrollo.
+     ================================================== -->
+
+<!-- ==================================================
+     SECCIÓN 1 — CONFIGURACIÓN DEL DOCUMENTO
+     Idioma, caracteres, adaptación móvil,
+     título y archivos CSS y JavaScript.
+     ================================================== -->
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport"
@@ -7,16 +35,33 @@
 
   <title>Taquería El Comal</title>
 
+  <!-- Hoja de estilos principal -->
   <link rel="stylesheet" href="estilos.css">
+
+  <!-- JavaScript; defer ejecuta después de analizar HTML -->
   <script src="app.js" defer></script>
 </head>
 
 <body>
 
-  <!-- ENCABEZADO PRINCIPAL -->
+  <!-- ==================================================
+       SECCIÓN 2 — ENCABEZADO PRINCIPAL
+
+       Presenta la identidad del restaurante
+       y permite acceder al carrito flotante.
+
+       Clases CSS:
+       - subtitulo
+       - boton
+
+       IDs utilizados por app.js:
+       - abrir-carrito
+       - carrito-contador
+       ================================================== -->
+
   <header>
 
-    <!-- Acceso al carrito flotante -->
+    <!-- Botón para abrir o cerrar el carrito -->
     <button
       id="abrir-carrito"
       type="button"
@@ -27,19 +72,36 @@
       🛒 <span id="carrito-contador">0</span>
     </button>
 
+    <!-- Identidad comercial -->
     <p class="subtitulo">SABOR DE MÉXICO</p>
     <h1>TAQUERÍA EL COMAL</h1>
     <p>Tacos preparados al momento</p>
+
+    <!-- Enlace hacia la sección del menú -->
     <a href="#menu" class="boton">Explorar menú</a>
 
   </header>
 
-  <!-- CONTENIDO PRINCIPAL -->
+  <!-- ==================================================
+       SECCIÓN 3 — CONTENIDO PRINCIPAL
+
+       Contenedor de la demostración.
+       Incluye el aviso comercial, el menú y el carrito.
+       ================================================== -->
+
   <main>
 
     <section id="menu">
 
-      <!-- Aviso de demostración comercial -->
+      <!-- ==============================================
+           SECCIÓN 3.1 — AVISO DE DEMOSTRACIÓN
+
+           Informa que el restaurante es ficticio
+           y que los pedidos no generan compras reales.
+
+           Clase CSS: aviso-demo
+           ============================================== -->
+
       <p class="aviso-demo">
         Esta es una demostración interactiva creada por
         <strong>Lapazimpresion3d</strong>.
@@ -48,34 +110,81 @@
         y no generan una compra real.
       </p>
 
-      <!-- Encabezado del menú -->
+      <!-- ==============================================
+           SECCIÓN 4 — MENÚ DINÁMICO
+
+           app.js obtiene los datos de menu.json.
+
+           El sistema genera automáticamente:
+           - Categorías.
+           - Fotografías.
+           - Nombres y descripciones.
+           - Precios.
+           - Ingredientes y extras.
+           - Controles de cantidad.
+
+           IMPORTANTE:
+           No agregar productos manualmente aquí.
+           ============================================== -->
+
+      <!-- Título del menú -->
       <h2>Nuestro menú</h2>
       <p>Elige tus favoritos</p>
 
-      <!-- Navegación por categorías -->
+      <!-- Botones de categorías generados por app.js -->
       <nav id="categorias"
            aria-label="Categorías del menú"></nav>
 
-      <!-- Productos generados mediante JavaScript -->
+      <!-- Tarjetas de productos generadas por app.js -->
       <div id="productos">
         <p>Cargando productos...</p>
       </div>
 
-      <!-- CARRITO FLOTANTE -->
+      <!-- ==============================================
+           SECCIÓN 5 — CARRITO FLOTANTE
+
+           Controlado mediante app.js.
+
+           Funciones:
+           - Mostrar productos seleccionados.
+           - Modificar cantidades.
+           - Eliminar productos.
+           - Calcular el total.
+           - Conservar el pedido en localStorage.
+           - Abrir y cerrar el panel.
+
+           CSS: #carrito
+           ============================================== -->
+
       <section id="carrito">
+
         <h2>Tu pedido</h2>
 
+        <!-- Productos agregados al carrito -->
         <div id="carrito-productos">
           <p>Tu carrito está vacío.</p>
         </div>
 
-        <!-- Total del pedido -->
+        <!-- ============================================
+             SECCIÓN 5.1 — TOTAL DEL PEDIDO
+
+             app.js actualiza carrito-total.
+             ============================================ -->
+
         <div class="carrito-resumen">
           <strong>Total:</strong>
           <strong id="carrito-total">$0.00</strong>
         </div>
 
-        <!-- Datos del cliente -->
+        <!-- ============================================
+             SECCIÓN 6 — DATOS DEL CLIENTE
+
+             El nombre se incorpora al mensaje
+             de WhatsApp mediante app.js.
+
+             ID: nombre-cliente
+             ============================================ -->
+
         <div class="datos-cliente">
           <label for="nombre-cliente">Tu nombre</label>
           <input
@@ -87,12 +196,33 @@
           >
         </div>
 
-        <!-- Enviar pedido por WhatsApp -->
+        <!-- ============================================
+             SECCIÓN 6.1 — PEDIDOS POR WHATSAPP
+
+             app.js genera el mensaje con:
+             - Nombre del cliente.
+             - Productos y cantidades.
+             - Ingredientes y extras.
+             - Precios y total.
+
+             El atributo disabled impide usar el botón
+             cuando está desactivado. app.js controla
+             su estado según el contenido del carrito.
+
+             El pedido es solamente una demostración.
+             ============================================ -->
+
         <button id="enviar-pedido" type="button" disabled>
           Enviar pedido por WhatsApp
         </button>
 
-        <!-- Vaciar carrito -->
+        <!-- ============================================
+             SECCIÓN 6.2 — VACIAR CARRITO
+
+             app.js solicita confirmación antes de
+             eliminar todos los productos.
+             ============================================ -->
+
         <button id="vaciar-carrito" type="button">
           Vaciar carrito
         </button>
@@ -103,7 +233,13 @@
 
   </main>
 
-  <!-- PIE DE PÁGINA -->
+  <!-- ==================================================
+       SECCIÓN 7 — PIE DE PÁGINA
+
+       Identificación final de la demostración.
+       Su apariencia se controla desde estilos.css.
+       ================================================== -->
+
   <footer>
     <p>Taquería El Comal — Página de demostración</p>
   </footer>
