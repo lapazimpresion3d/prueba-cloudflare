@@ -65,8 +65,38 @@ function actualizarCarrito() {
     const subtotal = item.precio * item.cantidad;
     total += subtotal;
 
+
+    // Mostrar producto y precio
     fila.textContent =
       `${item.cantidad} × ${item.nombre} — $${subtotal.toFixed(2)}`;
+
+    // Mostrar ingredientes omitidos
+    if (Array.isArray(item.ingredientes)) {
+      const detalles = document.createElement("small");
+
+      const ingredientesOriginales = ["Cebolla", "Cilantro"];
+      const omitidos = ingredientesOriginales.filter(
+        nombre => !item.ingredientes.includes(nombre)
+      );
+
+      detalles.textContent = omitidos.length
+        ? "Sin: " + omitidos.join(", ")
+        : "Con todos los ingredientes";
+
+      detalles.style.display = "block";
+      fila.appendChild(detalles);
+    }
+
+    // Mostrar extras seleccionados
+    if (Array.isArray(item.extras) && item.extras.length > 0) {
+      const detallesExtras = document.createElement("small");
+      detallesExtras.textContent =
+        "Extras: " + item.extras.join(", ");
+
+      detallesExtras.style.display = "block";
+      fila.appendChild(detallesExtras);
+    }
+
 
 
     const eliminar = document.createElement("button");
