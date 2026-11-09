@@ -764,6 +764,9 @@ document.getElementById("enviar-pedido")
       "?text=" +
       encodeURIComponent(mensaje);
 
+      console.log("Mensaje original:", mensaje);
+      console.log("Mensaje codificado:", encodeURIComponent(mensaje));
+     
     window.open(url, "_blank", "noopener");
 
   });
