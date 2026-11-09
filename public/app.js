@@ -765,9 +765,6 @@ document.getElementById("enviar-pedido")
         ? "https://wa.me/" + telefono + "?text=" + encodeURIComponent(mensaje)
         : "https://web.whatsapp.com/send?phone=" + telefono + "&text=" + encodeURIComponent(mensaje);
 
-
-      console.log("Mensaje original:", mensaje);
-      console.log("Mensaje codificado:", encodeURIComponent(mensaje));
      
     window.open(url, "_blank", "noopener");
 
