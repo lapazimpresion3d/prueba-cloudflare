@@ -598,10 +598,34 @@ document.getElementById("enviar-pedido")
       const subtotal = item.precio * item.cantidad;
       total += subtotal;
 
+
+      // Datos principales del producto
       mensaje +=
-        `${item.cantidad} × ${item.nombre}\n` +
-        `Precio: $${item.precio.toFixed(2)}\n` +
+        `${item.cantidad} × ${item.nombre}\n`;
+
+      // Ingredientes eliminados
+      if (Array.isArray(item.ingredientes)) {
+        const originales = ["Cebolla", "Cilantro"];
+
+        const omitidos = originales.filter(
+          nombre => !item.ingredientes.includes(nombre)
+        );
+
+        if (omitidos.length > 0) {
+          mensaje += "Sin: " + omitidos.join(", ") + "\n";
+        }
+      }
+
+      // Extras seleccionados
+      if (Array.isArray(item.extras) && item.extras.length > 0) {
+        mensaje += "Extras: " + item.extras.join(", ") + "\n";
+      }
+
+      // Precio y subtotal
+      mensaje +=
+        `Precio unitario: $${item.precio.toFixed(2)}\n` +
         `Subtotal: $${subtotal.toFixed(2)}\n\n`;
+
     });
 
     mensaje += `TOTAL: $${total.toFixed(2)} MXN\n\n`;
