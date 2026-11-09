@@ -1,4 +1,56 @@
 
+/*
+=========================================================
+PROYECTO: TAQUERÍA EL COMAL
+DESARROLLADOR: LAPAZIMPRESION3D
+ARCHIVO: app.js
+=========================================================
+
+DESCRIPCIÓN:
+Controla el menú interactivo, la personalización de
+productos, el carrito y los pedidos por WhatsApp.
+
+ARCHIVOS RELACIONADOS:
+- index.html: estructura de la página.
+- estilos.css: diseño visual.
+- menu.json: productos, categorías, precios y extras.
+
+FUNCIONES PRINCIPALES:
+
+1. Recuperar carrito desde localStorage.
+2. actualizarCarrito():
+   - Mostrar productos seleccionados.
+   - Actualizar cantidades y total.
+   - Guardar el pedido.
+   - Permitir eliminar productos.
+
+3. cargarMenu():
+   - Leer menu.json.
+   - Generar tarjetas de productos.
+   - Crear filtros por categorías.
+   - Calcular ingredientes y extras.
+   - Agregar productos al carrito.
+
+4. Control del carrito flotante:
+   - Abrir y cerrar el panel.
+   - Cerrar al hacer clic fuera.
+   - Conservar el panel abierto durante las operaciones.
+
+5. Vaciar carrito.
+
+6. Generar y preparar pedidos para WhatsApp.
+
+REGLAS DE MANTENIMIENTO:
+- No modificar los IDs del HTML sin actualizar JavaScript.
+- Mantener las categorías y productos en menu.json.
+- No escribir productos directamente en app.js.
+- Conservar la identificación de combinaciones de extras.
+- Probar las modificaciones en la rama desarrollo.
+- No cambiar funciones ajenas a la modificación solicitada.
+
+=========================================================
+*/
+
 
 const carrito = [];
 
