@@ -505,3 +505,24 @@ header {
   margin: 20px 0;
 }
 
+
+/* Datos del cliente */
+.datos-cliente {
+  margin-top: 20px;
+}
+
+.datos-cliente label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+.datos-cliente input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #c9c2bb;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+
