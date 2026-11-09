@@ -329,10 +329,55 @@ async function cargarMenu() {
         agregar.textContent = "Agregar al pedido";
 
 
+
 agregar.addEventListener("click", () => {
-  const existente = carrito.find(
-    item => item.id === producto.id
-  );
+  // Obtener los ingredientes seleccionados
+  const ingredientes = (producto.ingredientes || [])
+    .filter(ingrediente => {
+      const casilla = [...personalizacion.querySelectorAll("input")]
+        .find(input => input.value === ingrediente.id);
+
+      return casilla ? casilla.checked : ingrediente.incluido;
+    })
+    .map(ingrediente => ingrediente.nombre);
+
+  // Obtener los extras seleccionados
+  const extras = (producto.extras || [])
+    .filter(extra => {
+      const casilla = [...personalizacion.querySelectorAll("input")]
+        .find(input => input.value === extra.id);
+
+      return casilla?.checked;
+    })
+    .map(extra => extra.nombre);
+
+  const precioFinal = calcularPrecioUnitario();
+
+  // Identificar cada combinación de ingredientes y extras
+  const clave = JSON.stringify({
+    id: producto.id,
+    ingredientes,
+    extras
+  });
+
+  const existente = carrito.find(item => item.id === clave);
+
+  if (existente) {
+    existente.cantidad += cantidad;
+  } else {
+    carrito.push({
+      id: clave,
+      nombre: producto.nombre,
+      precio: precioFinal,
+      cantidad: cantidad,
+      ingredientes: ingredientes,
+      extras: extras
+    });
+  }
+
+  actualizarCarrito();
+});
+
 
   if (existente) {
     existente.cantidad += cantidad;
