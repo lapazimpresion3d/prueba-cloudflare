@@ -759,11 +759,11 @@ document.getElementById("enviar-pedido")
 
     // Abrir WhatsApp con el pedido preparado
 
-      const url =
-        "https://web.whatsapp.com/send?phone=" +
-        telefono +
-        "&text=" +
-        encodeURIComponent(mensaje);
+      const esMovil = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      
+      const url = esMovil
+        ? "https://wa.me/" + telefono + "?text=" + encodeURIComponent(mensaje)
+        : "https://web.whatsapp.com/send?phone=" + telefono + "&text=" + encodeURIComponent(mensaje);
 
 
       console.log("Mensaje original:", mensaje);
