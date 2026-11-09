@@ -52,6 +52,12 @@ REGLAS DE MANTENIMIENTO:
 */
 
 
+/* =====================================================
+   SECCIÓN 1 — ALMACENAMIENTO DEL CARRITO
+   Recupera los productos guardados en localStorage.
+   ===================================================== */
+
+
 const carrito = [];
 
 try {
@@ -66,6 +72,11 @@ try {
   console.warn("No se pudo recuperar el carrito", error);
 }
 
+/* =====================================================
+   SECCIÓN 2 — ACTUALIZACIÓN DEL CARRITO
+   Guarda el pedido, calcula totales, muestra productos
+   y permite modificar cantidades o eliminar artículos.
+   ===================================================== */
 
 function actualizarCarrito() {
 
@@ -213,6 +224,12 @@ aumentar.addEventListener("click", (evento) => {
 
   totalElemento.textContent = `$${total.toFixed(2)}`;
 }
+
+/* =====================================================
+   SECCIÓN 3 — MENÚ DINÁMICO
+   Lee menu.json, genera categorías y tarjetas, permite
+   personalizar productos y agregarlos al carrito.
+   ===================================================== */
 
 async function cargarMenu() {
   const contenedor = document.getElementById("productos");
@@ -537,7 +554,14 @@ agregar.addEventListener("click", () => {
 cargarMenu();
 
 
+/* =====================================================
+   SECCIÓN 4 — CONTROL DEL CARRITO FLOTANTE
+   Gestiona la apertura y el cierre del panel.
+   Incluye interacciones con el menú y la tecla Escape.
+   ===================================================== */
+
 /* Abrir y cerrar el carrito */
+
 const botonCarrito = document.getElementById("abrir-carrito");
 const seccionCarrito = document.getElementById("carrito");
 
@@ -597,6 +621,12 @@ document.addEventListener("keydown", (evento) => {
 // Recuperar el pedido al abrir la página
 actualizarCarrito();
 
+
+/* =====================================================
+   SECCIÓN 5 — VACIAR CARRITO
+   Solicita confirmación antes de eliminar el pedido.
+   ===================================================== */
+
 /* Vaciar todos los productos del carrito */
 document.getElementById("vaciar-carrito")
   .addEventListener("click", () => {
@@ -626,6 +656,11 @@ seccionCarrito.addEventListener("click", (evento) => {
   botonCarrito.setAttribute("aria-expanded", "false");
 });
 
+/* =====================================================
+   SECCIÓN 6 — PEDIDOS POR WHATSAPP
+   Genera el mensaje con cliente, productos,
+   ingredientes, extras, precios y total.
+   ===================================================== */
 
 /* Preparar el mensaje del pedido */
 document.getElementById("enviar-pedido")
