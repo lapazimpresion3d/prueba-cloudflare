@@ -362,6 +362,13 @@ async function cargarMenu() {
 
 agregar.addEventListener("click", () => {
   // Obtener los ingredientes seleccionados
+
+  
+  // Guardar la lista original de ingredientes del producto
+  const ingredientesOriginales = (producto.ingredientes || [])
+    .map(ingrediente => ingrediente.nombre);
+
+  
   const ingredientes = (producto.ingredientes || [])
     .filter(ingrediente => {
       const casilla = [...personalizacion.querySelectorAll("input")]
@@ -401,6 +408,7 @@ agregar.addEventListener("click", () => {
       precio: precioFinal,
       cantidad: cantidad,
       ingredientes: ingredientes,
+      ingredientesOriginales: ingredientesOriginales,
       extras: extras
     });
   }
