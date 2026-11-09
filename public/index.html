@@ -14,99 +14,100 @@
 
 <body>
 
-<header>
-  <!-- Acceso al carrito -->
-  <button
-    id="abrir-carrito"
-    type="button"
-    aria-label="Ver carrito de compras"
-    aria-controls="carrito"
-    aria-expanded="false"
-  >
-    🛒 <span id="carrito-contador">0</span>
-  </button>
+  <!-- ENCABEZADO PRINCIPAL -->
+  <header>
 
-  <p class="subtitulo">SABOR DE MÉXICO</p>
+    <!-- Acceso al carrito flotante -->
+    <button
+      id="abrir-carrito"
+      type="button"
+      aria-label="Ver carrito de compras"
+      aria-controls="carrito"
+      aria-expanded="false"
+    >
+      🛒 <span id="carrito-contador">0</span>
+    </button>
 
+    <p class="subtitulo">SABOR DE MÉXICO</p>
     <h1>TAQUERÍA EL COMAL</h1>
     <p>Tacos preparados al momento</p>
     <a href="#menu" class="boton">Explorar menú</a>
+
   </header>
 
-
-  
+  <!-- CONTENIDO PRINCIPAL -->
   <main>
+
     <section id="menu">
+
+      <!-- Aviso de demostración comercial -->
+      <p class="aviso-demo">
+        Esta es una demostración interactiva creada por
+        <strong>Lapazimpresion3d</strong>.
+        Puedes probar el menú y el carrito de compras.
+        Los pedidos enviados por WhatsApp son de prueba
+        y no generan una compra real.
+      </p>
+
+      <!-- Encabezado del menú -->
       <h2>Nuestro menú</h2>
       <p>Elige tus favoritos</p>
 
-      <p class="aviso-demo">
-  Esta es una demostración interactiva creada por
-  <strong>Lapazimpresion3d</strong>.
-  Puedes probar el menú y el carrito de compras.
-  Los pedidos enviados por WhatsApp son de prueba
-  y no generan una compra real.
-</p>
-      
-<p class="aviso-demo">
-  Esta es una demostración interactiva creada por
-  <strong>Lapazimpresion3d</strong>.
-  Puedes probar el menú y el carrito de compras.
-  Los pedidos enviados por WhatsApp son de prueba
-  y no generan una compra real.
-</p>
+      <!-- Navegación por categorías -->
+      <nav id="categorias"
+           aria-label="Categorías del menú"></nav>
 
-      
-<!-- Navegación por categorías -->
-<nav id="categorias" aria-label="Categorías del menú"></nav>
-      
+      <!-- Productos generados mediante JavaScript -->
       <div id="productos">
         <p>Cargando productos...</p>
       </div>
 
-      
-<!-- Carrito de compras -->
-<section id="carrito">
-  <h2>Tu pedido</h2>
+      <!-- CARRITO FLOTANTE -->
+      <section id="carrito">
+        <h2>Tu pedido</h2>
 
-  <div id="carrito-productos">
-    <p>Tu carrito está vacío.</p>
-  </div>
+        <div id="carrito-productos">
+          <p>Tu carrito está vacío.</p>
+        </div>
 
-  <div class="carrito-resumen">
-    <strong>Total:</strong>
-    <strong id="carrito-total">$0.00</strong>
-  </div>
- 
-<!-- Datos del cliente -->
-<div class="datos-cliente">
-  <label for="nombre-cliente">Tu nombre</label>
-  <input
-    type="text"
-    id="nombre-cliente"
-    placeholder="Escribe tu nombre"
-    autocomplete="name"
-    maxlength="80"
-  >
-</div>
- 
-<!-- Enviar pedido por WhatsApp -->
-<button id="enviar-pedido" type="button" disabled>
-  Enviar pedido por WhatsApp
-</button>
-  
-  <button id="vaciar-carrito" type="button">
-  Vaciar carrito
-</button>
-  
-</section>
+        <!-- Total del pedido -->
+        <div class="carrito-resumen">
+          <strong>Total:</strong>
+          <strong id="carrito-total">$0.00</strong>
+        </div>
 
-      
+        <!-- Datos del cliente -->
+        <div class="datos-cliente">
+          <label for="nombre-cliente">Tu nombre</label>
+          <input
+            type="text"
+            id="nombre-cliente"
+            placeholder="Escribe tu nombre"
+            autocomplete="name"
+            maxlength="80"
+          >
+        </div>
+
+        <!-- Enviar pedido por WhatsApp -->
+        <button id="enviar-pedido" type="button" disabled>
+          Enviar pedido por WhatsApp
+        </button>
+
+        <!-- Vaciar carrito -->
+        <button id="vaciar-carrito" type="button">
+          Vaciar carrito
+        </button>
+
+      </section>
+
     </section>
+
   </main>
 
+  <!-- PIE DE PÁGINA -->
   <footer>
     <p>Taquería El Comal — Página de demostración</p>
   </footer>
+
 </body>
 </html>
