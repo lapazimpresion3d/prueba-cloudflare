@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Disponibilidad · Taquería El Comal</title>
+  <link rel="stylesheet" href="/admin/panel.css">
+  <script src="/admin/panel.js" defer></script>
+</head>
+<body>
+  <main>
+    <h1>Disponibilidad del menú</h1>
+    <p>Taquería El Comal</p>
+    <p id="mensaje" role="status"></p>
+
+    <form id="acceso" hidden>
+      <label for="clave">Contraseña del encargado</label>
+      <input id="clave" type="password" autocomplete="current-password" required maxlength="256">
+      <button type="submit">Entrar</button>
+    </form>
+
+    <section id="panel" hidden>
+      <p>Marca un producto como agotado cuando se termine. Puedes volver a activarlo desde aquí.</p>
+      <div id="productos"></div>
+      <button id="salir" type="button">Cerrar sesión</button>
+    </section>
+  </main>
+</body>
+</html>

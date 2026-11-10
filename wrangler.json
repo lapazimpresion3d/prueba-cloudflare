@@ -1,9 +1,18 @@
-
 {
   "name": "taqueria-el-comal",
+  "main": "./src/worker.mjs",
   "compatibility_date": "2026-11-03",
   "assets": {
-    "directory": "./public"
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": ["/menu.json", "/api/admin/*"]
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "el-comal-disponibilidad",
+      "database_id": "b6f56ef3-20f8-4409-8be8-9b0c8d5ffc78"
+    }
+  ],
   "previews": {}
 }

@@ -140,6 +140,12 @@
       <h2>Nuestro menú</h2>
       <p>Elige tus favoritos</p>
 
+      <div class="busqueda-menu">
+        <label for="buscar-producto">Buscar en el menú</label>
+        <input type="search" id="buscar-producto" placeholder="Ej. pastor o jamaica">
+        <p id="resultado-busqueda" role="status"></p>
+      </div>
+
       <!-- Botones de categorías generados por app.js -->
       <nav id="categorias"
            aria-label="Categorías del menú"></nav>
@@ -256,6 +262,7 @@
              El pedido es solamente una demostración.
              ============================================ -->
 
+        <p id="aviso-carrito" role="status" hidden></p>
         <button id="enviar-pedido" type="button" disabled>
           Revisar pedido
         </button>

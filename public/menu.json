@@ -14,6 +14,20 @@
   },
   "categorias": [
     {
+      "id": "combos",
+      "nombre": "Combos",
+      "productos": [
+        {
+          "id": "combo-el-comal",
+          "nombre": "Combo El Comal",
+          "descripcion": "Tacos y bebida en un solo pedido.",
+          "precio": 85,
+          "imagen": "imagenes/pastor.webp",
+          "incluye": ["3 tacos al pastor", "1 agua natural"]
+        }
+      ]
+    },
+    {
       "id": "tacos",
       "nombre": "Tacos",
       "productos": [
@@ -48,6 +62,7 @@
           "nombre": "Taco de asada",
           "descripcion": "Carne asada, cebolla y cilantro.",
           "precio": 30,
+          "precioEspecial": 27,
           "imagen": "imagenes/asada.webp",
           "ingredientes": [
             {
@@ -208,6 +223,7 @@
                 {
                   "id": "jamaica",
                   "nombre": "Agua de jamaica",
+                  "disponible": false,
                   "descripcion": "Agua fresca de jamaica servida con hielo.",
                   "precio": 25,
                   "imagen": "imagenes/jamaica.webp"

@@ -259,6 +259,32 @@ footer {
   transform: translateY(-2px);
 }
 
+.busqueda-menu {
+  margin-top: 20px;
+}
+
+.busqueda-menu label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+.busqueda-menu input {
+  width: min(100%, 360px);
+  padding: 12px;
+  border: 1px solid #c9c2bb;
+  border-radius: 8px;
+  font: inherit;
+}
+
+#resultado-busqueda {
+  margin: 8px 0 0;
+}
+
+#resultado-busqueda:empty {
+  display: none;
+}
+
 /* Categoría seleccionada */
 .categoria-boton.activo {
   background: var(--rojo);
@@ -341,8 +367,26 @@ footer {
   cursor: pointer;
 }
 
-.agregar-pedido:hover {
+.agregar-pedido:hover:not(:disabled) {
   background: #922c1a;
+}
+
+.agregar-pedido:disabled {
+  margin-top: auto;
+  background: #705c4d;
+  cursor: not-allowed;
+}
+
+.precio-anterior {
+  margin: 0 0 8px;
+  color: #705c4d;
+}
+
+#aviso-carrito {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--crema);
+  line-height: 1.4;
 }
 
 /* Botón para eliminar productos del carrito */

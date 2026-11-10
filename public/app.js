@@ -59,6 +59,51 @@ REGLAS DE MANTENIMIENTO:
 
 
 const carrito = [];
+let productosCatalogo = null;
+let avisoCarrito = "";
+let revisandoPedido = false;
+let mostrarCatalogo = () => {};
+const lineasNoDisponibles = new Set();
+
+function precioBase(producto) {
+  return producto.precioEspecial ?? producto.precio;
+}
+
+function sincronizarCarrito() {
+  lineasNoDisponibles.clear();
+  carrito.forEach(item => {
+    let productoId = item.productoId || item.id;
+    if (!item.productoId && typeof item.id === "string" && item.id.startsWith("{")) {
+      try {
+        productoId = JSON.parse(item.id).id;
+      } catch {
+        lineasNoDisponibles.add(item);
+        return;
+      }
+    }
+
+    const producto = productosCatalogo.get(productoId);
+    if (!producto || producto.disponible === false) {
+      lineasNoDisponibles.add(item);
+      return;
+    }
+
+    const extrasPorNombre = new Map(
+      (producto.extras || []).map(extra => [extra.nombre, extra.precio])
+    );
+    const extras = item.extras || [];
+    if (extras.some(nombre => !extrasPorNombre.has(nombre))) {
+      lineasNoDisponibles.add(item);
+      return;
+    }
+
+    item.productoId = productoId;
+    item.nombre = producto.nombre;
+    item.incluye = producto.incluye;
+    item.precio = precioBase(producto) +
+      extras.reduce((suma, nombre) => suma + extrasPorNombre.get(nombre), 0);
+  });
+}
 
 try {
   const guardado = JSON.parse(
@@ -106,10 +151,15 @@ function actualizarCarrito() {
 
   contador.textContent = cantidadTotal;
 
-  // Activar WhatsApp solamente si hay productos
   const botonEnviar = document.getElementById("enviar-pedido");
+  const aviso = document.getElementById("aviso-carrito");
+  const hayNoDisponibles = carrito.some(item => lineasNoDisponibles.has(item));
 
-  botonEnviar.disabled = carrito.length === 0;
+  botonEnviar.disabled = carrito.length === 0 || !productosCatalogo || hayNoDisponibles || revisandoPedido;
+  aviso.textContent = hayNoDisponibles
+    ? "Retira del carrito los productos que ya no están disponibles para continuar."
+    : avisoCarrito;
+  aviso.hidden = carrito.length === 0 || !aviso.textContent;
 
   
 
@@ -125,13 +175,20 @@ function actualizarCarrito() {
   carrito.forEach(item => {
     const fila = document.createElement("p");
 
+    const noDisponible = lineasNoDisponibles.has(item);
     const subtotal = item.precio * item.cantidad;
-    total += subtotal;
+    if (!noDisponible) total += subtotal;
 
+    fila.textContent = noDisponible
+      ? `${item.cantidad} × ${item.nombre} — No disponible`
+      : `${item.cantidad} × ${item.nombre} — $${subtotal.toFixed(2)}`;
 
-    // Mostrar producto y precio
-    fila.textContent =
-      `${item.cantidad} × ${item.nombre} — $${subtotal.toFixed(2)}`;
+    if (item.incluye?.length) {
+      const contenido = document.createElement("small");
+      contenido.textContent = "Incluye: " + item.incluye.join(", ");
+      contenido.style.display = "block";
+      fila.appendChild(contenido);
+    }
 
     // Mostrar ingredientes omitidos
     if (Array.isArray(item.ingredientes)) {
@@ -175,6 +232,7 @@ eliminar.addEventListener("click", (evento) => {
       );
 
       if (indice !== -1) {
+        lineasNoDisponibles.delete(item);
         carrito.splice(indice, 1);
         actualizarCarrito();
       }
@@ -216,7 +274,8 @@ aumentar.addEventListener("click", (evento) => {
 
     controles.append(disminuir, numero, aumentar);
 
-    fila.append(controles, eliminar);
+    if (!noDisponible) fila.append(controles);
+    fila.appendChild(eliminar);
     contenedor.appendChild(fila);
 
 
@@ -231,22 +290,44 @@ aumentar.addEventListener("click", (evento) => {
    personalizar productos y agregarlos al carrito.
    ===================================================== */
 
+async function obtenerMenu() {
+  const respuesta = await fetch("./menu.json", { cache: "no-store" });
+  if (!respuesta.ok) throw new Error("No se pudo cargar el menú");
+  return respuesta.json();
+}
+
+function actualizarCatalogo(menu) {
+  const catalogoAnterior = productosCatalogo;
+  productosCatalogo = new Map(menu.categorias.flatMap(categoria =>
+    categoria.productos.map(producto => [producto.id, producto])
+  ));
+  sincronizarCarrito();
+  if (catalogoAnterior && Array.from(productosCatalogo).some(([id, producto]) =>
+    (catalogoAnterior.get(id)?.disponible === false) !== (producto.disponible === false)
+  )) {
+    mostrarCatalogo();
+  }
+}
+
 async function cargarMenu() {
   const contenedor = document.getElementById("productos");
   const navegacion = document.getElementById("categorias");
+  const buscador = document.getElementById("buscar-producto");
+  const resultado = document.getElementById("resultado-busqueda");
+  let categoriaSeleccionada = "todos";
 
   try {
-    const respuesta = await fetch("./menu.json");
+    const menu = await obtenerMenu();
 
-    if (!respuesta.ok) {
-      throw new Error("No se pudo cargar el menú");
+    function normalizarBusqueda(texto) {
+      return texto.toLowerCase().normalize("NFD").replace(/\p{M}/gu, "");
     }
 
-    const menu = await respuesta.json();
-
-    // Mostrar productos según la categoría seleccionada
-    function mostrarProductos(categoriaSeleccionada = "todos") {
+    // Combinar la búsqueda por nombre con la categoría activa.
+    function mostrarProductos() {
       contenedor.innerHTML = "";
+      const consulta = normalizarBusqueda(buscador.value.trim());
+      let coincidencias = 0;
 
       menu.categorias.forEach(categoria => {
         if (
@@ -256,12 +337,18 @@ async function cargarMenu() {
           return;
         }
 
+        const productosVisibles = categoria.productos.filter(producto =>
+          normalizarBusqueda(producto.nombre).includes(consulta)
+        );
+        if (productosVisibles.length === 0) return;
+        coincidencias += productosVisibles.length;
+
         const titulo = document.createElement("h2");
         titulo.textContent = categoria.nombre;
         titulo.style.gridColumn = "1 / -1";
         contenedor.appendChild(titulo);
 
-        categoria.productos.forEach(producto => {
+        productosVisibles.forEach(producto => {
           const tarjeta = document.createElement("article");
           tarjeta.className = "producto";
 
@@ -277,6 +364,26 @@ async function cargarMenu() {
           const descripcion = document.createElement("p");
           descripcion.textContent = producto.descripcion;
 
+          if (producto.incluye?.length) {
+            descripcion.textContent += " Incluye: " + producto.incluye.join(" y ") + ".";
+          }
+
+          const formatoPrecio = new Intl.NumberFormat("es-MX", {
+            style: "currency",
+            currency: menu.moneda
+          });
+
+          const disponible = productosCatalogo?.get(producto.id)?.disponible ?? producto.disponible;
+          if (disponible === false) {
+            const agotado = document.createElement("button");
+            agotado.type = "button";
+            agotado.className = "agregar-pedido";
+            agotado.textContent = "Agotado";
+            agotado.disabled = true;
+            tarjeta.append(imagen, nombre, descripcion, agotado);
+            contenedor.appendChild(tarjeta);
+            return;
+          }
 
           // Opciones de personalización del producto
           const personalizacion = document.createElement("div");
@@ -342,10 +449,7 @@ async function cargarMenu() {
           
           const precio = document.createElement("p");
           precio.className = "precio";
-          precio.textContent = new Intl.NumberFormat("es-MX", {
-            style: "currency",
-            currency: menu.moneda
-          }).format(producto.precio);
+          const tienePrecioEspecial = precioBase(producto) < producto.precio;
 
 
         // Selector de cantidad
@@ -372,7 +476,7 @@ async function cargarMenu() {
 
         // Calcular el precio de los extras seleccionados
         function calcularPrecioUnitario() {
-          let precioUnitario = producto.precio;
+          let precioUnitario = precioBase(producto);
 
           const casillas = personalizacion.querySelectorAll(
             'input[type="checkbox"]:checked'
@@ -392,19 +496,14 @@ async function cargarMenu() {
         }
 
           
-        const formatoPrecio = new Intl.NumberFormat("es-MX", {
-          style: "currency",
-          currency: menu.moneda
-        });
-
-
         function actualizarCantidad() {
           const precioUnitario = calcularPrecioUnitario();
 
           numero.textContent = cantidad;
           disminuir.disabled = cantidad === 1;
 
-          precio.textContent = formatoPrecio.format(precioUnitario);
+          precio.textContent = (tienePrecioEspecial ? "Precio especial: " : "") +
+            formatoPrecio.format(precioUnitario);
 
           subtotal.textContent =
             "Subtotal: " +
@@ -485,7 +584,9 @@ agregar.addEventListener("click", () => {
   } else {
     carrito.push({
       id: clave,
+      productoId: producto.id,
       nombre: producto.nombre,
+      incluye: producto.incluye,
       precio: precioFinal,
       cantidad: cantidad,
       ingredientes: ingredientes,
@@ -503,6 +604,15 @@ agregar.addEventListener("click", () => {
           
 
             tarjeta.append(imagen, nombre, descripcion, precio);
+
+            if (tienePrecioEspecial) {
+              const precioAnterior = document.createElement("p");
+              precioAnterior.className = "precio-anterior";
+              precioAnterior.textContent =
+                "Precio base regular: " + formatoPrecio.format(producto.precio) +
+                ". Los extras se cobran aparte.";
+              tarjeta.appendChild(precioAnterior);
+            }
             
             // Mostrar personalización solamente si existen opciones
             if (
@@ -520,6 +630,10 @@ agregar.addEventListener("click", () => {
 
         });
       });
+
+      resultado.textContent = coincidencias === 0
+        ? "No hay productos que coincidan con tu búsqueda."
+        : "";
     }
 
     // Crear botones de navegación automáticamente
@@ -531,7 +645,8 @@ agregar.addEventListener("click", () => {
       boton.setAttribute("aria-pressed", String(id === "todos"));
 
       boton.addEventListener("click", () => {
-        mostrarProductos(id);
+        categoriaSeleccionada = id;
+        mostrarProductos();
 
         navegacion.querySelectorAll("button").forEach(b => {
           const activo = b === boton;
@@ -555,13 +670,20 @@ agregar.addEventListener("click", () => {
       crearBoton(categoria.nombre, categoria.id);
     });
 
+    mostrarCatalogo = mostrarProductos;
+    buscador.addEventListener("input", mostrarProductos);
     mostrarProductos();
     configurarHorario(menu.horario);
+    actualizarCatalogo(menu);
+    avisoCarrito = "";
+    actualizarCarrito();
 
   } catch (error) {
     console.error(error);
     contenedor.textContent =
       "No fue posible cargar el menú. Intenta nuevamente.";
+    avisoCarrito = "No pudimos comprobar el carrito. Recarga la página para intentarlo de nuevo.";
+    actualizarCarrito();
   }
 }
 
@@ -652,6 +774,7 @@ document.getElementById("vaciar-carrito")
 
     if (confirm("¿Quieres vaciar todo el carrito?")) {
       carrito.length = 0;
+      lineasNoDisponibles.clear();
       actualizarCarrito();
     }
   });
@@ -665,7 +788,8 @@ seccionCarrito.addEventListener("click", (evento) => {
   evento.target.closest(".carrito-resumen") ||
   evento.target.closest("button") ||
   evento.target.closest(".datos-cliente") ||
-  evento.target.closest("#revision-pedido")
+  evento.target.closest("#revision-pedido") ||
+  evento.target.closest("#aviso-carrito")
 ) {
   return;
 }
@@ -752,9 +876,29 @@ actualizarDatosEntrega();
 
 /* Preparar el mensaje del pedido */
 document.getElementById("enviar-pedido")
-  .addEventListener("click", () => {
+  .addEventListener("click", async () => {
 
-    if (carrito.length === 0) return;
+    if (revisandoPedido || carrito.length === 0 || !productosCatalogo ||
+        carrito.some(item => lineasNoDisponibles.has(item))) return;
+
+    revisandoPedido = true;
+    avisoCarrito = "Comprobando la disponibilidad del pedido…";
+    actualizarCarrito();
+
+    try {
+      actualizarCatalogo(await obtenerMenu());
+      avisoCarrito = "";
+    } catch (error) {
+      console.error(error);
+      avisoCarrito = "No pudimos comprobar la disponibilidad. Intenta nuevamente.";
+      return;
+    } finally {
+      revisandoPedido = false;
+      actualizarCarrito();
+    }
+
+    if (seccionCarrito.hidden || carrito.length === 0 ||
+        carrito.some(item => lineasNoDisponibles.has(item))) return;
 
     const nombreCliente = document
       .getElementById("nombre-cliente")
@@ -837,6 +981,10 @@ document.getElementById("enviar-pedido")
       // Datos principales del producto
       mensaje +=
         `${item.cantidad} × ${item.nombre}\n`;
+
+      if (item.incluye?.length) {
+        mensaje += "Incluye: " + item.incluye.join(", ") + "\n";
+      }
 
       // Ingredientes eliminados
       if (Array.isArray(item.ingredientes)) {
