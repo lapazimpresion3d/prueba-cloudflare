@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prueba la demo · Taquería El Comal</title>
+  <link rel="stylesheet" href="/admin/panel.css">
+  <style>
+    .prueba {
+      padding: 16px;
+      margin-block: 16px;
+      border-radius: 12px;
+      background: white;
+    }
+
+    .prueba h2 {
+      margin-top: 0;
+    }
+
+    .enlace-prueba {
+      display: inline-block;
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: #a02f1c;
+      color: white;
+      font-weight: bold;
+      text-decoration: none;
+    }
+
+    .enlace-prueba:hover {
+      text-decoration: underline;
+    }
+
+    .qr-mesa {
+      display: block;
+      width: min(100%, 192px);
+      height: auto;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <p><a href="/#menu">Volver al menú</a></p>
+    <h1>Prueba la demo de El Comal</h1>
+    <p>Explora lo que verían un cliente en su mesa y el encargado del restaurante.</p>
+
+    <section class="prueba" aria-labelledby="prueba-mesa">
+      <h2 id="prueba-mesa">Pedido desde la Mesa 3</h2>
+      <p>Abre el menú como cliente de la Mesa 3. Agrega un producto y revisa cómo aparece el número de mesa en el borrador del pedido.</p>
+      <a class="enlace-prueba" href="/?mesa=3#menu">Abrir menú como Mesa 3</a>
+      <p>También puedes escanear este QR desde otro teléfono.</p>
+      <img class="qr-mesa" src="mesa_3.png" alt="Código QR que abre el menú de la Mesa 3" width="540" height="540">
+    </section>
+
+    <section class="prueba" aria-labelledby="prueba-panel">
+      <h2 id="prueba-panel">Panel del encargado</h2>
+      <p>Consulta ejemplos de productos agotados, edición de precios y agenda de mesas. La vista previa usa datos ficticios y controles desactivados.</p>
+      <a class="enlace-prueba" href="/demo-panel/">Ver el panel de ejemplo</a>
+    </section>
+  </main>
+</body>
+</html>
