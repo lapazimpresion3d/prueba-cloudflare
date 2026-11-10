@@ -4,6 +4,12 @@ const productos = document.getElementById("productos");
 const mensaje = document.getElementById("mensaje");
 const clave = document.getElementById("clave");
 const salir = document.getElementById("salir");
+const editorCategorias = document.getElementById("editor-categorias");
+const formularioCategorias = document.getElementById("formulario-categorias");
+const listaCategorias = document.getElementById("lista-categorias");
+const estadoCategorias = document.getElementById("categorias-estado");
+const seccionesCategorias = new Map();
+let filasCategorias = [];
 const agenda = document.getElementById("agenda");
 const formularioAgenda = document.getElementById("formulario-agenda");
 const fechaAgenda = document.getElementById("agenda-fecha");
@@ -34,6 +40,11 @@ async function solicitar(ruta, method = "GET", datos) {
 
 function mostrarAcceso() {
   productos.replaceChildren();
+  seccionesCategorias.clear();
+  filasCategorias = [];
+  listaCategorias.replaceChildren();
+  estadoCategorias.textContent = "";
+  editorCategorias.open = false;
   mesasAgenda.replaceChildren();
   estadoAgenda.textContent = "";
   agenda.open = false;
@@ -211,14 +222,97 @@ function filaProducto(producto) {
   return productoPanel;
 }
 
+function actualizarOrdenCategorias() {
+  listaCategorias.replaceChildren(...filasCategorias.map(fila => fila.contenedor));
+  filasCategorias.forEach((fila, indice) => {
+    fila.subir.disabled = indice === 0;
+    fila.bajar.disabled = indice === filasCategorias.length - 1;
+  });
+}
+
+function filaCategoria(categoria) {
+  const contenedor = document.createElement("div");
+  contenedor.className = "fila-categoria";
+  const etiqueta = document.createElement("label");
+  etiqueta.textContent = "Nombre de categoría";
+  const nombre = document.createElement("input");
+  nombre.type = "text";
+  nombre.required = true;
+  nombre.maxLength = 60;
+  nombre.value = categoria.nombre;
+  etiqueta.appendChild(nombre);
+
+  const subir = document.createElement("button");
+  const bajar = document.createElement("button");
+  const fila = { id: categoria.id, contenedor, nombre, subir, bajar };
+
+  for (const [boton, texto, salto] of [[subir, "Subir", -1], [bajar, "Bajar", 1]]) {
+    boton.type = "button";
+    boton.textContent = texto;
+    boton.addEventListener("click", () => {
+      const indice = filasCategorias.indexOf(fila);
+      const destino = indice + salto;
+      if (destino < 0 || destino >= filasCategorias.length) return;
+      [filasCategorias[indice], filasCategorias[destino]] = [filasCategorias[destino], fila];
+      actualizarOrdenCategorias();
+      (boton.disabled ? nombre : boton).focus();
+    });
+  }
+  contenedor.append(etiqueta, subir, bajar);
+  return fila;
+}
+
+formularioCategorias.addEventListener("submit", async evento => {
+  evento.preventDefault();
+  const categorias = filasCategorias.map(fila => ({ id: fila.id, nombre: fila.nombre.value.trim() }));
+  const vacia = categorias.findIndex(categoria => !categoria.nombre);
+  if (vacia !== -1) {
+    estadoCategorias.textContent = "Escribe un nombre para cada categoría.";
+    filasCategorias[vacia].nombre.focus();
+    return;
+  }
+
+  const guardar = formularioCategorias.querySelector('button[type="submit"]');
+  for (const fila of filasCategorias) fila.nombre.disabled = fila.subir.disabled = fila.bajar.disabled = true;
+  guardar.disabled = true;
+  estadoCategorias.textContent = "Guardando…";
+
+  try {
+    const resultado = await solicitar("categorias", "PUT", { categorias });
+    if (panel.hidden) return;
+    resultado.categorias.forEach(({ id, nombre }, indice) => {
+      filasCategorias[indice].nombre.value = nombre;
+      const seccion = seccionesCategorias.get(id);
+      seccion.titulo.textContent = nombre;
+      productos.appendChild(seccion.contenedor);
+    });
+    estadoCategorias.textContent = "Categorías guardadas.";
+  } catch (error) {
+    if (error.status === 401) mostrarError(error);
+    else estadoCategorias.textContent = error.status ? error.message : "No se pudo conectar. Intenta nuevamente.";
+  } finally {
+    for (const fila of filasCategorias) fila.nombre.disabled = false;
+    actualizarOrdenCategorias();
+    guardar.disabled = false;
+  }
+});
+
 async function cargarPanel() {
   const categorias = await solicitar("disponibilidad");
   productos.replaceChildren();
+  seccionesCategorias.clear();
+
   for (const categoria of categorias) {
+    const contenedor = document.createElement("section");
     const titulo = document.createElement("h2");
     titulo.textContent = categoria.nombre;
-    productos.append(titulo, ...categoria.productos.map(filaProducto));
+    contenedor.append(titulo, ...categoria.productos.map(filaProducto));
+    seccionesCategorias.set(categoria.id, { contenedor, titulo });
+    productos.appendChild(contenedor);
   }
+
+  filasCategorias = categorias.map(filaCategoria);
+  actualizarOrdenCategorias();
   acceso.hidden = true;
   panel.hidden = false;
 }

@@ -22,18 +22,27 @@ async function leerMenu(request, env) {
 }
 
 async function menuActualizado(request, env) {
-  const [menu, disponibilidad, precios, descripciones] = await Promise.all([
+  const [menu, disponibilidad, precios, descripciones, preferencias] = await Promise.all([
     leerMenu(request, env),
     env.DB.prepare("SELECT producto_id, disponible FROM disponibilidad_producto").all(),
     env.DB.prepare("SELECT producto_id, precio_centavos, especial_centavos FROM precios_menu").all(),
-    env.DB.prepare("SELECT producto_id, descripcion FROM descripciones_menu").all()
+    env.DB.prepare("SELECT producto_id, descripcion FROM descripciones_menu").all(),
+    env.DB.prepare("SELECT categorias_json FROM preferencias_categorias WHERE id = 1").first()
   ]);
   const estados = new Map(disponibilidad.results.map(fila => [fila.producto_id, fila.disponible === 1]));
   const preciosPorProducto = new Map(precios.results.map(fila => [fila.producto_id, fila]));
   const descripcionesPorProducto = new Map(
     descripciones.results.map(fila => [fila.producto_id, fila.descripcion])
   );
+  const categoriasGuardadas = new Map(
+    JSON.parse(preferencias?.categorias_json ?? "[]")
+      .map(({ id, nombre }, orden) => [id, { nombre, orden }])
+  );
+  const ordenCategoria = id => categoriasGuardadas.get(id)?.orden ?? categoriasGuardadas.size;
+  menu.categorias.sort((a, b) => ordenCategoria(a.id) - ordenCategoria(b.id));
+
   for (const categoria of menu.categorias) {
+    categoria.nombre = categoriasGuardadas.get(categoria.id)?.nombre ?? categoria.nombre;
     for (const producto of categoria.productos) {
       if (estados.has(producto.id)) producto.disponible = estados.get(producto.id);
       if (descripcionesPorProducto.has(producto.id)) {
@@ -163,11 +172,43 @@ async function administrar(request, env, url) {
   if (url.pathname === "/api/admin/disponibilidad" && request.method === "GET") {
     const menu = await menuActualizado(request, env);
     return json(menu.categorias.map(categoria => ({
+      id: categoria.id,
       nombre: categoria.nombre,
       productos: categoria.productos.map(({ id, nombre, descripcion, disponible, precio, precioEspecial }) => ({
         id, nombre, descripcion, disponible: disponible !== false, precio, precioEspecial, moneda: menu.moneda
       }))
     })));
+  }
+
+  if (url.pathname === "/api/admin/categorias" && request.method === "PUT") {
+    const datos = await request.json().catch(() => null);
+    if (!Array.isArray(datos?.categorias)) {
+      return json({ error: "Indica los nombres y el orden de las categorías." }, 400);
+    }
+
+    const menu = await leerMenu(request, env);
+    const ids = new Set(menu.categorias.map(categoria => categoria.id));
+    if (datos.categorias.length !== ids.size) {
+      return json({ error: "El catálogo cambió. Recarga el panel e inténtalo de nuevo." }, 409);
+    }
+
+    const categorias = [];
+    for (const categoria of datos.categorias) {
+      if (!ids.delete(categoria?.id)) {
+        return json({ error: "El orden debe incluir cada categoría del catálogo una sola vez." }, 400);
+      }
+      const nombre = typeof categoria.nombre === "string" ? categoria.nombre.trim() : "";
+      if (!nombre || nombre.length > 60) {
+        return json({ error: "Cada categoría debe tener un nombre de 1 a 60 caracteres." }, 400);
+      }
+      categorias.push({ id: categoria.id, nombre });
+    }
+
+    await env.DB.prepare(
+      "INSERT INTO preferencias_categorias (id, categorias_json) VALUES (1, ?) " +
+      "ON CONFLICT (id) DO UPDATE SET categorias_json = excluded.categorias_json"
+    ).bind(JSON.stringify(categorias)).run();
+    return json({ categorias });
   }
 
   if (url.pathname === "/api/admin/descripciones" && request.method === "PUT") {
