@@ -11,12 +11,16 @@ const estados = {
   cancelado: "Cancelado"
 };
 
-function accionesPara(estado, servicio) {
+function accionesPara(estado, servicio, cocina) {
+  if (cocina) {
+    const siguiente = { confirmado: "preparacion", preparacion: "listo" }[estado];
+    return siguiente ? [{ id: siguiente, etiqueta: estados[siguiente] }] : [];
+  }
   const siguiente = {
     recibido: "confirmado",
     confirmado: "preparacion",
     preparacion: servicio === "domicilio" ? "en_reparto" : "listo",
-    listo: "entregado",
+    listo: servicio === "domicilio" ? "en_reparto" : "entregado",
     en_reparto: "entregado"
   }[estado];
   return siguiente ? [siguiente, "cancelado"].map(id => ({ id, etiqueta: estados[id] })) : [];
@@ -180,37 +184,48 @@ export async function pedidosPublicos(request, env, url, obtenerMenu, json) {
   return json({ error: "Se alcanzó el límite de pedidos de prueba. Espera un minuto e inténtalo otra vez." }, 429, { "Retry-After": "60" });
 }
 
-export async function administrarPedidos(request, db, url, json) {
+export async function administrarPedidos(request, db, url, json, cocina = false) {
   if (request.method === "GET") {
     const historial = url.searchParams.get("vista") === "historial";
+    const filtro = cocina ? "WHERE estado IN ('confirmado', 'preparacion') ORDER BY folio ASC " :
+      historial ? "WHERE estado IN ('entregado', 'cancelado') ORDER BY folio DESC " :
+      "WHERE estado NOT IN ('entregado', 'cancelado') ORDER BY folio ASC ";
     const consulta = await db.prepare(
       "SELECT folio, creado, actualizado, estado, detalle_json, total_centavos FROM pedidos_demo " +
-      (historial ? "WHERE estado IN ('entregado', 'cancelado') ORDER BY folio DESC " :
-        "WHERE estado NOT IN ('entregado', 'cancelado') ORDER BY folio ASC ") +
-      "LIMIT 50"
+      filtro + "LIMIT 50"
     ).all();
     return json(consulta.results.map(fila => {
       const detalle = JSON.parse(fila.detalle_json);
-      return {
-        ...estadoPublico(fila), creado: fila.creado, detalle, totalCentavos: fila.total_centavos,
-        acciones: accionesPara(fila.estado, detalle.servicio)
+      const pedido = {
+        ...estadoPublico(fila), creado: fila.creado,
+        acciones: accionesPara(fila.estado, detalle.servicio, cocina)
       };
+      if (!cocina) return { ...pedido, detalle, totalCentavos: fila.total_centavos };
+      const { servicio, mesa, notas, lineas } = detalle;
+      return { ...pedido, detalle: {
+        servicio, mesa, notas,
+        lineas: lineas.map(({ nombre, cantidad, incluye, omitidos, extras }) => ({
+          nombre, cantidad, incluye, omitidos, extras
+        }))
+      } };
     }));
   }
 
   if (request.method !== "PUT") return json({ error: "Método no permitido." }, 405);
   const datos = await leerJson(request);
   if (!Number.isSafeInteger(datos?.folio) || datos.folio < 1 ||
-      !Object.hasOwn(estados, datos.actual) || !Object.hasOwn(estados, datos.nuevo)) {
+      !Object.hasOwn(estados, datos.actual) || !Object.hasOwn(estados, datos.nuevo) ||
+      (cocina && !accionesPara(datos.actual, null, true).some(accion => accion.id === datos.nuevo))) {
     return json({ error: "Indica un pedido y un cambio de estado válidos." }, 400);
   }
-  const fila = await db.prepare("SELECT estado, detalle_json FROM pedidos_demo WHERE folio = ?")
+  const fila = await db.prepare("SELECT estado, detalle_json FROM pedidos_demo WHERE folio = ?" +
+    (cocina ? " AND estado IN ('confirmado', 'preparacion')" : ""))
     .bind(datos.folio).first();
   if (!fila) return json({ error: "El pedido ya no está disponible." }, 404);
   if (fila.estado !== datos.actual) return json({ error: "El estado ya cambió. Actualiza la lista." }, 409);
 
   const { servicio } = JSON.parse(fila.detalle_json);
-  if (!accionesPara(fila.estado, servicio).some(accion => accion.id === datos.nuevo)) {
+  if (!accionesPara(fila.estado, servicio, cocina).some(accion => accion.id === datos.nuevo)) {
     return json({ error: "Ese cambio de estado no está disponible." }, 400);
   }
   const actualizado = await db.prepare(

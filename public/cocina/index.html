@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Cocina · Taquería El Comal</title>
+  <link rel="stylesheet" href="/admin/panel.css">
+  <link rel="stylesheet" href="/cocina/cocina.css">
+  <script src="/cocina/cocina.js" defer></script>
+</head>
+<body>
+  <main class="pantalla-cocina">
+    <h1>Cocina · Taquería El Comal</h1>
+    <p>Pedidos de demostración</p>
+    <p id="estado-cocina" role="status">Comprobando el acceso…</p>
+
+    <form id="acceso-cocina" hidden>
+      <label for="clave-cocina">Contraseña de cocina</label>
+      <input id="clave-cocina" type="password" autocomplete="current-password" maxlength="256" required>
+      <button type="submit">Entrar a cocina</button>
+    </form>
+
+    <section id="tablero-cocina" aria-label="Pedidos de cocina" hidden>
+      <div class="acciones-cocina">
+        <button id="actualizar-cocina" type="button">Actualizar pedidos</button>
+        <button id="salir-cocina" type="button">Cerrar sesión</button>
+      </div>
+      <div class="columnas-cocina">
+        <section aria-labelledby="titulo-confirmados">
+          <h2 id="titulo-confirmados">Por preparar</h2>
+          <div id="confirmados-cocina"></div>
+        </section>
+        <section aria-labelledby="titulo-preparacion">
+          <h2 id="titulo-preparacion">En preparación</h2>
+          <div id="preparacion-cocina"></div>
+        </section>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

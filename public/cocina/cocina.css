@@ -1,0 +1,20 @@
+.pantalla-cocina { width: min(100%, 1180px); }
+#acceso-cocina { max-width: 360px; }
+.columnas-cocina { display: grid; gap: 16px; margin-top: 16px; }
+.columnas-cocina > section {
+  min-width: 0;
+  padding: 14px;
+  border-radius: 12px;
+  background: white;
+}
+.columnas-cocina > section > h2 { margin: 0; }
+.columnas-cocina .pedido-cocina { background: #fff6e7; }
+.columnas-cocina .pedido-cocina h3 { margin: 0 0 6px; font-size: 1.15rem; }
+.columnas-cocina .pedido-cocina li { font-weight: bold; }
+.columnas-cocina .pedido-cocina small { font-size: .9rem; font-weight: normal; }
+.columnas-cocina button { width: 100%; min-height: 44px; }
+.nota-cocina { white-space: pre-wrap; overflow-wrap: anywhere; }
+#estado-cocina:empty { display: none; }
+@media (min-width: 680px) {
+  .columnas-cocina { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
