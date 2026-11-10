@@ -38,6 +38,13 @@ const listaPedidos = document.getElementById("lista-pedidos");
 let versionPedidos = 0;
 let firmaListaPedidos = "";
 let cambiandoPedido = false;
+const panelEstadisticas = document.getElementById("panel-estadisticas");
+const formularioEstadisticas = document.getElementById("formulario-estadisticas");
+const desdeEstadisticas = document.getElementById("estadisticas-desde");
+const hastaEstadisticas = document.getElementById("estadisticas-hasta");
+const estadoEstadisticas = document.getElementById("estadisticas-estado");
+const resultadoEstadisticas = document.getElementById("resultado-estadisticas");
+let versionEstadisticas = 0;
 
 async function solicitar(ruta, method = "GET", datos) {
   const respuesta = await fetch("/api/admin/" + ruta, {
@@ -77,6 +84,12 @@ function mostrarAcceso() {
   estadoPedidos.textContent = "";
   firmaListaPedidos = "";
   versionPedidos++;
+  panelEstadisticas.open = false;
+  versionEstadisticas++;
+  formularioEstadisticas.reset();
+  formularioEstadisticas.querySelector("button").disabled = false;
+  resultadoEstadisticas.hidden = true;
+  estadoEstadisticas.textContent = "";
   solicitudAgenda = null;
   versionAgenda++;
   panel.hidden = true;
@@ -678,6 +691,83 @@ actualizarPedidos.addEventListener("click", cargarPedidos);
 window.setInterval(() => {
   if (panelPedidos.open && !panel.hidden && !document.hidden && !cambiandoPedido) cargarPedidos();
 }, 15000);
+
+function mostrarEstadisticas(datos) {
+  const dinero = new Intl.NumberFormat("es-MX", {
+    style: "currency", currency: datos.moneda
+  });
+  const moneda = centavos => dinero.format(centavos / 100);
+  const cantidad = new Intl.NumberFormat("es-MX");
+  const indicadores = [
+    ["Pedidos recibidos", cantidad.format(datos.recibidos)],
+    ["En curso", cantidad.format(datos.enCurso)],
+    ["Entregados", cantidad.format(datos.entregados)],
+    ["Cancelados", cantidad.format(datos.cancelados)],
+    ["Importe de productos entregados", moneda(datos.importeCentavos)],
+    ["Promedio por pedido entregado", datos.promedioCentavos === null ? "—" : moneda(datos.promedioCentavos)]
+  ];
+  const resumen = document.getElementById("estadisticas-resumen");
+  resumen.replaceChildren(...indicadores.map(([nombre, valor]) => {
+    const fila = document.createElement("div");
+    const etiqueta = document.createElement("dt");
+    const dato = document.createElement("dd");
+    etiqueta.textContent = nombre;
+    dato.textContent = valor;
+    fila.append(etiqueta, dato);
+    return fila;
+  }));
+
+  const listar = textos => textos.map(texto => {
+    const fila = document.createElement("li");
+    fila.textContent = texto;
+    return fila;
+  });
+  document.getElementById("estadisticas-servicios").replaceChildren(...listar([
+    "En la mesa: " + cantidad.format(datos.mesa),
+    "Para recoger: " + cantidad.format(datos.recoger),
+    "A domicilio: " + cantidad.format(datos.domicilio)
+  ]));
+  document.getElementById("estadisticas-productos").replaceChildren(...listar(
+    datos.productos.map(producto => producto.nombre + " · " + cantidad.format(producto.unidades))
+  ));
+  document.getElementById("estadisticas-sin-productos").hidden = datos.productos.length > 0;
+}
+
+async function cargarEstadisticas() {
+  const version = ++versionEstadisticas;
+  const boton = formularioEstadisticas.querySelector("button");
+  const parametros = new URLSearchParams();
+  if (desdeEstadisticas.value) parametros.set("desde", desdeEstadisticas.value);
+  if (hastaEstadisticas.value) parametros.set("hasta", hastaEstadisticas.value);
+
+  boton.disabled = true;
+  resultadoEstadisticas.hidden = true;
+  estadoEstadisticas.textContent = "Consultando estadísticas…";
+  try {
+    const datos = await solicitar("estadisticas?" + parametros);
+    if (version !== versionEstadisticas || panel.hidden) return;
+    desdeEstadisticas.max = hastaEstadisticas.max = datos.hoy;
+    desdeEstadisticas.value = datos.desde;
+    hastaEstadisticas.value = datos.hasta;
+    mostrarEstadisticas(datos);
+    resultadoEstadisticas.hidden = false;
+    estadoEstadisticas.textContent = "Período consultado.";
+  } catch (error) {
+    if (version !== versionEstadisticas) return;
+    if (error.status === 401) mostrarError(error);
+    else estadoEstadisticas.textContent = error.status ? error.message : "No se pudo consultar el período.";
+  } finally {
+    if (version === versionEstadisticas) boton.disabled = false;
+  }
+}
+
+panelEstadisticas.addEventListener("toggle", () => {
+  if (panelEstadisticas.open && !panel.hidden) cargarEstadisticas();
+});
+formularioEstadisticas.addEventListener("submit", evento => {
+  evento.preventDefault();
+  cargarEstadisticas();
+});
 
 cargarPanel().catch(error => {
   if (error.status === 401) mostrarAcceso();

@@ -76,6 +76,29 @@
         </form>
         <p id="horario-estado" role="status"></p>
       </details>
+      <details id="panel-estadisticas">
+        <summary>Estadísticas de pedidos de prueba</summary>
+        <p>El período usa la fecha en que se registró cada pedido. Los importes corresponden a los productos de los pedidos entregados.</p>
+        <form id="formulario-estadisticas">
+          <label for="estadisticas-desde">Desde
+            <input id="estadisticas-desde" type="date" required>
+          </label>
+          <label for="estadisticas-hasta">Hasta
+            <input id="estadisticas-hasta" type="date" required>
+          </label>
+          <button type="submit">Consultar</button>
+        </form>
+        <p id="estadisticas-estado" role="status"></p>
+        <div id="resultado-estadisticas" hidden>
+          <dl id="estadisticas-resumen"></dl>
+          <h2>Pedidos por servicio</h2>
+          <ul id="estadisticas-servicios"></ul>
+          <h2>Productos y variantes más solicitados</h2>
+          <p>Se cuentan las unidades de pedidos activos y entregados.</p>
+          <ol id="estadisticas-productos"></ol>
+          <p id="estadisticas-sin-productos" hidden>El período todavía no tiene productos para mostrar.</p>
+        </div>
+      </details>
       <button id="salir" type="button">Cerrar sesión</button>
     </section>
   </main>

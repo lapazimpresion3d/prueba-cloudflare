@@ -220,3 +220,83 @@ export async function administrarPedidos(request, db, url, json) {
   return actualizado ? json(estadoPublico(actualizado)) :
     json({ error: "El estado ya cambió. Actualiza la lista." }, 409);
 }
+
+const msPorDia = 24 * 60 * 60 * 1000;
+
+function fechaCalendario(formato, instante) {
+  const { year, month, day } = Object.fromEntries(
+    formato.formatToParts(new Date(instante)).map(({ type, value }) => [type, value])
+  );
+  return year + "-" + month + "-" + day;
+}
+
+function fechaEnUtc(fecha) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return NaN;
+  const instante = Date.parse(fecha + "T00:00:00Z");
+  return Number.isFinite(instante) && new Date(instante).toISOString().slice(0, 10) === fecha
+    ? instante
+    : NaN;
+}
+
+function inicioLocal(formato, fecha, utc) {
+  let minimo = utc - msPorDia;
+  let maximo = utc + msPorDia;
+  while (minimo < maximo) {
+    const medio = Math.floor((minimo + maximo) / 2);
+    if (fechaCalendario(formato, medio) < fecha) minimo = medio + 1;
+    else maximo = medio;
+  }
+  return minimo;
+}
+
+export async function consultarEstadisticas(db, url, menu, json) {
+  const formatoFecha = new Intl.DateTimeFormat("en-CA", {
+    timeZone: menu.horario?.zonaHoraria || "America/Mazatlan",
+    year: "numeric", month: "2-digit", day: "2-digit"
+  });
+  const hoy = fechaCalendario(formatoFecha, Date.now());
+  const desdePredeterminado = new Date(fechaEnUtc(hoy) - 6 * msPorDia).toISOString().slice(0, 10);
+  const desde = url.searchParams.get("desde") ?? desdePredeterminado;
+  const hasta = url.searchParams.get("hasta") ?? hoy;
+  const inicioUtc = fechaEnUtc(desde);
+  const ultimoUtc = fechaEnUtc(hasta);
+
+  if (!Number.isFinite(inicioUtc) || !Number.isFinite(ultimoUtc) ||
+      inicioUtc > ultimoUtc || hasta > hoy || ultimoUtc - inicioUtc >= 31 * msPorDia) {
+    return json({ error: "Elige un período de hasta 31 días, con fechas de hoy o anteriores." }, 400);
+  }
+
+  const siguienteUtc = ultimoUtc + msPorDia;
+  const siguiente = new Date(siguienteUtc).toISOString().slice(0, 10);
+  const inicio = inicioLocal(formatoFecha, desde, inicioUtc);
+  const fin = inicioLocal(formatoFecha, siguiente, siguienteUtc);
+
+  const [resumen, productos] = await Promise.all([
+    db.prepare(`
+      SELECT COUNT(*) AS recibidos,
+        COUNT(CASE WHEN estado = 'entregado' THEN 1 END) AS entregados,
+        COUNT(CASE WHEN estado = 'cancelado' THEN 1 END) AS cancelados,
+        COUNT(CASE WHEN json_extract(detalle_json, '$.servicio') = 'mesa' THEN 1 END) AS mesa,
+        COUNT(CASE WHEN json_extract(detalle_json, '$.servicio') = 'recoger' THEN 1 END) AS recoger,
+        COUNT(CASE WHEN json_extract(detalle_json, '$.servicio') = 'domicilio' THEN 1 END) AS domicilio,
+        COALESCE(SUM(CASE WHEN estado = 'entregado' THEN total_centavos END), 0) AS importeCentavos
+      FROM pedidos_demo WHERE creado >= ? AND creado < ?
+    `).bind(inicio, fin).first(),
+    db.prepare(`
+      SELECT json_extract(linea.value, '$.nombre') AS nombre,
+        SUM(json_extract(linea.value, '$.cantidad')) AS unidades
+      FROM pedidos_demo AS pedido, json_each(pedido.detalle_json, '$.lineas') AS linea
+      WHERE pedido.creado >= ? AND pedido.creado < ? AND pedido.estado <> 'cancelado'
+      GROUP BY nombre ORDER BY unidades DESC, nombre ASC LIMIT 5
+    `).bind(inicio, fin).all()
+  ]);
+
+  return json({
+    desde, hasta, hoy, moneda: menu.moneda, ...resumen,
+    enCurso: resumen.recibidos - resumen.entregados - resumen.cancelados,
+    promedioCentavos: resumen.entregados
+      ? Math.round(resumen.importeCentavos / resumen.entregados)
+      : null,
+    productos: productos.results
+  });
+}

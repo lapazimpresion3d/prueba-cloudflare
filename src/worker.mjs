@@ -1,4 +1,4 @@
-import { administrarPedidos, pedidosPublicos } from "./pedidos.mjs";
+import { administrarPedidos, consultarEstadisticas, pedidosPublicos } from "./pedidos.mjs";
 import { administrarAgenda, consultarDisponibilidad } from "./reservaciones.mjs";
 
 const encoder = new TextEncoder();
@@ -217,6 +217,10 @@ async function administrar(request, env, url) {
       "ON CONFLICT (id) DO UPDATE SET turnos_json = excluded.turnos_json"
     ).bind(JSON.stringify(turnos)).run();
     return json({ turnos });
+  }
+
+  if (url.pathname === "/api/admin/estadisticas" && request.method === "GET") {
+    return consultarEstadisticas(env.DB, url, await leerMenu(request, env), json);
   }
 
   if (url.pathname === "/api/admin/pedidos") {
