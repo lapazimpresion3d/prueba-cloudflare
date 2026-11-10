@@ -63,7 +63,13 @@ let productosCatalogo = null;
 let avisoCarrito = "";
 let revisandoPedido = false;
 let mostrarCatalogo = () => {};
-const lineasNoDisponibles = new Set();
+const lineasNoDisponibles = new Map();
+
+function limiteExtras(producto) {
+  return Number.isInteger(producto.maxExtras) && producto.maxExtras >= 0
+    ? producto.maxExtras
+    : Infinity;
+}
 
 function precioBase(producto, variante) {
   return (producto.precioEspecial ?? producto.precio) + (variante?.recargo ?? 0);
@@ -96,14 +102,14 @@ function sincronizarCarrito() {
       try {
         productoId = JSON.parse(item.id).id;
       } catch {
-        lineasNoDisponibles.add(item);
+        lineasNoDisponibles.set(item, "No disponible");
         return;
       }
     }
 
     const producto = productosCatalogo.get(productoId);
     if (!producto || producto.disponible === false) {
-      lineasNoDisponibles.add(item);
+      lineasNoDisponibles.set(item, "No disponible");
       return;
     }
 
@@ -111,8 +117,13 @@ function sincronizarCarrito() {
       (producto.extras || []).map(extra => [extra.nombre, extra.precio])
     );
     const extras = item.extras || [];
+    if (extras.length > limiteExtras(producto)) {
+      lineasNoDisponibles.set(item, "Supera el máximo de extras");
+      return;
+    }
+
     if (extras.some(nombre => !extrasPorNombre.has(nombre))) {
-      lineasNoDisponibles.add(item);
+      lineasNoDisponibles.set(item, "No disponible");
       return;
     }
 
@@ -123,7 +134,7 @@ function sincronizarCarrito() {
       : variantes[0];
 
     if ((varianteId && !variante) || (variante && !varianteDisponible(variante))) {
-      lineasNoDisponibles.add(item);
+      lineasNoDisponibles.set(item, "No disponible");
       return;
     }
 
@@ -195,7 +206,7 @@ function actualizarCarrito() {
 
   botonEnviar.disabled = carrito.length === 0 || !productosCatalogo || hayNoDisponibles || revisandoPedido;
   aviso.textContent = hayNoDisponibles
-    ? "Retira del carrito los productos que ya no están disponibles para continuar."
+    ? "Retira del carrito los productos o combinaciones que ya no se pueden pedir para continuar."
     : avisoCarrito;
   aviso.hidden = carrito.length === 0 || !aviso.textContent;
 
@@ -213,12 +224,13 @@ function actualizarCarrito() {
   carrito.forEach(item => {
     const fila = document.createElement("p");
 
-    const noDisponible = lineasNoDisponibles.has(item);
+    const motivo = lineasNoDisponibles.get(item);
+    const noDisponible = Boolean(motivo);
     const subtotal = item.precio * item.cantidad;
     if (!noDisponible) total += subtotal;
 
     fila.textContent = noDisponible
-      ? `${item.cantidad} × ${nombreLinea(item)} — No disponible`
+      ? `${item.cantidad} × ${nombreLinea(item)} — ${motivo}`
       : `${item.cantidad} × ${nombreLinea(item)} — $${subtotal.toFixed(2)}`;
 
     if (item.incluye?.length) {
@@ -495,10 +507,21 @@ async function cargarMenu() {
             });
           }
 
+          const maximoExtras = limiteExtras(producto);
+          const casillasExtras = [];
+
           if (producto.extras?.length) {
             const tituloExtras = document.createElement("h4");
             tituloExtras.textContent = "Extras";
             personalizacion.appendChild(tituloExtras);
+
+            if (Number.isFinite(maximoExtras)) {
+              const avisoExtras = document.createElement("small");
+              avisoExtras.textContent = maximoExtras === 0
+                ? "Este producto se ofrece sin extras."
+                : "Puedes elegir hasta " + maximoExtras + (maximoExtras === 1 ? " extra." : " extras.");
+              personalizacion.appendChild(avisoExtras);
+            }
 
             producto.extras.forEach(extra => {
               const etiqueta = document.createElement("label");
@@ -506,6 +529,7 @@ async function cargarMenu() {
 
               casilla.type = "checkbox";
               casilla.value = extra.id;
+              casillasExtras.push({ extra, casilla });
 
               etiqueta.append(
                 casilla,
@@ -546,30 +570,24 @@ async function cargarMenu() {
         subtotal.className = "subtotal";
 
 
-        // Calcular el precio de los extras seleccionados
-        function calcularPrecioUnitario() {
-          let precioUnitario = precioBase(producto, varianteElegida);
-
-          const casillas = personalizacion.querySelectorAll(
-            'input[type="checkbox"]:checked'
-          );
-
-          casillas.forEach(casilla => {
-            const extra = producto.extras?.find(
-              item => item.id === casilla.value
-            );
-
-            if (extra) {
-              precioUnitario += extra.precio;
-            }
-          });
-
-          return precioUnitario;
+        function obtenerExtrasSeleccionados() {
+          return casillasExtras
+            .filter(({ casilla }) => casilla.checked)
+            .map(({ extra }) => extra);
         }
 
-          
+        function calcularPrecioUnitario(extras) {
+          return precioBase(producto, varianteElegida) +
+            extras.reduce((suma, extra) => suma + extra.precio, 0);
+        }
+
         function actualizarCantidad() {
-          const precioUnitario = calcularPrecioUnitario();
+          const extras = obtenerExtrasSeleccionados();
+          const precioUnitario = calcularPrecioUnitario(extras);
+
+          for (const { casilla } of casillasExtras) {
+            casilla.disabled = !casilla.checked && extras.length >= maximoExtras;
+          }
 
           numero.textContent = cantidad;
           disminuir.disabled = cantidad === 1;
@@ -630,17 +648,11 @@ agregar.addEventListener("click", () => {
     })
     .map(ingrediente => ingrediente.nombre);
 
-  // Obtener los extras seleccionados
-  const extras = (producto.extras || [])
-    .filter(extra => {
-      const casilla = [...personalizacion.querySelectorAll("input")]
-        .find(input => input.value === extra.id);
+  const extrasSeleccionados = obtenerExtrasSeleccionados();
+  if (extrasSeleccionados.length > maximoExtras) return;
 
-      return casilla?.checked;
-    })
-    .map(extra => extra.nombre);
-
-  const precioFinal = calcularPrecioUnitario();
+  const extras = extrasSeleccionados.map(extra => extra.nombre);
+  const precioFinal = calcularPrecioUnitario(extrasSeleccionados);
 
   const clave = claveProducto(producto.id, ingredientes, extras, varianteElegida?.id);
 

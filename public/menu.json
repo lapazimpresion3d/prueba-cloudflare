@@ -178,6 +178,7 @@
           "descripcion": "Tortilla de harina con queso fundido.",
           "precio": 45,
           "imagen": "imagenes/quesadilla.webp",
+          "maxExtras": 2,
           "ingredientes": [
             {
               "id": "queso",
