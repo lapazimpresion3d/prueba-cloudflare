@@ -44,6 +44,17 @@
         <summary>Pedidos de prueba y cocina</summary>
         <p>Revisa los pedidos registrados desde el menú, imprime las comandas y actualiza su estado.</p>
         <p><a href="/cocina/">Abrir pantalla de cocina</a></p>
+        <details class="editor-producto">
+          <summary>Contraseña de cocina</summary>
+          <p>Genera una clave para compartir con el personal de cocina. Cada clave nueva invalida la anterior y cierra las sesiones de cocina activas.</p>
+          <button id="generar-clave-cocina" type="button">Generar contraseña</button>
+          <p id="clave-cocina-estado" role="status"></p>
+          <div id="clave-cocina-generada" hidden>
+            <label for="clave-cocina-nueva">Contraseña nueva de cocina</label>
+            <input id="clave-cocina-nueva" type="text" readonly autocomplete="off" spellcheck="false">
+            <p>Cópiala antes de recargar la página o cerrar sesión.</p>
+          </div>
+        </details>
         <label for="vista-pedidos">Mostrar</label>
         <select id="vista-pedidos">
           <option value="activos">Pedidos activos</option>

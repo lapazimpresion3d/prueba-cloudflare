@@ -90,6 +90,10 @@ function aHex(buffer) {
   return Array.from(new Uint8Array(buffer), byte => byte.toString(16).padStart(2, "0")).join("");
 }
 
+function desdeHex(valor) {
+  return Uint8Array.from(valor.match(/../g), byte => parseInt(byte, 16));
+}
+
 function cabeceraSesion(valor, segundos, cookie = cookieSesion) {
   return {
     "Set-Cookie": cookie + "=" + valor +
@@ -101,9 +105,9 @@ function valorFirmadoSesion(valor, cookie) {
   return cookie === cookieSesion ? valor : cookie + ":" + valor;
 }
 
-function claveSesion(contrasena) {
+function claveSesion(material) {
   return crypto.subtle.importKey(
-    "raw", encoder.encode(contrasena),
+    "raw", typeof material === "string" ? encoder.encode(material) : material,
     { name: "HMAC", hash: "SHA-256" }, false, ["sign", "verify"]
   );
 }
@@ -116,7 +120,7 @@ async function sesionValida(request, clave, nombre = cookieSesion) {
   const formato = /^(\d{10,12}\.[\da-f-]{36})\.([\da-f]{64})$/;
   const partes = valor.match(formato);
   if (!partes || Number(partes[1].split(".")[0]) <= Math.floor(Date.now() / 1000)) return false;
-  const firma = Uint8Array.from(partes[2].match(/../g), byte => parseInt(byte, 16));
+  const firma = desdeHex(partes[2]);
   return crypto.subtle.verify("HMAC", clave, firma, encoder.encode(valorFirmadoSesion(partes[1], nombre)));
 }
 
@@ -126,7 +130,7 @@ function demasiadosIntentos(espera) {
   }, 429, { "Retry-After": String(espera) });
 }
 
-async function iniciarSesion(request, db, clave, contrasena, cookie = cookieSesion) {
+async function iniciarSesion(request, db, clave, credencial, cookie = cookieSesion) {
   const datos = await request.json().catch(() => null);
   const ahora = Math.floor(Date.now() / 1000);
   const ip = request.headers.get("CF-Connecting-IP") || "sin-ip";
@@ -140,7 +144,9 @@ async function iniciarSesion(request, db, clave, contrasena, cookie = cookieSesi
     return demasiadosIntentos(previo.vence - ahora);
   }
 
-  const firmaEsperada = await firmar(clave, "acceso:" + contrasena);
+  const firmaEsperada = typeof credencial === "string"
+    ? await firmar(clave, "acceso:" + credencial)
+    : credencial;
   const correcto = typeof datos?.clave === "string" && datos.clave.length <= 256 &&
     await crypto.subtle.verify("HMAC", clave, firmaEsperada, encoder.encode("acceso:" + datos.clave));
 
@@ -167,20 +173,48 @@ async function iniciarSesion(request, db, clave, contrasena, cookie = cookieSesi
   return json({ ok: true }, 200, cabeceraSesion(valor + "." + firma, duracion, cookie));
 }
 
+async function claveCocinaGuardada(claveAdmin, sal) {
+  return claveSesion(await firmar(claveAdmin, "clave-cocina:" + sal));
+}
+
+async function generarClaveCocina(db, claveAdmin, contrasenaAdmin) {
+  const alfabeto = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+  const aleatorio = new Uint8Array(16);
+  let contrasena;
+  do {
+    contrasena = Array.from(crypto.getRandomValues(aleatorio), byte => alfabeto[byte & 31]).join("");
+  } while (contrasena === contrasenaAdmin);
+  const sal = crypto.randomUUID();
+  const clave = await claveCocinaGuardada(claveAdmin, sal);
+  const verificador = aHex(await firmar(clave, "acceso:" + contrasena));
+  await db.prepare(
+    "INSERT INTO clave_cocina (id, sal, verificador) VALUES (1, ?, ?) " +
+    "ON CONFLICT (id) DO UPDATE SET sal = excluded.sal, verificador = excluded.verificador"
+  ).bind(sal, verificador).run();
+  return json({ contrasena });
+}
+
 async function atenderCocina(request, env, url) {
-  const contrasena = env.COCINA_PASSWORD;
-  if (!contrasena || contrasena.length < 16 || contrasena === env.ADMIN_PASSWORD) {
-    return json({ error: "El acceso de cocina requiere una contraseña propia de al menos 16 caracteres." }, 503);
-  }
   if (request.method !== "GET" && request.headers.get("Origin") !== url.origin) {
     return json({ error: "Solicitud de origen no permitido." }, 403);
   }
-  const clave = await claveSesion(contrasena);
-  if (url.pathname === "/api/cocina/entrar" && request.method === "POST") {
-    return iniciarSesion(request, env.DB, clave, contrasena, cookieCocina);
-  }
   if (url.pathname === "/api/cocina/salir" && request.method === "POST") {
     return json({ ok: true }, 200, cabeceraSesion("", 0, cookieCocina));
+  }
+  const guardada = await env.DB.prepare("SELECT sal, verificador FROM clave_cocina WHERE id = 1").first();
+  let clave;
+  let credencial;
+  if (guardada && env.ADMIN_PASSWORD?.length >= 16) {
+    clave = await claveCocinaGuardada(await claveSesion(env.ADMIN_PASSWORD), guardada.sal);
+    credencial = desdeHex(guardada.verificador);
+  } else if (!guardada && env.COCINA_PASSWORD?.length >= 16 && env.COCINA_PASSWORD !== env.ADMIN_PASSWORD) {
+    clave = await claveSesion(env.COCINA_PASSWORD);
+    credencial = env.COCINA_PASSWORD;
+  } else {
+    return json({ error: "Genera la contraseña de cocina desde el panel del encargado." }, 503);
+  }
+  if (url.pathname === "/api/cocina/entrar" && request.method === "POST") {
+    return iniciarSesion(request, env.DB, clave, credencial, cookieCocina);
   }
   if (!await sesionValida(request, clave, cookieCocina)) {
     return json({ error: "Inicia sesión para ver los pedidos de cocina." }, 401);
@@ -266,6 +300,10 @@ async function administrar(request, env, url) {
 
   if (url.pathname === "/api/admin/pedidos") {
     return administrarPedidos(request, env.DB, url, json);
+  }
+
+  if (url.pathname === "/api/admin/cocina/clave" && request.method === "POST") {
+    return generarClaveCocina(env.DB, clave, env.ADMIN_PASSWORD);
   }
 
   if (url.pathname === "/api/admin/agenda") {

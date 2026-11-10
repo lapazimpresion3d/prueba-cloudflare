@@ -37,6 +37,10 @@ const vistaPedidos = document.getElementById("vista-pedidos");
 const actualizarPedidos = document.getElementById("actualizar-pedidos");
 const estadoPedidos = document.getElementById("pedidos-estado");
 const listaPedidos = document.getElementById("lista-pedidos");
+const generarClaveCocina = document.getElementById("generar-clave-cocina");
+const estadoClaveCocina = document.getElementById("clave-cocina-estado");
+const claveCocinaGenerada = document.getElementById("clave-cocina-generada");
+const claveCocinaNueva = document.getElementById("clave-cocina-nueva");
 const comandaImpresa = document.getElementById("comanda-impresa");
 const contenidoComanda = document.getElementById("contenido-comanda");
 let versionPedidos = 0;
@@ -87,6 +91,9 @@ function mostrarAcceso() {
   agenda.open = false;
   panelPedidos.open = false;
   listaPedidos.replaceChildren();
+  claveCocinaNueva.value = "";
+  claveCocinaGenerada.hidden = true;
+  estadoClaveCocina.textContent = "";
   limpiarComanda();
   estadoPedidos.textContent = "";
   firmaListaPedidos = "";
@@ -945,6 +952,26 @@ panelPedidos.addEventListener("toggle", () => {
 });
 vistaPedidos.addEventListener("change", cargarPedidos);
 actualizarPedidos.addEventListener("click", cargarPedidos);
+generarClaveCocina.addEventListener("click", async () => {
+  if (generarClaveCocina.disabled ||
+      !window.confirm("¿Generar una contraseña nueva y cerrar las sesiones de cocina activas?")) return;
+  generarClaveCocina.disabled = true;
+  estadoClaveCocina.textContent = "Generando la contraseña…";
+  try {
+    const resultado = await solicitar("cocina/clave", "POST");
+    if (panel.hidden) return;
+    claveCocinaNueva.value = resultado.contrasena;
+    claveCocinaGenerada.hidden = false;
+    estadoClaveCocina.textContent = "Contraseña generada.";
+    claveCocinaNueva.focus();
+    claveCocinaNueva.select();
+  } catch (error) {
+    if (error.status === 401) mostrarError(error);
+    else estadoClaveCocina.textContent = error.status ? error.message : "No se pudo confirmar el cambio. Intenta de nuevo.";
+  } finally {
+    generarClaveCocina.disabled = false;
+  }
+});
 window.setInterval(() => {
   if (panelPedidos.open && !panel.hidden && !document.hidden && !cambiandoPedido) cargarPedidos();
 }, 15000);
