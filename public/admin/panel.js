@@ -436,6 +436,9 @@ function editorCatalogo(producto, categorias) {
   const formulario = document.createElement("form");
   formulario.className = "formulario-catalogo";
   const campos = document.createElement("fieldset");
+  const datosTitulo = document.createElement("legend");
+  datosTitulo.textContent = "Datos del producto";
+  campos.appendChild(datosTitulo);
   const importe = { required: true, min: "0", max: "1000000", step: "0.01" };
   let id = datos.id;
   let categoria;
@@ -451,12 +454,18 @@ function editorCatalogo(producto, categorias) {
     archivado = campoCatalogo(campos, "Archivar del menú público", "checkbox", datos.archivado);
   }
   const nombre = campoCatalogo(campos, "Nombre del producto", "text", datos.nombre, { required: true, maxLength: 80 });
+  const tituloFoto = document.createElement("h3");
+  tituloFoto.textContent = "Fotografía del producto";
+  campos.appendChild(tituloFoto);
   const archivoFoto = campoCatalogo(campos, "Subir foto del dispositivo (JPG, PNG o WebP)", "file", "", {
     accept: ".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
   });
   const imagen = campoCatalogo(campos, "Ruta o enlace HTTPS de la foto (opcional)", "text", datos.imagen,
     { maxLength: 500, placeholder: "imagenes/pastor.webp" });
   archivoFoto.addEventListener("change", () => { imagen.readOnly = archivoFoto.files.length > 0; });
+  const tituloPersonalizacion = document.createElement("h3");
+  tituloPersonalizacion.textContent = "Contenido y personalización";
+  campos.appendChild(tituloPersonalizacion);
   const incluye = campoCatalogo(campos, "Incluye (combos)", "textarea",
     datos.incluye?.join("\n"), { rows: 2, maxLength: 971 });
   const ayudaIncluye = document.createElement("small");
@@ -487,6 +496,7 @@ function editorCatalogo(producto, categorias) {
   const guardar = document.createElement("button");
   guardar.type = "submit";
   guardar.textContent = creando ? "Crear producto" : "Guardar ficha";
+  if (creando) guardar.className = "crear-producto";
   const estado = document.createElement("p");
   estado.setAttribute("role", "status");
   formulario.append(campos, guardar, estado);

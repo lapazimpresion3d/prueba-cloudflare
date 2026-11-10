@@ -1003,8 +1003,6 @@ const registrarPedidoDemo = document.getElementById("registrar-pedido-demo");
 const estadoRegistroPedido = document.getElementById("registro-pedido-estado");
 const enlaceRegistroPedido = document.getElementById("registro-pedido-enlace");
 const seguirPedido = document.getElementById("seguir-pedido");
-const ultimoPedidoDemo = document.getElementById("ultimo-pedido-demo");
-const enlaceUltimoPedido = document.getElementById("enlace-ultimo-pedido");
 const volverCarrito = document.getElementById("volver-carrito");
 const continuarWhatsApp = document.getElementById("continuar-whatsapp");
 let borradorRegistro = null;
@@ -1358,8 +1356,7 @@ registrarPedidoDemo.addEventListener("click", async () => {
     folioRegistrado = resultado.folio;
     estadoRegistroPedido.textContent = "Pedido de prueba #" + folioRegistrado + " registrado.";
     seguirPedido.href = "/seguimiento/#" + token;
-    enlaceUltimoPedido.href = seguirPedido.href;
-    ultimoPedidoDemo.hidden = false;
+    window.seguimientoComal.guardar(token, folioRegistrado);
     enlaceRegistroPedido.hidden = false;
     seguirPedido.focus();
     borradorRegistro = null;

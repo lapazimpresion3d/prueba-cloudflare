@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Vista previa de cocina · Taquería El Comal</title>
+  <link rel="stylesheet" href="/admin/panel.css">
+  <link rel="stylesheet" href="/cocina/cocina.css">
+  <style>
+    .aviso-cocina-demo { padding: 14px; border-left: 4px solid #f5b841; background: white; }
+    button:disabled { cursor: default; }
+  </style>
+</head>
+<body>
+  <main class="pantalla-cocina">
+    <p><a href="/demo/">Volver a la demo</a> · <a href="/#menu">Volver al menú</a></p>
+    <h1>Cocina · Taquería El Comal</h1>
+    <p class="aviso-cocina-demo">Vista previa con pedidos ficticios. Los controles de operación están desactivados.</p>
+    <div class="acciones-cocina">
+      <button type="button" disabled>Actualizar pedidos</button>
+      <button type="button" disabled>Cerrar sesión</button>
+    </div>
+    <div class="columnas-cocina">
+      <section aria-labelledby="por-preparar-demo">
+        <h2 id="por-preparar-demo">Por preparar</h2>
+        <p>Pedidos que el encargado ya confirmó.</p>
+        <article class="pedido-cocina">
+          <h3>Pedido #15</h3>
+          <p>Mesa 3 · Recibido a las 19:10</p>
+          <ul>
+            <li>2 × Taco al pastor <small>Sin cebolla · Queso extra</small></li>
+            <li>1 × Agua natural (Grande)</li>
+          </ul>
+          <p class="nota-cocina">Instrucciones · Salsa aparte</p>
+          <button type="button" disabled>Iniciar preparación</button>
+        </article>
+      </section>
+      <section aria-labelledby="en-preparacion-demo">
+        <h2 id="en-preparacion-demo">En preparación</h2>
+        <p>Comandas que cocina está preparando.</p>
+        <article class="pedido-cocina">
+          <h3>Pedido #14</h3>
+          <p>Para recoger · Recibido a las 19:05</p>
+          <ul>
+            <li>3 × Taco de asada <small>Con cebolla y cilantro</small></li>
+            <li>1 × Quesadilla <small>Carne asada extra</small></li>
+          </ul>
+          <button type="button" disabled>Marcar listo</button>
+        </article>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

@@ -1,4 +1,4 @@
-const token = window.location.hash.slice(1);
+const token = window.location.hash.slice(1) || window.seguimientoComal.leer()?.token || "";
 const folio = document.getElementById("folio-seguimiento");
 const estado = document.getElementById("estado-seguimiento");
 const fecha = document.getElementById("fecha-seguimiento");
@@ -24,6 +24,8 @@ async function cargarSeguimiento() {
       return;
     }
     folio.textContent = "Pedido #" + pedido.folio;
+    const ultimo = window.seguimientoComal.leer();
+    if (!ultimo || pedido.folio >= ultimo.folio) window.seguimientoComal.guardar(token, pedido.folio);
     folio.hidden = false;
     estado.textContent = pedido.etiqueta;
     fecha.textContent = "Último cambio · " + new Intl.DateTimeFormat("es-MX", {

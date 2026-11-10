@@ -99,3 +99,22 @@ button:disabled { opacity: .65; cursor: wait; }
 #modo-entrega { padding: 8px; }
 #campos-entrega > button { margin: 4px 4px 4px 0; }
 #editor-entrega-estado:empty { display: none; }
+#panel > details > h2 {
+  margin: 20px 0 10px;
+  padding-top: 12px;
+  border-top: 1px solid #e5ddd3;
+  color: #705c4d;
+  font-size: 1.05rem;
+}
+#alta-producto > details { margin: 0 0 18px; border: 2px solid #b38321; }
+#alta-producto > details > summary {
+  padding: 12px;
+  border-radius: 6px;
+  background: #f5b841;
+  color: #29211c;
+  font-weight: bold;
+}
+#alta-producto > details > summary:hover { background: #ffd06b; }
+.crear-producto { background: #f5b841; color: #29211c; border-color: #b38321; }
+.crear-producto:hover { background: #ffd06b; }
+.formulario-catalogo h3 { font-size: 1rem; margin: 18px 0 10px; color: #705c4d; }

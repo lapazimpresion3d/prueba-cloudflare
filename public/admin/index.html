@@ -28,6 +28,7 @@
       <details id="agenda">
         <summary>Agenda de mesas</summary>
         <p>Registra una mesa después de confirmar la solicitud por WhatsApp.</p>
+        <h2>Registrar una reservación</h2>
         <form id="formulario-agenda">
           <label for="agenda-fecha">Fecha</label>
           <input id="agenda-fecha" type="date" required>
@@ -38,11 +39,13 @@
           <button type="submit">Registrar mesa</button>
         </form>
         <p id="agenda-estado" role="status"></p>
+        <h2>Mesas agendadas</h2>
         <div id="agenda-mesas"></div>
       </details>
       <details id="panel-pedidos">
         <summary>Pedidos de prueba y cocina</summary>
         <p>Revisa los pedidos registrados desde el menú, imprime las comandas y actualiza su estado.</p>
+        <h2>Acceso del personal de cocina</h2>
         <p><a href="/cocina/">Abrir pantalla de cocina</a></p>
         <details class="editor-producto">
           <summary>Contraseña de cocina</summary>
@@ -55,6 +58,9 @@
             <p>Cópiala antes de recargar la página o cerrar sesión.</p>
           </div>
         </details>
+        <h2>Pedidos activos e historial</h2>
+        <p>Los pedidos de días anteriores se conservan. Los pendientes siguen en Pedidos activos. Los entregados y cancelados pasan al historial.</p>
+        <p>La lista muestra hasta 50 pedidos por vista. En el historial aparecen los 50 más recientes.</p>
         <label for="vista-pedidos">Mostrar</label>
         <select id="vista-pedidos">
           <option value="activos">Pedidos activos</option>
@@ -67,13 +73,16 @@
       <details id="panel-productos" open>
         <summary>Productos</summary>
         <p>Agrega productos, edita sus opciones y marca como agotados los que se terminen. Archiva un producto si quieres ocultarlo del menú.</p>
+        <h2>Crear un producto</h2>
         <div id="alta-producto"></div>
         <p id="catalogo-estado" role="status"></p>
+        <h2>Catálogo del restaurante</h2>
         <div id="productos"></div>
       </details>
       <details id="editor-categorias">
         <summary>Categorías del menú</summary>
         <p>Cambia los nombres o usa Subir y Bajar para ajustar el orden.</p>
+        <h2>Nombres y orden de las categorías</h2>
         <form id="formulario-categorias">
           <div id="lista-categorias"></div>
           <button type="submit">Guardar categorías</button>
@@ -83,6 +92,7 @@
       <details id="editor-horario">
         <summary>Horario de atención</summary>
         <p>Elige los días de cada turno. Para cerrar a medianoche, selecciona 00:00 como hora de cierre. Si quitas todos los turnos, el menú mostrará que el negocio está cerrado.</p>
+        <h2>Días y turnos de atención</h2>
         <form id="formulario-horario">
           <div id="lista-turnos"></div>
           <button id="agregar-turno" type="button" disabled>Agregar turno</button>
@@ -93,6 +103,7 @@
       <details id="editor-entrega">
         <summary>Entrega a domicilio</summary>
         <p>Define las colonias que atiendes, la tarifa de cada una y el mínimo de productos para entregar.</p>
+        <h2>Cobertura y costos de envío</h2>
         <form id="formulario-entrega" hidden>
           <fieldset id="campos-entrega">
             <legend>Reglas de entrega</legend>
@@ -113,6 +124,7 @@
       <details id="panel-estadisticas">
         <summary>Estadísticas de pedidos de prueba</summary>
         <p>El período usa la fecha en que se registró cada pedido. Los importes corresponden a los productos de los pedidos entregados.</p>
+        <h2>Consultar un período</h2>
         <form id="formulario-estadisticas">
           <label for="estadisticas-desde">Desde
             <input id="estadisticas-desde" type="date" required>
@@ -124,6 +136,7 @@
         </form>
         <p id="estadisticas-estado" role="status"></p>
         <div id="resultado-estadisticas" hidden>
+          <h2>Resumen del período</h2>
           <dl id="estadisticas-resumen"></dl>
           <h2>Pedidos por servicio</h2>
           <ul id="estadisticas-servicios"></ul>

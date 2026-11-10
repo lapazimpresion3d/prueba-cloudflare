@@ -43,6 +43,7 @@
   <link rel="stylesheet" href="estilos.css">
 
   <!-- JavaScript; defer ejecuta después de analizar HTML -->
+  <script src="/seguimiento/memoria.js" defer></script>
   <script src="app.js" defer></script>
 </head>
 
@@ -141,6 +142,9 @@
       </section>
 
       <p id="aviso-mesa" class="aviso-demo" role="status" hidden></p>
+      <p id="seguimiento-reciente" class="acceso-seguimiento" data-seguimiento-contenedor hidden>
+        <a data-seguimiento-reciente href="/seguimiento/">Ver seguimiento de mi último pedido</a>
+      </p>
 
       <!-- Título del menú -->
       <h2>Nuestro menú</h2>
@@ -263,8 +267,8 @@
 
           <label for="notas-pedido" class="etiqueta-notas">Instrucciones para el pedido (opcional)</label>
           <textarea id="notas-pedido" rows="2" maxlength="200"></textarea>
-          <p id="ultimo-pedido-demo" hidden>
-            <a id="enlace-ultimo-pedido" target="_blank" rel="noopener noreferrer">Seguir el último pedido de prueba</a>
+          <p id="ultimo-pedido-demo" data-seguimiento-contenedor hidden>
+            <a id="enlace-ultimo-pedido" data-seguimiento-reciente href="/seguimiento/" target="_blank" rel="noopener noreferrer">Seguir el último pedido de prueba</a>
           </p>
         </div>
 

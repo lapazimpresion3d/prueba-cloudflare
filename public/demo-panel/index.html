@@ -23,10 +23,17 @@
     .demo-dias label { display: inline-flex; align-items: center; gap: 4px; }
     .demo-dias input { margin: 0; }
     button:disabled { cursor: default; }
+    #alta-producto-demo > summary {
+      padding: 12px;
+      border-radius: 6px;
+      background: #f5b841;
+      color: #29211c;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
-  <main>
+  <main id="panel">
     <nav aria-label="Navegación de la demo">
       <a href="/demo/">Volver a la demo</a> · <a href="/#menu">Volver al menú</a>
     </nav>
@@ -37,6 +44,7 @@
 
     <details id="agenda">
       <summary>Agenda de mesas</summary>
+      <h2>Registro y consulta de reservaciones</h2>
       <p>Registra una mesa después de confirmar la solicitud por WhatsApp.</p>
       <div class="fila">
         <div>
@@ -50,7 +58,10 @@
 
     <details id="panel-pedidos">
       <summary>Pedidos de prueba y cocina</summary>
+      <h2>Pedidos activos e historial</h2>
       <p>Consulta los pedidos activos o el historial, prepara comandas y actualiza el estado del pedido.</p>
+      <p>Los pedidos se conservan de un día a otro. El historial muestra los 50 entregados o cancelados más recientes.</p>
+      <p><a href="/demo-cocina/">Ver la cocina de ejemplo</a></p>
       <label for="vista-pedidos">Mostrar</label>
       <select id="vista-pedidos" disabled>
         <option>Pedidos activos</option>
@@ -75,7 +86,8 @@
       <summary>Productos</summary>
       <p>Da de alta productos, sube fotos, edita ingredientes, extras y variantes, y marca como agotados los que se terminen.</p>
 
-      <details class="demo-bloque">
+      <h2>Crear un producto</h2>
+      <details id="alta-producto-demo" class="demo-bloque">
         <summary>Agregar producto</summary>
         <fieldset class="demo-campos" disabled>
           <legend>Ejemplo de ficha nueva</legend>
@@ -104,10 +116,11 @@
             <button type="button">Añadir extra</button>
             <button type="button">Añadir variante</button>
           </div>
-          <p><button type="button">Crear producto</button></p>
+          <p><button type="button" class="crear-producto">Crear producto</button></p>
         </fieldset>
       </details>
 
+      <h2>Catálogo del restaurante</h2>
       <article class="demo-bloque">
         <h2>Taco de asada</h2>
         <p class="estado">Disponible · Regular $30.00 · Especial $27.00</p>
@@ -134,6 +147,7 @@
 
     <details id="editor-categorias">
       <summary>Categorías del menú</summary>
+      <h2>Nombres y orden de las categorías</h2>
       <p>Cambia los nombres o ajusta el orden en que aparecen en el menú.</p>
       <div class="fila-categoria">
         <label>Nombre de categoría <input type="text" value="Combos" disabled></label>
@@ -150,6 +164,7 @@
 
     <details id="editor-horario">
       <summary>Horario de atención</summary>
+      <h2>Días y turnos de atención</h2>
       <p>Configura los días y las horas de cada turno. El horario determina qué estado ve el cliente en el menú.</p>
       <fieldset class="turno-horario" disabled>
         <legend>Turno 1</legend>
@@ -173,8 +188,30 @@
       </div>
     </details>
 
+    <details id="editor-entrega">
+      <summary>Entrega a domicilio</summary>
+      <h2>Cobertura y costos de envío</h2>
+      <p>El encargado configura las colonias que atiende, sus tarifas y el mínimo de productos para entregar.</p>
+      <fieldset class="demo-campos" disabled>
+        <legend>Ejemplo de configuración</legend>
+        <label>Cómo se calcula el envío
+          <select><option>Calcular por colonia</option></select>
+        </label>
+        <label>Pedido mínimo de productos (MXN)
+          <input type="number" value="100">
+        </label>
+        <label>Colonia de ejemplo
+          <input type="text" value="Colonia Ámbar">
+        </label>
+        <label>Envío (MXN)
+          <input type="number" value="25">
+        </label>
+        <button type="button">Guardar reglas de entrega</button>
+      </fieldset>
+    </details>
     <details id="panel-estadisticas">
       <summary>Estadísticas de pedidos de prueba</summary>
+      <h2>Consultar un período</h2>
       <p>Ejemplo de una consulta por período. Los importes corresponden a productos de pedidos entregados.</p>
       <div class="acciones-cocina">
         <label>Desde <input type="date" value="2026-10-05" disabled></label>

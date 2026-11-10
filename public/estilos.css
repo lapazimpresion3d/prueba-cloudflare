@@ -970,3 +970,11 @@ footer {
     margin-left: 0;
   }
 }
+.acceso-seguimiento {
+  margin: 20px 0;
+  padding: 14px 18px;
+  border: 2px solid var(--rojo);
+  border-radius: 10px;
+  background: white;
+}
+.acceso-seguimiento a { color: var(--rojo); font-weight: bold; }
