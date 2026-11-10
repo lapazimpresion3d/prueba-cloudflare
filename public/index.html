@@ -137,6 +137,8 @@
         <p id="horario-detalle"></p>
       </section>
 
+      <p id="aviso-mesa" class="aviso-demo" role="status" hidden></p>
+
       <!-- Título del menú -->
       <h2>Nuestro menú</h2>
       <p>Elige tus favoritos</p>
@@ -210,12 +212,14 @@
             maxlength="80"
           >
 
-          <label for="tipo-servicio">¿Cómo quieres recibir tu pedido?</label>
+          <label id="etiqueta-tipo-servicio" for="tipo-servicio">¿Cómo quieres recibir tu pedido?</label>
           <select id="tipo-servicio" required>
             <option value="">Selecciona una opción</option>
             <option value="recoger">Recoger en el establecimiento</option>
             <option value="domicilio">Entrega a domicilio</option>
           </select>
+
+          <p id="mesa-carrito" hidden></p>
 
           <p id="aviso-entrega" hidden>
             El negocio confirmará el costo de envío y el tiempo de entrega por WhatsApp.

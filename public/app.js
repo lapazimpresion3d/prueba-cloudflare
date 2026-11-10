@@ -59,6 +59,10 @@ REGLAS DE MANTENIMIENTO:
 
 
 const carrito = [];
+const codigoMesa = new URLSearchParams(window.location.search).get("mesa");
+const claveCarritoGeneral = "elComalCarrito";
+let claveCarrito = codigoMesa === null ? claveCarritoGeneral : null;
+let mesaPedido = null;
 let productosCatalogo = null;
 let avisoCarrito = "";
 let revisandoPedido = false;
@@ -154,17 +158,17 @@ function sincronizarCarrito() {
   });
 }
 
-try {
-  const guardado = JSON.parse(
-    localStorage.getItem("elComalCarrito") || "[]"
-  );
-
-  if (Array.isArray(guardado)) {
-    carrito.push(...guardado);
+function recuperarCarrito() {
+  if (!claveCarrito) return;
+  try {
+    const guardado = JSON.parse(localStorage.getItem(claveCarrito) || "[]");
+    if (Array.isArray(guardado)) carrito.push(...guardado);
+  } catch (error) {
+    console.warn("No se pudo recuperar el carrito", error);
   }
-} catch (error) {
-  console.warn("No se pudo recuperar el carrito", error);
 }
+
+recuperarCarrito();
 
 /* =====================================================
    SECCIÓN 2 — ACTUALIZACIÓN DEL CARRITO
@@ -176,13 +180,12 @@ function actualizarCarrito() {
 
   
   // Guardar el pedido en el navegador
-  try {
-    localStorage.setItem(
-      "elComalCarrito",
-      JSON.stringify(carrito)
-    );
-  } catch (error) {
-    console.warn("No se pudo guardar el carrito", error);
+  if (claveCarrito) {
+    try {
+      localStorage.setItem(claveCarrito, JSON.stringify(carrito));
+    } catch (error) {
+      console.warn("No se pudo guardar el carrito", error);
+    }
   }
 
   
@@ -754,6 +757,7 @@ agregar.addEventListener("click", () => {
 
     mostrarCatalogo = mostrarProductos;
     buscador.addEventListener("input", mostrarProductos);
+    configurarPedidoEnMesa(menu);
     actualizarCatalogo(menu);
     mostrarProductos();
     configurarHorario(menu.horario);
@@ -969,8 +973,37 @@ const revisionPedido = document.getElementById("revision-pedido");
 const resumenPedido = document.getElementById("revision-resumen");
 const revisionFueraHorario = document.getElementById("revision-fuera-horario");
 
+function mesaDelMenu(menu) {
+  return menu.reservaciones?.mesas?.find(mesa => mesa.codigo === codigoMesa);
+}
+
+function configurarPedidoEnMesa(menu) {
+  if (codigoMesa === null) return;
+
+  mesaPedido = mesaDelMenu(menu);
+  claveCarrito = mesaPedido ? claveCarritoGeneral + ":mesa:" + codigoMesa : claveCarritoGeneral;
+  recuperarCarrito();
+
+  const avisoMesa = document.getElementById("aviso-mesa");
+  avisoMesa.hidden = false;
+  if (!mesaPedido) {
+    avisoMesa.textContent = "El enlace no identifica una mesa del menú. Puedes pedir para recoger o a domicilio.";
+    return;
+  }
+
+  avisoMesa.textContent = "Estás en " + mesaPedido.id + ". Tu pedido de prueba llevará esa mesa en WhatsApp.";
+  const mesaCarrito = document.getElementById("mesa-carrito");
+  mesaCarrito.textContent = "Pedido en " + mesaPedido.id;
+  mesaCarrito.hidden = false;
+
+  tipoServicio.hidden = true;
+  tipoServicio.disabled = true;
+  document.getElementById("etiqueta-tipo-servicio").style.display = "none";
+  actualizarDatosEntrega();
+}
+
 function actualizarDatosEntrega() {
-  const esEntrega = tipoServicio.value === "domicilio";
+  const esEntrega = !mesaPedido && tipoServicio.value === "domicilio";
   datosEntrega.hidden = !esEntrega;
   datosEntrega.disabled = !esEntrega;
   etiquetaTotal.textContent = esEntrega ? "Subtotal de productos:" : "Total:";
@@ -993,7 +1026,12 @@ document.getElementById("enviar-pedido")
     actualizarCarrito();
 
     try {
-      actualizarCatalogo(await obtenerMenu());
+      const menuVigente = await obtenerMenu();
+      if (mesaPedido && !mesaDelMenu(menuVigente)) {
+        avisoCarrito = "Esta mesa ya no está configurada. Pide al encargado el código actualizado.";
+        return;
+      }
+      actualizarCatalogo(menuVigente);
       avisoCarrito = "";
     } catch (error) {
       console.error(error);
@@ -1017,12 +1055,13 @@ document.getElementById("enviar-pedido")
       return;
     }
 
-    if (!tipoServicio.reportValidity()) return;
+    if (!mesaPedido && !tipoServicio.reportValidity()) return;
 
-    let detalleServicio =
-      "Servicio: " + tipoServicio.selectedOptions[0].textContent + "\n";
+    let detalleServicio = mesaPedido
+      ? "Servicio: En la mesa\nUbicación: " + mesaPedido.id + "\n"
+      : "Servicio: " + tipoServicio.selectedOptions[0].textContent + "\n";
 
-    const esEntrega = tipoServicio.value === "domicilio";
+    const esEntrega = !mesaPedido && tipoServicio.value === "domicilio";
 
     if (esEntrega) {
       const calle = document.getElementById("calle-entrega");
