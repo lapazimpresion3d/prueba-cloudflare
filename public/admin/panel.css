@@ -11,7 +11,10 @@ h1 { color: #a02f1c; margin: 0; line-height: 1.2; }
 h2 { font-size: 1.25rem; }
 label { display: block; font-weight: bold; margin-bottom: 8px; }
 input, button { font: inherit; border: 1px solid #705c4d; border-radius: 8px; padding: 10px 12px; }
-input[type="password"] { width: 100%; margin-bottom: 12px; }
+input[type="password"],
+#formulario-agenda input { width: 100%; margin-bottom: 12px; }
+#agenda { padding: 12px; margin: 16px 0; background: white; border-radius: 8px; }
+#agenda summary { font-weight: bold; cursor: pointer; }
 .recordar { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-weight: normal; }
 .recordar input { margin: 0; }
 button { background: #a02f1c; color: white; cursor: pointer; font-weight: bold; }

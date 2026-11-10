@@ -1,3 +1,5 @@
+import { administrarAgenda, consultarDisponibilidad } from "./reservaciones.mjs";
+
 const encoder = new TextEncoder();
 const cookieSesion = "__Host-comal-admin";
 const sesionNormal = 8 * 60 * 60;
@@ -132,6 +134,10 @@ async function administrar(request, env, url) {
     return json({ error: "Inicia sesión para administrar el menú." }, 401);
   }
 
+  if (url.pathname === "/api/admin/agenda") {
+    return administrarAgenda(request, env.DB, url, () => leerMenu(request, env), json);
+  }
+
   if (url.pathname === "/api/admin/disponibilidad" && request.method === "GET") {
     const menu = await menuConDisponibilidad(request, env);
     return json(menu.categorias.map(categoria => ({
@@ -167,6 +173,9 @@ export default {
     try {
       if (url.pathname === "/menu.json" && request.method === "GET") {
         return json(await menuConDisponibilidad(request, env));
+      }
+      if (url.pathname === "/api/reservaciones/disponibilidad" && request.method === "GET") {
+        return await consultarDisponibilidad(env.DB, await leerMenu(request, env), url, json);
       }
       if (url.pathname.startsWith("/api/admin/")) {
         return await administrar(request, env, url);

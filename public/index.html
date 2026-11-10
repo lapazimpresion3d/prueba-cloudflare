@@ -299,7 +299,7 @@
 
     <section id="reservacion" aria-labelledby="reservacion-titulo">
       <h2 id="reservacion-titulo">Solicitar una reservación</h2>
-      <p>Elige una fecha y una hora local del establecimiento.</p>
+      <p>Elige una fecha y el número de personas para consultar los horarios con mesa disponible.</p>
       <p id="horario-reservacion" hidden></p>
       <p id="reglas-reservacion"></p>
       <p class="aviso-demo">Esta es una demostración. En un restaurante real, la mesa queda reservada cuando el negocio confirma por WhatsApp.</p>
@@ -318,15 +318,15 @@
           <input id="reserva-fecha" type="date" required>
         </div>
         <div>
-          <label for="reserva-hora">Hora</label>
-          <select id="reserva-hora" aria-describedby="reserva-horarios-estado" required disabled>
-            <option value="">Elige primero una fecha</option>
-          </select>
-          <small id="reserva-horarios-estado" role="status"></small>
-        </div>
-        <div>
           <label for="reserva-personas">Número de personas</label>
           <input id="reserva-personas" type="number" min="1" step="1" required>
+        </div>
+        <div>
+          <label for="reserva-hora">Hora local</label>
+          <select id="reserva-hora" aria-describedby="reserva-horarios-estado" required disabled>
+            <option value="">Elige fecha y número de personas</option>
+          </select>
+          <small id="reserva-horarios-estado" role="status"></small>
         </div>
         <div class="reserva-ancho-completo">
           <label for="reserva-comentarios">Comentarios (opcional)</label>

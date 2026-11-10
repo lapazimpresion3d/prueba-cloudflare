@@ -1170,13 +1170,10 @@ const personasReservacion = document.getElementById("reserva-personas");
 const errorReservacion = document.getElementById("reserva-error");
 const estadoHorariosReservacion = document.getElementById("reserva-horarios-estado");
 const enviarReservacion = document.getElementById("reserva-enviar");
-const diaSemanaReservacion = new Intl.DateTimeFormat("en-GB", {
-  weekday: "short", timeZone: "UTC"
-});
+let versionHorariosReservacion = 0;
+let horariosReservacion = [];
 
 const reglasReservacion = {
-  intervaloMinutos: 30,
-  duracionMinutos: 90,
   anticipacionDias: 14,
   maxPersonas: 8
 };
@@ -1205,66 +1202,65 @@ function fechaMaximaReservacion(hoy) {
   return ultimaFecha.toISOString().slice(0, 10);
 }
 
-function minutosDelDia(hora) {
-  const [horas, minutos] = hora.split(":").map(Number);
-  return horas * 60 + minutos;
-}
-
-function horariosParaFecha(fecha, ahora) {
-  if (fecha < ahora.fecha || fecha > fechaMaximaReservacion(ahora.fecha)) return [];
-  const diaFecha = fechaUtc(fecha);
-  if (!Number.isFinite(diaFecha.valueOf()) || diaFecha.toISOString().slice(0, 10) !== fecha) return [];
-
-  const dia = diaSemanaReservacion.format(diaFecha);
-  const horas = new Set();
-  const { intervaloMinutos, duracionMinutos } = reglasReservacion;
-
-  for (const turno of turnosNegocio) {
-    if (!turno.dias.includes(dia)) continue;
-    const ultimoInicio = minutosDelDia(turno.cierra) - duracionMinutos;
-
-    for (let inicio = minutosDelDia(turno.abre); inicio <= ultimoInicio; inicio += intervaloMinutos) {
-      if (fecha === ahora.fecha && inicio <= minutosDelDia(ahora.hora)) continue;
-      const hora = String(Math.floor(inicio / 60)).padStart(2, "0");
-      const minuto = String(inicio % 60).padStart(2, "0");
-      horas.add(hora + ":" + minuto);
-    }
-  }
-  return [...horas].sort();
-}
-
-function actualizarHorariosReservacion() {
-  const ahora = fechaHoraNegocio();
-  const fecha = fechaReservacion.value;
-  const anterior = horaReservacion.value;
-  fechaReservacion.min = ahora.fecha;
-  fechaReservacion.max = fechaMaximaReservacion(ahora.fecha);
-
-  const horarios = horariosParaFecha(fecha, ahora);
-  const marcador = document.createElement("option");
-  marcador.value = "";
-  marcador.textContent = fecha ? "Elige una hora" : "Elige primero una fecha";
-  horaReservacion.replaceChildren(marcador);
+function mostrarHorariosReservacion(horarios, marcador, anterior = "") {
+  horariosReservacion = horarios;
+  const primeraOpcion = document.createElement("option");
+  primeraOpcion.value = "";
+  primeraOpcion.textContent = marcador;
+  horaReservacion.replaceChildren(primeraOpcion);
   for (const hora of horarios) {
     const opcion = document.createElement("option");
     opcion.value = hora;
     opcion.textContent = hora;
     horaReservacion.appendChild(opcion);
   }
-
   horaReservacion.value = horarios.includes(anterior) ? anterior : "";
   horaReservacion.disabled = horarios.length === 0;
   enviarReservacion.disabled = horarios.length === 0;
-  estadoHorariosReservacion.textContent = fecha && !horarios.length
-    ? "No hay horarios para solicitar mesa en esa fecha. Elige otra."
-    : "";
 }
 
-fechaReservacion.addEventListener("change", () => {
-  errorReservacion.hidden = true;
-  actualizarHorariosReservacion();
-});
-fechaReservacion.addEventListener("focus", actualizarHorariosReservacion);
+async function actualizarHorariosReservacion() {
+  const version = ++versionHorariosReservacion;
+  const ahora = fechaHoraNegocio();
+  const fecha = fechaReservacion.value;
+  const personas = Number(personasReservacion.value);
+  const anterior = horaReservacion.value;
+  fechaReservacion.min = ahora.fecha;
+  fechaReservacion.max = fechaMaximaReservacion(ahora.fecha);
+  estadoHorariosReservacion.textContent = "";
+
+  if (!fecha || !personasReservacion.value) {
+    mostrarHorariosReservacion([], "Elige fecha y número de personas");
+    return;
+  }
+  if (fecha < fechaReservacion.min || fecha > fechaReservacion.max ||
+      !Number.isSafeInteger(personas) || personas < 1 || personas > reglasReservacion.maxPersonas) {
+    mostrarHorariosReservacion([], "Revisa la fecha y el número de personas");
+    return;
+  }
+
+  mostrarHorariosReservacion([], "Consultando horarios…");
+  try {
+    const parametros = new URLSearchParams({ fecha, personas });
+    const respuesta = await fetch("/api/reservaciones/disponibilidad?" + parametros, { cache: "no-store" });
+    if (!respuesta.ok) throw new Error("No se pudo consultar la agenda");
+    const { horas } = await respuesta.json();
+    if (version !== versionHorariosReservacion) return;
+    mostrarHorariosReservacion(horas, "Elige una hora", anterior);
+    if (horas.length === 0) estadoHorariosReservacion.textContent = "No hay mesas para ese grupo en esta fecha.";
+  } catch (error) {
+    if (version !== versionHorariosReservacion) return;
+    mostrarHorariosReservacion([], "Consulta sin completar");
+    estadoHorariosReservacion.textContent = "No pudimos consultar la agenda. Vuelve a seleccionar la fecha o el tamaño del grupo.";
+  }
+}
+
+for (const campo of [fechaReservacion, personasReservacion]) {
+  campo.addEventListener("input", () => {
+    errorReservacion.hidden = true;
+    actualizarHorariosReservacion();
+  });
+}
 configurarReservacion();
 
 function mostrarErrorReservacion(mensaje, campo) {
@@ -1301,7 +1297,7 @@ formularioReservacion.addEventListener("submit", evento => {
     return;
   }
 
-  if (!horariosParaFecha(fecha, ahora).includes(hora)) {
+  if (!horariosReservacion.includes(hora) || (fecha === ahora.fecha && hora <= ahora.hora)) {
     actualizarHorariosReservacion();
     mostrarErrorReservacion(
       "Elige un horario válido para esa fecha.",

@@ -4,6 +4,15 @@ const productos = document.getElementById("productos");
 const mensaje = document.getElementById("mensaje");
 const clave = document.getElementById("clave");
 const salir = document.getElementById("salir");
+const agenda = document.getElementById("agenda");
+const formularioAgenda = document.getElementById("formulario-agenda");
+const fechaAgenda = document.getElementById("agenda-fecha");
+const horaAgenda = document.getElementById("agenda-hora");
+const personasAgenda = document.getElementById("agenda-personas");
+const estadoAgenda = document.getElementById("agenda-estado");
+const mesasAgenda = document.getElementById("agenda-mesas");
+let solicitudAgenda = null;
+let versionAgenda = 0;
 
 async function solicitar(ruta, method = "GET", datos) {
   const respuesta = await fetch("/api/admin/" + ruta, {
@@ -25,6 +34,11 @@ async function solicitar(ruta, method = "GET", datos) {
 
 function mostrarAcceso() {
   productos.replaceChildren();
+  mesasAgenda.replaceChildren();
+  estadoAgenda.textContent = "";
+  agenda.open = false;
+  solicitudAgenda = null;
+  versionAgenda++;
   panel.hidden = true;
   acceso.hidden = false;
 }
@@ -113,6 +127,103 @@ salir.addEventListener("click", async () => {
     mensaje.textContent = "Sesión cerrada.";
   } catch (error) {
     mostrarError(error);
+  }
+});
+
+function mostrarErrorAgenda(error) {
+  if (error.status === 401) {
+    mostrarError(error);
+    return;
+  }
+  estadoAgenda.textContent = error.status ? error.message : "No se pudo conectar. Intenta nuevamente.";
+}
+
+function filaMesa(registro) {
+  const fila = document.createElement("div");
+  fila.className = "fila";
+  const etiqueta = document.createElement("span");
+  etiqueta.textContent = registro.hora + "–" + registro.hasta + " · " +
+    registro.mesa + " · " + registro.personas + (registro.personas === 1 ? " persona" : " personas");
+  const cancelar = document.createElement("button");
+  cancelar.type = "button";
+  cancelar.textContent = "Cancelar";
+  cancelar.setAttribute("aria-label", "Cancelar " + registro.mesa + " a las " + registro.hora);
+
+  cancelar.addEventListener("click", async () => {
+    if (!window.confirm("¿Cancelar la mesa y liberar el horario?")) return;
+    cancelar.disabled = true;
+    try {
+      await solicitar("agenda", "DELETE", { id: registro.id });
+      await cargarAgenda("Mesa liberada.");
+    } catch (error) {
+      mostrarErrorAgenda(error);
+      cancelar.disabled = false;
+    }
+  });
+
+  fila.append(etiqueta, cancelar);
+  return fila;
+}
+
+async function cargarAgenda(mensajeActual = "") {
+  const version = ++versionAgenda;
+  const fecha = fechaAgenda.value;
+  mesasAgenda.replaceChildren();
+
+  if (!fecha) {
+    estadoAgenda.textContent = "Selecciona una fecha.";
+    return;
+  }
+
+  estadoAgenda.textContent = "Consultando agenda…";
+  try {
+    const registros = await solicitar("agenda?fecha=" + encodeURIComponent(fecha));
+    if (version !== versionAgenda) return;
+    mesasAgenda.replaceChildren(...registros.map(filaMesa));
+    estadoAgenda.textContent = mensajeActual || (registros.length ? "" : "Todavía no hay mesas registradas para esa fecha.");
+  } catch (error) {
+    if (version === versionAgenda) mostrarErrorAgenda(error);
+  }
+}
+
+agenda.addEventListener("toggle", () => {
+  if (!agenda.open || panel.hidden) return;
+  if (!fechaAgenda.value) {
+    const ahora = new Date();
+    const dia = String(ahora.getDate()).padStart(2, "0");
+    const mes = String(ahora.getMonth() + 1).padStart(2, "0");
+    fechaAgenda.value = ahora.getFullYear() + "-" + mes + "-" + dia;
+  }
+  cargarAgenda();
+});
+
+fechaAgenda.addEventListener("change", () => cargarAgenda());
+formularioAgenda.addEventListener("submit", async evento => {
+  evento.preventDefault();
+  const boton = formularioAgenda.querySelector("button");
+  if (boton.disabled) return;
+  boton.disabled = true;
+
+  const fecha = fechaAgenda.value;
+  const hora = horaAgenda.value;
+  const personas = Number(personasAgenda.value);
+  const datos = JSON.stringify([fecha, hora, personas]);
+  if (solicitudAgenda?.datos !== datos) {
+    solicitudAgenda = { datos, id: crypto.randomUUID() };
+  }
+
+  try {
+    const registro = await solicitar("agenda", "POST", { id: solicitudAgenda.id, fecha, hora, personas });
+    solicitudAgenda = null;
+    if (fechaAgenda.value === fecha && horaAgenda.value === hora && Number(personasAgenda.value) === personas) {
+      horaAgenda.value = "";
+      personasAgenda.value = "";
+    }
+    await cargarAgenda(registro.mesa + " registrada a las " + registro.hora + ".");
+  } catch (error) {
+    mostrarErrorAgenda(error);
+  } finally {
+    boton.disabled = false;
   }
 });
 
