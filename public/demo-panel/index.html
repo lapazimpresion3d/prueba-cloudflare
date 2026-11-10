@@ -7,90 +7,37 @@
   <title>Vista previa del panel · Taquería El Comal</title>
   <link rel="stylesheet" href="/admin/panel.css">
   <style>
-    .demo-etiqueta {
-      margin-bottom: 6px;
-      color: #705c4d;
-      font-weight: bold;
-    }
-
-    .demo-aviso {
-      padding: 12px;
-      border-left: 4px solid #e3a124;
-      border-radius: 6px;
-      background: white;
-    }
-
-    .demo-precio {
-      margin: -5px 0 14px;
-      padding: 8px 12px;
-      border-radius: 8px;
-      background: white;
-    }
-
-    .demo-precio p {
-      margin: 0 0 8px;
-    }
-
-    button:disabled {
-      cursor: default;
-    }
+    .demo-etiqueta { margin-bottom: 6px; color: #705c4d; font-weight: bold; }
+    .demo-aviso { padding: 12px; border-left: 4px solid #e3a124; border-radius: 6px; background: white; }
+    .demo-bloque { margin: 12px 0; padding: 12px; border: 1px solid #c9c2bb; border-radius: 8px; }
+    .demo-bloque h2, .demo-bloque h3 { margin: 0 0 8px; }
+    .demo-campos { min-width: 0; margin: 12px 0 0; padding: 0; border: 0; }
+    .demo-campos input:not([type="checkbox"]),
+    .demo-campos select,
+    .demo-campos textarea { display: block; width: 100%; margin-top: 4px; }
+    .demo-campos select, .demo-campos textarea { padding: 8px; border: 1px solid #c9c2bb; border-radius: 8px; font: inherit; }
+    .demo-campos input[type="file"] { max-width: 100%; }
+    .demo-campos small { display: block; margin-top: 4px; font-weight: normal; }
+    .demo-ficha { margin-top: 8px; }
+    .demo-ficha p { margin: 8px 0; }
+    .demo-dias label { display: inline-flex; align-items: center; gap: 4px; }
+    .demo-dias input { margin: 0; }
+    button:disabled { cursor: default; }
   </style>
 </head>
 <body>
   <main>
-    <p><a href="/#menu">Volver al menú</a></p>
+    <nav aria-label="Navegación de la demo">
+      <a href="/demo/">Volver a la demo</a> · <a href="/#menu">Volver al menú</a>
+    </nav>
     <p class="demo-etiqueta">Vista previa</p>
     <h1>Panel del encargado</h1>
     <p>Taquería El Comal</p>
-    <p class="demo-aviso">
-      Aquí puedes ver cómo el encargado administra el menú y las mesas.
-      Los datos son de ejemplo y los controles están desactivados.
-    </p>
+    <p class="demo-aviso">Abre las secciones para recorrer el panel. Los datos son ficticios y los controles de operación están desactivados.</p>
 
-    <section aria-labelledby="pedidos-demo">
-      <h2 id="pedidos-demo">Pedidos de prueba y cocina</h2>
-      <div class="pedido-cocina">
-        <h3>Pedido #12 · En preparación</h3>
-        <p>Mesa 3 · 19:10</p>
-        <ul>
-          <li>2 × Taco de asada <small>Extras: Queso extra</small></li>
-          <li>1 × Agua natural (Grande)</li>
-        </ul>
-        <button type="button" disabled>Marcar listo</button>
-      </div>
-    </section>
-
-    <section aria-labelledby="productos-demo">
-      <h2 id="productos-demo">Productos y precios</h2>
-
-      <div class="fila">
-        <div>
-          <strong>Taco de asada</strong>
-          <span class="estado">Disponible</span>
-        </div>
-        <button type="button" disabled>Marcar agotado</button>
-      </div>
-      <div class="demo-precio">
-        <p>Precio regular: $30.00 · Precio especial: $27.00</p>
-        <button type="button" disabled>Editar precios</button>
-      </div>
-
-      <div class="fila">
-        <div>
-          <strong>Agua de jamaica</strong>
-          <span class="estado">Agotado</span>
-        </div>
-        <button type="button" disabled>Volver a ofrecer</button>
-      </div>
-      <div class="demo-precio">
-        <p>Precio regular: $25.00</p>
-        <button type="button" disabled>Editar precios</button>
-      </div>
-    </section>
-
-    <section aria-labelledby="agenda-demo">
-      <h2 id="agenda-demo">Agenda de mesas</h2>
-      <p>El encargado registra una mesa después de confirmar la solicitud por WhatsApp.</p>
+    <details id="agenda">
+      <summary>Agenda de mesas</summary>
+      <p>Registra una mesa después de confirmar la solicitud por WhatsApp.</p>
       <div class="fila">
         <div>
           <strong>Mesa 3 · 4 personas</strong>
@@ -99,7 +46,162 @@
         <button type="button" disabled>Cancelar</button>
       </div>
       <button type="button" disabled>Registrar mesa</button>
-    </section>
+    </details>
+
+    <details id="panel-pedidos">
+      <summary>Pedidos de prueba y cocina</summary>
+      <p>Consulta los pedidos activos o el historial, prepara comandas y actualiza el estado del pedido.</p>
+      <label for="vista-pedidos">Mostrar</label>
+      <select id="vista-pedidos" disabled>
+        <option>Pedidos activos</option>
+        <option>Entregados y cancelados</option>
+      </select>
+      <article class="pedido-cocina">
+        <h2>Pedido #12 · En preparación</h2>
+        <p>Mesa 3 · Recibido 19:10</p>
+        <ul>
+          <li>2 × Taco de asada <small>Sin cebolla · Queso extra</small></li>
+          <li>1 × Agua natural (Grande)</li>
+        </ul>
+        <p>Instrucciones de cocina · Salsa aparte</p>
+        <div class="acciones-cocina">
+          <button type="button" disabled>Imprimir comanda</button>
+          <button type="button" disabled>Marcar listo</button>
+        </div>
+      </article>
+    </details>
+
+    <details id="panel-productos" open>
+      <summary>Productos</summary>
+      <p>Da de alta productos, sube fotos, edita ingredientes, extras y variantes, y marca como agotados los que se terminen.</p>
+
+      <details class="demo-bloque">
+        <summary>Agregar producto</summary>
+        <fieldset class="demo-campos" disabled>
+          <legend>Ejemplo de ficha nueva</legend>
+          <label>Categoría
+            <select><option>Combos</option></select>
+          </label>
+          <label>Nombre del producto
+            <input type="text" value="Combo El Comal">
+          </label>
+          <label>Descripción
+            <textarea rows="2">Tacos al pastor con una bebida a elegir.</textarea>
+          </label>
+          <label>Precio regular (MXN)
+            <input type="number" value="85">
+          </label>
+          <label>Subir foto del dispositivo (JPG, PNG o WebP)
+            <input type="file" accept=".jpg,.jpeg,.png,.webp">
+          </label>
+          <label>Incluye (combos)
+            <textarea rows="2">3 tacos al pastor
+1 bebida a elegir</textarea>
+            <small>Escribe un elemento por renglón.</small>
+          </label>
+          <div class="acciones-cocina">
+            <button type="button">Añadir ingrediente</button>
+            <button type="button">Añadir extra</button>
+            <button type="button">Añadir variante</button>
+          </div>
+          <p><button type="button">Crear producto</button></p>
+        </fieldset>
+      </details>
+
+      <article class="demo-bloque">
+        <h2>Taco de asada</h2>
+        <p class="estado">Disponible · Regular $30.00 · Especial $27.00</p>
+        <div class="acciones-cocina">
+          <button type="button" disabled>Marcar agotado</button>
+          <button type="button" disabled>Editar precios</button>
+          <button type="button" disabled>Editar descripción</button>
+        </div>
+        <details class="demo-ficha">
+          <summary>Editar ficha y opciones</summary>
+          <p>Ingredientes · Cebolla, cilantro y salsa roja.</p>
+          <p>Queso extra por $10.00.</p>
+          <label><input type="checkbox" disabled> Archivar del menú público</label>
+          <button type="button" disabled>Guardar ficha</button>
+        </details>
+      </article>
+
+      <article class="demo-bloque">
+        <h2>Agua de jamaica</h2>
+        <p class="estado">Agotado · Regular $25.00</p>
+        <button type="button" disabled>Volver a ofrecer</button>
+      </article>
+    </details>
+
+    <details id="editor-categorias">
+      <summary>Categorías del menú</summary>
+      <p>Cambia los nombres o ajusta el orden en que aparecen en el menú.</p>
+      <div class="fila-categoria">
+        <label>Nombre de categoría <input type="text" value="Combos" disabled></label>
+        <button type="button" disabled>Subir</button>
+        <button type="button" disabled>Bajar</button>
+      </div>
+      <div class="fila-categoria">
+        <label>Nombre de categoría <input type="text" value="Tacos" disabled></label>
+        <button type="button" disabled>Subir</button>
+        <button type="button" disabled>Bajar</button>
+      </div>
+      <button type="button" disabled>Guardar categorías</button>
+    </details>
+
+    <details id="editor-horario">
+      <summary>Horario de atención</summary>
+      <p>Configura los días y las horas de cada turno. El horario determina qué estado ve el cliente en el menú.</p>
+      <fieldset class="turno-horario" disabled>
+        <legend>Turno 1</legend>
+        <div class="dias-turno demo-dias">
+          <label><input type="checkbox"> Lun</label>
+          <label><input type="checkbox" checked> Mar</label>
+          <label><input type="checkbox" checked> Mié</label>
+          <label><input type="checkbox" checked> Jue</label>
+          <label><input type="checkbox" checked> Vie</label>
+          <label><input type="checkbox" checked> Sáb</label>
+          <label><input type="checkbox" checked> Dom</label>
+        </div>
+        <div class="horas-turno">
+          <label>Abre <input type="time" value="12:00"></label>
+          <label>Cierra <input type="time" value="22:00"></label>
+        </div>
+      </fieldset>
+      <div class="acciones-cocina">
+        <button type="button" disabled>Agregar turno</button>
+        <button type="button" disabled>Guardar horario</button>
+      </div>
+    </details>
+
+    <details id="panel-estadisticas">
+      <summary>Estadísticas de pedidos de prueba</summary>
+      <p>Ejemplo de una consulta por período. Los importes corresponden a productos de pedidos entregados.</p>
+      <div class="acciones-cocina">
+        <label>Desde <input type="date" value="2026-10-05" disabled></label>
+        <label>Hasta <input type="date" value="2026-10-11" disabled></label>
+        <button type="button" disabled>Consultar</button>
+      </div>
+      <dl id="estadisticas-resumen">
+        <div><dt>Pedidos recibidos</dt><dd>18</dd></div>
+        <div><dt>En curso</dt><dd>4</dd></div>
+        <div><dt>Entregados</dt><dd>12</dd></div>
+        <div><dt>Cancelados</dt><dd>2</dd></div>
+        <div><dt>Importe de productos entregados</dt><dd>$1,560.00</dd></div>
+        <div><dt>Promedio por pedido entregado</dt><dd>$130.00</dd></div>
+      </dl>
+      <h2>Pedidos por servicio</h2>
+      <ul>
+        <li>Mesa · 9</li>
+        <li>Para recoger · 6</li>
+        <li>A domicilio · 3</li>
+      </ul>
+      <h2>Productos y variantes más solicitados</h2>
+      <ol>
+        <li>Taco al pastor · 25 unidades</li>
+        <li>Taco de asada · 17 unidades</li>
+        <li>Agua natural (Grande) · 8 unidades</li>
+      </ol>
+    </details>
   </main>
 </body>
 </html>

@@ -1303,6 +1303,7 @@ continuarWhatsApp.addEventListener("click", () => {
    Valida los datos y prepara el mensaje de demostración.
    ===================================================== */
 
+const panelReservacion = document.getElementById("reservacion");
 const formularioReservacion = document.getElementById("formulario-reservacion");
 const fechaReservacion = document.getElementById("reserva-fecha");
 const horaReservacion = document.getElementById("reserva-hora");
@@ -1312,6 +1313,16 @@ const estadoHorariosReservacion = document.getElementById("reserva-horarios-esta
 const enviarReservacion = document.getElementById("reserva-enviar");
 let versionHorariosReservacion = 0;
 let horariosReservacion = [];
+
+function abrirReservacionDesdeEnlace() {
+  if (window.location.hash === "#reservacion") panelReservacion.open = true;
+}
+
+document.querySelector(".boton-reservacion").addEventListener("click", () => {
+  panelReservacion.open = true;
+});
+window.addEventListener("hashchange", abrirReservacionDesdeEnlace);
+abrirReservacionDesdeEnlace();
 
 const reglasReservacion = {
   anticipacionDias: 14,

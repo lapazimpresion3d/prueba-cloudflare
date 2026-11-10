@@ -875,9 +875,21 @@ footer {
   background: white;
 }
 
-#reservacion h2 {
-  margin: 0;
+#reservacion > summary {
   color: var(--rojo);
+  cursor: pointer;
+}
+
+#reservacion > summary:focus-visible {
+  outline: 2px solid var(--rojo);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+#reservacion > summary h2 {
+  display: inline;
+  margin: 0;
+  font-size: clamp(1.25rem, 3vw, 1.5rem);
 }
 
 #formulario-reservacion {
