@@ -1,5 +1,6 @@
 import { administrarPedidos, consultarEstadisticas, pedidosPublicos } from "./pedidos.mjs";
 import { administrarAgenda, consultarDisponibilidad } from "./reservaciones.mjs";
+import { aplicarCatalogo, guardarProducto } from "./catalogo.mjs";
 
 const encoder = new TextEncoder();
 const cookieSesion = "__Host-comal-admin";
@@ -29,9 +30,15 @@ async function leerMenu(request, env) {
   return menu;
 }
 
-async function menuActualizado(request, env) {
+async function leerCatalogo(request, env, incluirArchivados) {
+  const menu = await leerMenu(request, env);
+  await aplicarCatalogo(env.DB, menu, incluirArchivados);
+  return menu;
+}
+
+async function menuActualizado(request, env, incluirArchivados = false) {
   const [menu, disponibilidad, precios, descripciones, preferencias] = await Promise.all([
-    leerMenu(request, env),
+    leerCatalogo(request, env, incluirArchivados),
     env.DB.prepare("SELECT producto_id, disponible FROM disponibilidad_producto").all(),
     env.DB.prepare("SELECT producto_id, precio_centavos, especial_centavos FROM precios_menu").all(),
     env.DB.prepare("SELECT producto_id, descripcion FROM descripciones_menu").all(),
@@ -231,13 +238,18 @@ async function administrar(request, env, url) {
     return administrarAgenda(request, env.DB, url, () => leerMenu(request, env), json);
   }
 
+  if (url.pathname === "/api/admin/productos") {
+    const menu = await leerCatalogo(request, env, true);
+    return guardarProducto(request, env.DB, menu, json);
+  }
+
   if (url.pathname === "/api/admin/disponibilidad" && request.method === "GET") {
-    const menu = await menuActualizado(request, env);
+    const menu = await menuActualizado(request, env, true);
     return json(menu.categorias.map(categoria => ({
       id: categoria.id,
       nombre: categoria.nombre,
-      productos: categoria.productos.map(({ id, nombre, descripcion, disponible, precio, precioEspecial }) => ({
-        id, nombre, descripcion, disponible: disponible !== false, precio, precioEspecial, moneda: menu.moneda
+      productos: categoria.productos.map(producto => ({
+        ...producto, disponible: producto.disponible !== false, moneda: menu.moneda
       }))
     })));
   }
@@ -280,7 +292,7 @@ async function administrar(request, env, url) {
       return json({ error: "Escribe una descripción de 1 a 240 caracteres." }, 400);
     }
 
-    const menu = await leerMenu(request, env);
+    const menu = await leerCatalogo(request, env, true);
     if (!productoEnCatalogo(menu, datos.id)) {
       return json({ error: "El producto ya no está en el catálogo." }, 404);
     }
@@ -304,7 +316,7 @@ async function administrar(request, env, url) {
       return json({ error: "El precio especial debe ser menor al regular y ambos deben ser importes válidos." }, 400);
     }
 
-    const menu = await leerMenu(request, env);
+    const menu = await leerCatalogo(request, env, true);
     if (!productoEnCatalogo(menu, id)) {
       return json({ error: "El producto ya no está en el catálogo." }, 404);
     }
@@ -323,7 +335,7 @@ async function administrar(request, env, url) {
     if (typeof datos?.id !== "string" || typeof datos.disponible !== "boolean") {
       return json({ error: "Indica un producto y su disponibilidad." }, 400);
     }
-    const menu = await leerMenu(request, env);
+    const menu = await leerCatalogo(request, env, true);
     if (!productoEnCatalogo(menu, datos.id)) {
       return json({ error: "El producto ya no está en el catálogo." }, 404);
     }

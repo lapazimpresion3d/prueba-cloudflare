@@ -66,6 +66,13 @@ button:disabled { opacity: .65; cursor: wait; }
 #estadisticas-resumen dt { color: #5d493c; font-size: .9rem; }
 #estadisticas-resumen dd { margin: 0; font-size: 1.2rem; font-weight: bold; }
 
+#catalogo-estado:empty { display: none; }
+.formulario-catalogo fieldset { min-width: 0; margin: 0 0 12px; padding: 8px; border: 1px solid #c9c2bb; border-radius: 8px; }
+.formulario-catalogo select { display: block; width: 100%; font: inherit; padding: 8px; }
+.formulario-catalogo input[type="checkbox"] { display: inline; width: auto; margin-left: 8px; }
+.opcion-catalogo { padding: 8px 0; margin-bottom: 8px; border-bottom: 1px solid #c9c2bb; }
+.opcion-catalogo button { background: white; color: #a02f1c; }
+
 #comanda-impresa { display: none; }
 
 @media print {

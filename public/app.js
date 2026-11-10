@@ -64,6 +64,7 @@ const claveCarritoGeneral = "elComalCarrito";
 let claveCarrito = codigoMesa === null ? claveCarritoGeneral : null;
 let mesaPedido = null;
 let productosCatalogo = null;
+let firmaCatalogo = "";
 let avisoCarrito = "";
 let revisandoPedido = false;
 let mostrarCatalogo = () => {};
@@ -115,6 +116,17 @@ function sincronizarCarrito() {
     if (!producto || producto.disponible === false) {
       lineasNoDisponibles.set(item, "No disponible");
       return;
+    }
+
+    const ingredientes = producto.ingredientes ?? [];
+    if (Array.isArray(item.ingredientes)) {
+      const nombres = ingredientes.map(ingrediente => ingrediente.nombre);
+      if (item.ingredientes.some(nombre => !nombres.includes(nombre)) ||
+          ingredientes.some(ingrediente => ingrediente.obligatorio && !item.ingredientes.includes(ingrediente.nombre))) {
+        lineasNoDisponibles.set(item, "Cambió la personalización");
+        return;
+      }
+      item.ingredientesOriginales = nombres;
     }
 
     const extrasPorNombre = new Map(
@@ -350,19 +362,13 @@ async function obtenerMenu() {
 }
 
 function actualizarCatalogo(menu) {
-  const catalogoAnterior = productosCatalogo;
+  const firma = JSON.stringify(menu.categorias);
   productosCatalogo = new Map(menu.categorias.flatMap(categoria =>
     categoria.productos.map(producto => [producto.id, producto])
   ));
   sincronizarCarrito();
-  if (catalogoAnterior && Array.from(productosCatalogo).some(([id, producto]) => {
-    const anterior = catalogoAnterior.get(id);
-    return (anterior?.disponible === false) !== (producto.disponible === false) ||
-      anterior?.precio !== producto.precio || anterior?.precioEspecial !== producto.precioEspecial ||
-      anterior?.descripcion !== producto.descripcion;
-  })) {
-    mostrarCatalogo();
-  }
+  if (firmaCatalogo && firmaCatalogo !== firma) mostrarCatalogo(menu);
+  firmaCatalogo = firma;
 }
 
 async function cargarMenu() {
@@ -409,11 +415,15 @@ async function cargarMenu() {
           const tarjeta = document.createElement("article");
           tarjeta.className = "producto";
 
-          const imagen = document.createElement("img");
-          imagen.src = producto.imagen;
-          imagen.alt = producto.nombre;
-          imagen.className = "producto-imagen";
-          imagen.loading = "lazy";
+          if (producto.imagen) {
+            const imagen = document.createElement("img");
+            imagen.src = producto.imagen;
+            imagen.alt = producto.nombre;
+            imagen.className = "producto-imagen";
+            imagen.loading = "lazy";
+            imagen.referrerPolicy = "no-referrer";
+            tarjeta.appendChild(imagen);
+          }
 
           const nombre = document.createElement("h3");
           nombre.textContent = producto.nombre;
@@ -445,7 +455,7 @@ async function cargarMenu() {
               "En esta demostración, el encargado puede marcar productos como agotados " +
               "y volver a ofrecerlos desde su panel privado.";
 
-            tarjeta.append(imagen, nombre, descripcion, agotado, notaDemo);
+            tarjeta.append(nombre, descripcion, agotado, notaDemo);
             contenedor.appendChild(tarjeta);
             return;
           }
@@ -491,6 +501,7 @@ async function cargarMenu() {
 
 
                casilla.type = "checkbox";
+               casilla.dataset.ingrediente = "";
                casilla.value = ingrediente.id;
                casilla.checked = ingrediente.incluido || ingrediente.obligatorio === true;
                
@@ -648,7 +659,7 @@ agregar.addEventListener("click", () => {
   
   const ingredientes = (producto.ingredientes || [])
     .filter(ingrediente => {
-      const casilla = [...personalizacion.querySelectorAll("input")]
+      const casilla = [...personalizacion.querySelectorAll("input[data-ingrediente]")]
         .find(input => input.value === ingrediente.id);
 
       return casilla ? casilla.checked : ingrediente.incluido;
@@ -691,7 +702,7 @@ agregar.addEventListener("click", () => {
 
           
 
-            tarjeta.append(imagen, nombre, descripcion, precio);
+            tarjeta.append(nombre, descripcion, precio);
 
             if (tienePrecioEspecial) {
               const precioAnterior = document.createElement("p");
@@ -759,7 +770,10 @@ agregar.addEventListener("click", () => {
       crearBoton(categoria.nombre, categoria.id);
     });
 
-    mostrarCatalogo = mostrarProductos;
+    mostrarCatalogo = vigente => {
+      menu.categorias = vigente.categorias;
+      mostrarProductos();
+    };
     buscador.addEventListener("input", mostrarProductos);
     configurarPedidoEnMesa(menu);
     actualizarCatalogo(menu);

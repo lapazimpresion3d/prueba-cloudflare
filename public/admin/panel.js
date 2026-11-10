@@ -1,6 +1,8 @@
 const acceso = document.getElementById("acceso");
 const panel = document.getElementById("panel");
 const productos = document.getElementById("productos");
+const altaProducto = document.getElementById("alta-producto");
+const estadoCatalogo = document.getElementById("catalogo-estado");
 const mensaje = document.getElementById("mensaje");
 const clave = document.getElementById("clave");
 const salir = document.getElementById("salir");
@@ -68,6 +70,8 @@ async function solicitar(ruta, method = "GET", datos) {
 
 function mostrarAcceso() {
   productos.replaceChildren();
+  altaProducto.replaceChildren();
+  estadoCatalogo.textContent = "";
   seccionesCategorias.clear();
   filasCategorias = [];
   listaCategorias.replaceChildren();
@@ -224,7 +228,173 @@ function editorDescripcion(producto) {
   return editor;
 }
 
-function filaProducto(producto) {
+function campoCatalogo(contenedor, nombre, tipo, valor, atributos = {}) {
+  const etiqueta = document.createElement("label");
+  etiqueta.textContent = nombre;
+  const input = document.createElement(tipo === "textarea" || tipo === "select" ? tipo : "input");
+  if (input.tagName === "INPUT") input.type = tipo;
+  Object.assign(input, atributos);
+  if (tipo === "checkbox") input.checked = Boolean(valor);
+  else input.value = valor ?? "";
+  etiqueta.appendChild(input);
+  contenedor.appendChild(etiqueta);
+  return input;
+}
+
+function opcionesCatalogo(contenedor, titulo, singular, opciones, crearCampos) {
+  const grupo = document.createElement("fieldset");
+  const leyenda = document.createElement("legend");
+  leyenda.textContent = titulo;
+  const lista = document.createElement("div");
+  const agregar = document.createElement("button");
+  agregar.type = "button";
+  agregar.textContent = "Añadir " + singular;
+  const filas = new Map();
+
+  function insertar(opcion) {
+    const fila = document.createElement("div");
+    fila.className = "opcion-catalogo";
+    const nombre = campoCatalogo(fila, "Nombre", "text", opcion.nombre, { required: true, maxLength: 80 });
+    const leer = crearCampos(fila, opcion);
+    const quitar = document.createElement("button");
+    quitar.type = "button";
+    quitar.textContent = "Quitar " + singular;
+    quitar.addEventListener("click", () => {
+      fila.remove();
+      filas.delete(fila);
+      agregar.disabled = false;
+      agregar.focus();
+    });
+    fila.appendChild(quitar);
+    lista.appendChild(fila);
+    filas.set(fila, () => ({ id: opcion.id, nombre: nombre.value.trim(), ...leer() }));
+    agregar.disabled = filas.size >= 30;
+    return nombre;
+  }
+
+  opciones.forEach(insertar);
+  agregar.addEventListener("click", () => insertar({ id: crypto.randomUUID() }).focus());
+  grupo.append(leyenda, lista, agregar);
+  contenedor.appendChild(grupo);
+  return () => Array.from(filas.values(), leer => leer());
+}
+
+function seleccionarCatalogo(contenedor, etiqueta, valor, opciones) {
+  const select = campoCatalogo(contenedor, etiqueta, "select");
+  for (const [id, nombre] of opciones) {
+    const opcion = document.createElement("option");
+    opcion.value = id;
+    opcion.textContent = nombre;
+    select.appendChild(opcion);
+  }
+  select.value = valor;
+  return select;
+}
+
+function editorCatalogo(producto, categorias) {
+  const creando = !producto;
+  const datos = producto ?? {};
+  const editor = document.createElement("details");
+  editor.className = "editor-producto";
+  const titulo = document.createElement("summary");
+  titulo.textContent = creando ? "Agregar producto" : "Editar ficha y opciones";
+  const formulario = document.createElement("form");
+  formulario.className = "formulario-catalogo";
+  const campos = document.createElement("fieldset");
+  const importe = { required: true, min: "0", max: "1000000", step: "0.01" };
+  let id = datos.id;
+  let categoria;
+  let descripcion;
+  let precio;
+  let archivado;
+  if (creando) {
+    categoria = seleccionarCatalogo(campos, "Categoría", categorias[0]?.id ?? "",
+      categorias.map(item => [item.id, item.nombre]));
+    descripcion = campoCatalogo(campos, "Descripción", "textarea", "", { required: true, maxLength: 240 });
+    precio = campoCatalogo(campos, "Precio regular (MXN)", "number", "", importe);
+  } else {
+    archivado = campoCatalogo(campos, "Archivar del menú público", "checkbox", datos.archivado);
+  }
+  const nombre = campoCatalogo(campos, "Nombre del producto", "text", datos.nombre, { required: true, maxLength: 80 });
+  const imagen = campoCatalogo(campos, "Foto (ruta en imágenes o enlace HTTPS)", "text", datos.imagen,
+    { maxLength: 500, placeholder: "imagenes/pastor.webp" });
+  const incluye = campoCatalogo(campos, "Incluye (un elemento por renglón)", "textarea",
+    datos.incluye?.join("\n"), { rows: 2, maxLength: 971 });
+  const maxExtras = campoCatalogo(campos, "Máximo de extras (vacío para sin límite)", "number", datos.maxExtras,
+    { min: "0", max: "30", step: "1" });
+  const etiquetaVariante = campoCatalogo(campos, "Etiqueta de variantes", "text", datos.etiquetaVariante,
+    { maxLength: 50, placeholder: "Tamaño" });
+  const ingredientes = opcionesCatalogo(campos, "Ingredientes", "ingrediente", datos.ingredientes ?? [], (fila, opcion) => {
+    const incluido = campoCatalogo(fila, "Incluido de forma predeterminada", "checkbox", opcion.incluido);
+    const obligatorio = campoCatalogo(fila, "Obligatorio", "checkbox", opcion.obligatorio);
+    return () => ({ incluido: incluido.checked, obligatorio: obligatorio.checked });
+  });
+  const extras = opcionesCatalogo(campos, "Extras", "extra", datos.extras ?? [], (fila, opcion) => {
+    const costo = campoCatalogo(fila, "Precio adicional (MXN)", "number", opcion.precio ?? 0, importe);
+    return () => ({ precio: costo.valueAsNumber });
+  });
+  const vinculables = categorias.flatMap(item => item.productos)
+    .filter(item => item.id !== id)
+    .map(item => [item.id, item.nombre + (item.archivado ? " (archivado)" : "")]);
+  const variantes = opcionesCatalogo(campos, "Variantes", "variante", datos.variantes ?? datos.tamanos ?? [], (fila, opcion) => {
+    const recargo = campoCatalogo(fila, "Recargo (MXN)", "number", opcion.recargo ?? 0, importe);
+    const vinculo = seleccionarCatalogo(fila, "Producto vinculado", opcion.productoId ?? "",
+      [["", "Ninguno"], ...vinculables]);
+    return () => ({ recargo: recargo.valueAsNumber, productoId: vinculo.value });
+  });
+  const guardar = document.createElement("button");
+  guardar.type = "submit";
+  guardar.textContent = creando ? "Crear producto" : "Guardar ficha";
+  const estado = document.createElement("p");
+  estado.setAttribute("role", "status");
+  formulario.append(campos, guardar, estado);
+  editor.append(titulo, formulario);
+
+  formulario.addEventListener("submit", async evento => {
+    evento.preventDefault();
+    if (guardar.disabled) return;
+    id ??= "prod-" + crypto.randomUUID();
+    const ficha = {
+      id, version: datos.version ?? 0, archivado: archivado?.checked ?? false,
+      nombre: nombre.value, imagen: imagen.value,
+      incluye: incluye.value.split("\n").map(linea => linea.trim()).filter(Boolean),
+      maxExtras: maxExtras.value === "" ? null : maxExtras.valueAsNumber,
+      etiquetaVariante: etiquetaVariante.value, ingredientes: ingredientes(), extras: extras(), variantes: variantes(),
+      ...(creando ? { categoriaId: categoria.value, descripcion: descripcion.value, precio: precio.valueAsNumber } : {})
+    };
+    campos.disabled = guardar.disabled = true;
+    let requiereRecarga = false;
+    estado.textContent = "Guardando…";
+    try {
+      const resultado = await solicitar("productos", creando ? "POST" : "PUT", ficha);
+      if (!creando) datos.version = resultado.version;
+      estado.textContent = "Guardado.";
+      if (panel.hidden) return;
+      let actualizado;
+      try {
+        actualizado = await solicitar("disponibilidad");
+      } catch (error) {
+        if (error.status === 401) throw error;
+        estado.textContent = "La ficha se guardó. Recarga el panel para ver los cambios.";
+        requiereRecarga = true;
+        return;
+      }
+      if (panel.hidden) return;
+      mostrarProductosPanel(actualizado);
+      estadoCatalogo.textContent = ficha.nombre.trim() + (ficha.archivado ? " quedó archivado." : " quedó guardado.");
+      estadoCatalogo.tabIndex = -1;
+      estadoCatalogo.focus();
+    } catch (error) {
+      if (error.status === 401) mostrarError(error);
+      else estado.textContent = error.status ? error.message : "No se pudo confirmar el guardado. Intenta nuevamente.";
+    } finally {
+      campos.disabled = guardar.disabled = requiereRecarga;
+    }
+  });
+  return editor;
+}
+
+function filaProducto(producto, categorias) {
   const fila = document.createElement("div");
   fila.className = "fila";
   const etiqueta = document.createElement("div");
@@ -236,7 +406,7 @@ function filaProducto(producto) {
   boton.type = "button";
 
   function mostrarEstado() {
-    estado.textContent = producto.disponible ? "Disponible" : "Agotado";
+    estado.textContent = producto.archivado ? "Archivado" : producto.disponible ? "Disponible" : "Agotado";
     boton.textContent = producto.disponible ? "Marcar agotado" : "Volver a ofrecer";
     boton.setAttribute("aria-label", boton.textContent + ": " + producto.nombre);
   }
@@ -261,9 +431,10 @@ function filaProducto(producto) {
 
   mostrarEstado();
   etiqueta.append(nombre, estado);
-  fila.append(etiqueta, boton);
+  fila.appendChild(etiqueta);
+  if (!producto.archivado) fila.appendChild(boton);
   const productoPanel = document.createElement("div");
-  productoPanel.append(fila, editorPrecios(producto), editorDescripcion(producto));
+  productoPanel.append(fila, editorPrecios(producto), editorDescripcion(producto), editorCatalogo(producto, categorias));
   return productoPanel;
 }
 
@@ -342,8 +513,8 @@ formularioCategorias.addEventListener("submit", async evento => {
   }
 });
 
-async function cargarPanel() {
-  const categorias = await solicitar("disponibilidad");
+function mostrarProductosPanel(categorias) {
+  altaProducto.replaceChildren(editorCatalogo(null, categorias));
   productos.replaceChildren();
   seccionesCategorias.clear();
 
@@ -351,13 +522,17 @@ async function cargarPanel() {
     const contenedor = document.createElement("section");
     const titulo = document.createElement("h2");
     titulo.textContent = categoria.nombre;
-    contenedor.append(titulo, ...categoria.productos.map(filaProducto));
+    contenedor.append(titulo, ...categoria.productos.map(producto => filaProducto(producto, categorias)));
     seccionesCategorias.set(categoria.id, { contenedor, titulo });
     productos.appendChild(contenedor);
   }
 
   filasCategorias = categorias.map(filaCategoria);
   actualizarOrdenCategorias();
+}
+
+async function cargarPanel() {
+  mostrarProductosPanel(await solicitar("disponibilidad"));
   acceso.hidden = true;
   panel.hidden = false;
   cargarHorarioEditor();
