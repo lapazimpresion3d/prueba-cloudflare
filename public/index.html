@@ -131,6 +131,11 @@
            No agregar productos manualmente aquí.
            ============================================== -->
 
+      <section id="horario-negocio" aria-label="Horario de atención" hidden>
+        <p><strong id="estado-negocio"></strong></p>
+        <p id="horario-detalle"></p>
+      </section>
+
       <!-- Título del menú -->
       <h2>Nuestro menú</h2>
       <p>Elige tus favoritos</p>
@@ -176,7 +181,7 @@
              ============================================ -->
 
         <div class="carrito-resumen">
-          <strong>Total:</strong>
+          <strong id="etiqueta-total">Total:</strong>
           <strong id="carrito-total">$0.00</strong>
         </div>
 
@@ -205,6 +210,10 @@
             <option value="domicilio">Entrega a domicilio</option>
           </select>
 
+          <p id="aviso-entrega" hidden>
+            El negocio confirmará el costo de envío y el tiempo de entrega por WhatsApp.
+          </p>
+
           <fieldset id="datos-entrega" hidden disabled>
             <legend>Dirección de entrega</legend>
 
@@ -222,7 +231,13 @@
 
             <label for="referencias-entrega">Referencias (opcional)</label>
             <input type="text" id="referencias-entrega" maxlength="160">
+
+            <label for="telefono-entrega">Teléfono de contacto (opcional)</label>
+            <input type="tel" id="telefono-entrega" autocomplete="tel" maxlength="25">
           </fieldset>
+
+          <label for="notas-pedido" class="etiqueta-notas">Instrucciones para el pedido (opcional)</label>
+          <textarea id="notas-pedido" rows="2" maxlength="200"></textarea>
         </div>
 
         <!-- ============================================
@@ -242,8 +257,22 @@
              ============================================ -->
 
         <button id="enviar-pedido" type="button" disabled>
-          Enviar pedido por WhatsApp
+          Revisar pedido
         </button>
+
+        <dialog id="revision-pedido" aria-labelledby="revision-titulo">
+          <h3 id="revision-titulo">Revisa tu pedido</h3>
+          <p id="revision-fuera-horario" hidden>
+            El negocio está fuera del horario de atención.
+            Tu solicitud queda pendiente de respuesta.
+          </p>
+          <pre id="revision-resumen" tabindex="0" aria-label="Resumen del pedido"></pre>
+          <p>El negocio confirmará el pedido por WhatsApp.</p>
+          <form method="dialog" class="revision-acciones">
+            <button type="submit" autofocus>Volver al carrito</button>
+            <button id="continuar-whatsapp" type="button">Continuar a WhatsApp</button>
+          </form>
+        </dialog>
 
         <!-- ============================================
              SECCIÓN 6.2 — VACIAR CARRITO

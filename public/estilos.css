@@ -587,7 +587,8 @@ header {
 }
 
 .datos-cliente input,
-.datos-cliente select {
+.datos-cliente select,
+.datos-cliente textarea {
   width: 100%;
   padding: 12px;
   border: 1px solid #c9c2bb;
@@ -602,6 +603,94 @@ header {
 .datos-cliente select {
   background: white;
   color: var(--oscuro);
+}
+
+.datos-cliente .etiqueta-notas {
+  margin-top: 12px;
+}
+
+.datos-cliente textarea {
+  font-family: inherit;
+  resize: vertical;
+}
+
+#horario-negocio {
+  margin: 20px 0;
+  padding: 10px 16px;
+  border-left: 4px solid var(--amarillo);
+  border-radius: 8px;
+  background: white;
+}
+
+#horario-negocio p {
+  margin: 4px 0;
+}
+
+#revision-pedido {
+  width: min(480px, calc(100vw - 30px));
+  max-height: calc(100dvh - 30px);
+  padding: 20px;
+  border: 2px solid var(--amarillo);
+  border-radius: 16px;
+  color: var(--oscuro);
+}
+
+#revision-pedido::backdrop {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+#revision-titulo {
+  margin-top: 0;
+  color: var(--rojo);
+}
+
+#revision-resumen,
+#revision-fuera-horario {
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--crema);
+}
+
+#revision-resumen {
+  max-height: 36dvh;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  font: inherit;
+  line-height: 1.5;
+}
+
+.revision-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.revision-acciones button {
+  flex: 1 1 165px;
+  padding: 10px;
+  border: 2px solid var(--rojo);
+  border-radius: 8px;
+  background: white;
+  color: var(--rojo);
+  font: inherit;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+#continuar-whatsapp {
+  border-color: #146c39;
+  background: #146c39;
+  color: white;
+}
+
+#aviso-entrega {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--crema);
+  font-size: 0.95rem;
+  line-height: 1.5;
 }
 
 #datos-entrega {

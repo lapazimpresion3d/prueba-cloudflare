@@ -2,6 +2,16 @@
 {
   "negocio": "Taquería El Comal",
   "moneda": "MXN",
+  "horario": {
+    "zonaHoraria": "America/Mazatlan",
+    "turnos": [
+      {
+        "dias": ["Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        "abre": "12:00",
+        "cierra": "22:00"
+      }
+    ]
+  },
   "categorias": [
     {
       "id": "tacos",

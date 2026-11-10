@@ -556,6 +556,7 @@ agregar.addEventListener("click", () => {
     });
 
     mostrarProductos();
+    configurarHorario(menu.horario);
 
   } catch (error) {
     console.error(error);
@@ -624,7 +625,11 @@ if (evento.target.closest("#categorias")) {
 
 /* Cerrar el carrito con la tecla Escape */
 document.addEventListener("keydown", (evento) => {
-  if (evento.key === "Escape" && !seccionCarrito.hidden) {
+  if (
+    evento.key === "Escape" &&
+    !seccionCarrito.hidden &&
+    !document.getElementById("revision-pedido").open
+  ) {
     seccionCarrito.hidden = true;
     botonCarrito.setAttribute("aria-expanded", "false");
     botonCarrito.focus();
@@ -659,7 +664,8 @@ seccionCarrito.addEventListener("click", (evento) => {
   evento.target.closest("#carrito-productos") ||
   evento.target.closest(".carrito-resumen") ||
   evento.target.closest("button") ||
-  evento.target.closest(".datos-cliente")
+  evento.target.closest(".datos-cliente") ||
+  evento.target.closest("#revision-pedido")
 ) {
   return;
 }
@@ -676,13 +682,68 @@ seccionCarrito.addEventListener("click", (evento) => {
    extras, precios y total.
    ===================================================== */
 
+let consultarHorario = () => null;
+
+function configurarHorario(horario) {
+  if (!horario?.turnos?.length) return;
+
+  const nombresDias = {
+    Mon: "lunes", Tue: "martes", Wed: "miércoles", Thu: "jueves",
+    Fri: "viernes", Sat: "sábado", Sun: "domingo"
+  };
+  const reloj = new Intl.DateTimeFormat("en-GB", {
+    timeZone: horario.zonaHoraria,
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23"
+  });
+
+  consultarHorario = () => {
+    const partes = reloj.formatToParts();
+    const dia = partes.find(parte => parte.type === "weekday").value;
+    const hora = partes.find(parte => parte.type === "hour").value;
+    const minuto = partes.find(parte => parte.type === "minute").value;
+    const horaLocal = hora + ":" + minuto;
+
+    return horario.turnos.some(turno =>
+      turno.dias.includes(dia) && turno.abre <= horaLocal && horaLocal < turno.cierra
+    );
+  };
+
+  document.getElementById("horario-detalle").textContent = horario.turnos
+    .map(turno =>
+      turno.dias.map(dia => nombresDias[dia]).join(", ") +
+      " · " + turno.abre + " a " + turno.cierra
+    )
+    .join(" | ");
+
+  const estado = document.getElementById("estado-negocio");
+  function actualizarEstado() {
+    estado.textContent = consultarHorario()
+      ? "En horario de atención"
+      : "Fuera del horario de atención";
+  }
+
+  actualizarEstado();
+  window.setInterval(actualizarEstado, 60000);
+  document.getElementById("horario-negocio").hidden = false;
+}
+
 const tipoServicio = document.getElementById("tipo-servicio");
 const datosEntrega = document.getElementById("datos-entrega");
+const etiquetaTotal = document.getElementById("etiqueta-total");
+const avisoEntrega = document.getElementById("aviso-entrega");
+const revisionPedido = document.getElementById("revision-pedido");
+const resumenPedido = document.getElementById("revision-resumen");
+const revisionFueraHorario = document.getElementById("revision-fuera-horario");
 
 function actualizarDatosEntrega() {
   const esEntrega = tipoServicio.value === "domicilio";
   datosEntrega.hidden = !esEntrega;
   datosEntrega.disabled = !esEntrega;
+  etiquetaTotal.textContent = esEntrega ? "Subtotal de productos:" : "Total:";
+  avisoEntrega.hidden = !esEntrega;
 }
 
 tipoServicio.addEventListener("change", actualizarDatosEntrega);
@@ -710,7 +771,9 @@ document.getElementById("enviar-pedido")
     let detalleServicio =
       "Servicio: " + tipoServicio.selectedOptions[0].textContent + "\n";
 
-    if (tipoServicio.value === "domicilio") {
+    const esEntrega = tipoServicio.value === "domicilio";
+
+    if (esEntrega) {
       const calle = document.getElementById("calle-entrega");
       const colonia = document.getElementById("colonia-entrega");
       const referencias = document
@@ -727,13 +790,31 @@ document.getElementById("enviar-pedido")
         return;
       }
 
+      const telefonoEntrega = document.getElementById("telefono-entrega");
+      const contacto = telefonoEntrega.value.trim();
+
+      if (contacto && !/^\+?\d{10,15}$/.test(contacto.replace(/[\s().-]/g, ""))) {
+        alert("Escribe un teléfono válido o deja el campo vacío.");
+        telefonoEntrega.focus();
+        return;
+      }
+
       detalleServicio +=
         "Dirección: " + calle.value.trim() + "\n" +
         "Colonia: " + colonia.value.trim() + "\n";
 
+      if (contacto) {
+        detalleServicio += "Teléfono de contacto: " + contacto + "\n";
+      }
+
       if (referencias) {
         detalleServicio += "Referencias: " + referencias + "\n";
       }
+    }
+
+    const notas = document.getElementById("notas-pedido").value.trim();
+    if (notas) {
+      detalleServicio += "Instrucciones: " + notas + "\n";
     }
 
     let mensaje =
@@ -782,37 +863,38 @@ document.getElementById("enviar-pedido")
 
     });
 
-    mensaje += `TOTAL: $${total.toFixed(2)} MXN\n\n`;
+    if (esEntrega) {
+      mensaje +=
+        `SUBTOTAL DE PRODUCTOS: $${total.toFixed(2)} MXN\n` +
+        "Costo de envío y tiempo de entrega: por confirmar.\n\n";
+    } else {
+      mensaje += `TOTAL: $${total.toFixed(2)} MXN\n\n`;
+    }
     mensaje +=
       "Este pedido es una demostración y no representa una compra real.\n\n" +
       "Me interesa conocer las funciones de este sistema.";
 
 
-    // Mostrar el mensaje para verificarlo
+    resumenPedido.textContent = mensaje;
+    resumenPedido.scrollTop = 0;
+    revisionFueraHorario.hidden = consultarHorario() !== false;
+    revisionPedido.showModal();
+  });
 
-    // Número de WhatsApp del restaurante.
-    // Sustituir por un número autorizado para pruebas.
+document.getElementById("continuar-whatsapp")
+  .addEventListener("click", () => {
     const telefono = "526121992396";
-
     if (!telefono) {
-      alert(
-        "Mensaje preparado correctamente.\n\n" +
-        mensaje +
-        "\n\nFalta configurar el número de WhatsApp."
-      );
+      alert("Falta configurar el número de WhatsApp.");
       return;
     }
 
-    // Abrir WhatsApp con el pedido preparado
+    const mensaje = encodeURIComponent(resumenPedido.textContent);
+    const esMovil = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const url = esMovil
+      ? "https://wa.me/" + telefono + "?text=" + mensaje
+      : "https://web.whatsapp.com/send?phone=" + telefono + "&text=" + mensaje;
 
-      const esMovil = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-      
-      const url = esMovil
-        ? "https://wa.me/" + telefono + "?text=" + encodeURIComponent(mensaje)
-        : "https://web.whatsapp.com/send?phone=" + telefono + "&text=" + encodeURIComponent(mensaje);
-
-     
     window.open(url, "_blank", "noopener");
-
+    revisionPedido.close();
   });
-
