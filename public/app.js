@@ -889,6 +889,38 @@ seccionCarrito.addEventListener("click", (evento) => {
    ===================================================== */
 
 let consultarHorario = () => null;
+let turnosNegocio = [];
+let relojNegocio = crearRelojNegocio("America/Mazatlan");
+
+function crearRelojNegocio(zonaHoraria) {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: zonaHoraria,
+    weekday: "short",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23"
+  });
+}
+
+function fechaHoraNegocio() {
+  const partes = Object.fromEntries(
+    relojNegocio.formatToParts().map(({ type, value }) => [type, value])
+  );
+  return {
+    fecha: partes.year + "-" + partes.month + "-" + partes.day,
+    dia: partes.weekday,
+    hora: partes.hour + ":" + partes.minute
+  };
+}
+
+function dentroDelHorario(dia, hora) {
+  return turnosNegocio.some(turno =>
+    turno.dias.includes(dia) && turno.abre <= hora && hora < turno.cierra
+  );
+}
 
 function configurarHorario(horario) {
   if (!horario?.turnos?.length) return;
@@ -897,32 +929,25 @@ function configurarHorario(horario) {
     Mon: "lunes", Tue: "martes", Wed: "miércoles", Thu: "jueves",
     Fri: "viernes", Sat: "sábado", Sun: "domingo"
   };
-  const reloj = new Intl.DateTimeFormat("en-GB", {
-    timeZone: horario.zonaHoraria,
-    weekday: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23"
-  });
-
+  relojNegocio = crearRelojNegocio(horario.zonaHoraria);
+  turnosNegocio = horario.turnos;
+  document.getElementById("reserva-fecha").min = fechaHoraNegocio().fecha;
   consultarHorario = () => {
-    const partes = reloj.formatToParts();
-    const dia = partes.find(parte => parte.type === "weekday").value;
-    const hora = partes.find(parte => parte.type === "hour").value;
-    const minuto = partes.find(parte => parte.type === "minute").value;
-    const horaLocal = hora + ":" + minuto;
-
-    return horario.turnos.some(turno =>
-      turno.dias.includes(dia) && turno.abre <= horaLocal && horaLocal < turno.cierra
-    );
+    const { dia, hora } = fechaHoraNegocio();
+    return dentroDelHorario(dia, hora);
   };
 
-  document.getElementById("horario-detalle").textContent = horario.turnos
+  const detalleHorario = horario.turnos
     .map(turno =>
       turno.dias.map(dia => nombresDias[dia]).join(", ") +
       " · " + turno.abre + " a " + turno.cierra
     )
     .join(" | ");
+  document.getElementById("horario-detalle").textContent = detalleHorario;
+
+  const horarioReservacion = document.getElementById("horario-reservacion");
+  horarioReservacion.textContent = "Horario de atención · " + detalleHorario;
+  horarioReservacion.hidden = false;
 
   const estado = document.getElementById("estado-negocio");
   function actualizarEstado() {
@@ -1111,20 +1136,109 @@ document.getElementById("enviar-pedido")
     revisionPedido.showModal();
   });
 
+function abrirWhatsApp(texto) {
+  const telefono = "526121992396";
+  if (!telefono) {
+    alert("Falta configurar el número de WhatsApp.");
+    return false;
+  }
+
+  const mensaje = encodeURIComponent(texto);
+  const esMovil = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const url = esMovil
+    ? "https://wa.me/" + telefono + "?text=" + mensaje
+    : "https://web.whatsapp.com/send?phone=" + telefono + "&text=" + mensaje;
+
+  window.open(url, "_blank", "noopener");
+  return true;
+}
+
 document.getElementById("continuar-whatsapp")
   .addEventListener("click", () => {
-    const telefono = "526121992396";
-    if (!telefono) {
-      alert("Falta configurar el número de WhatsApp.");
-      return;
-    }
-
-    const mensaje = encodeURIComponent(resumenPedido.textContent);
-    const esMovil = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const url = esMovil
-      ? "https://wa.me/" + telefono + "?text=" + mensaje
-      : "https://web.whatsapp.com/send?phone=" + telefono + "&text=" + mensaje;
-
-    window.open(url, "_blank", "noopener");
-    revisionPedido.close();
+    if (abrirWhatsApp(resumenPedido.textContent)) revisionPedido.close();
   });
+
+/* =====================================================
+   SECCIÓN 7 — SOLICITUD DE RESERVACIÓN
+   Valida los datos y prepara el mensaje de demostración.
+   ===================================================== */
+
+const formularioReservacion = document.getElementById("formulario-reservacion");
+const fechaReservacion = document.getElementById("reserva-fecha");
+const errorReservacion = document.getElementById("reserva-error");
+
+fechaReservacion.min = fechaHoraNegocio().fecha;
+fechaReservacion.addEventListener("focus", () => {
+  fechaReservacion.min = fechaHoraNegocio().fecha;
+});
+
+function mostrarErrorReservacion(mensaje, campo) {
+  errorReservacion.textContent = mensaje;
+  errorReservacion.hidden = false;
+  campo.focus();
+}
+
+formularioReservacion.addEventListener("submit", evento => {
+  evento.preventDefault();
+  errorReservacion.hidden = true;
+  const campoNombre = document.getElementById("reserva-nombre");
+  const campoTelefono = document.getElementById("reserva-telefono");
+  const campoHora = document.getElementById("reserva-hora");
+  const nombre = campoNombre.value.trim();
+  const telefono = campoTelefono.value.trim();
+  const fecha = fechaReservacion.value;
+  const hora = campoHora.value;
+  const personas = Number(document.getElementById("reserva-personas").value);
+  const comentarios = document.getElementById("reserva-comentarios").value.trim();
+
+  if (!nombre) {
+    mostrarErrorReservacion("Escribe tu nombre.", campoNombre);
+    return;
+  }
+
+  if (!/^\+?\d{10,15}$/.test(telefono.replace(/[\s().-]/g, ""))) {
+    mostrarErrorReservacion("Escribe un teléfono de contacto válido.", campoTelefono);
+    return;
+  }
+
+  const ahora = fechaHoraNegocio();
+  if (fecha < ahora.fecha) {
+    mostrarErrorReservacion("Elige una fecha de hoy o posterior.", fechaReservacion);
+    return;
+  }
+
+  if (fecha === ahora.fecha && hora <= ahora.hora) {
+    mostrarErrorReservacion("Elige una hora posterior a la actual.", campoHora);
+    return;
+  }
+
+  const diaSolicitado = new Date(fecha + "T12:00:00Z");
+  const dia = new Intl.DateTimeFormat("en-GB", { weekday: "short", timeZone: "UTC" })
+    .format(diaSolicitado);
+
+  if (turnosNegocio.length && !dentroDelHorario(dia, hora)) {
+    const hayTurnosEseDia = turnosNegocio.some(turno => turno.dias.includes(dia));
+    mostrarErrorReservacion(
+      hayTurnosEseDia ? "Elige una hora dentro del horario de atención." : "Elige un día en que el establecimiento esté abierto.",
+      hayTurnosEseDia ? campoHora : fechaReservacion
+    );
+    return;
+  }
+
+  const fechaLegible = new Intl.DateTimeFormat("es-MX", {
+    dateStyle: "long",
+    timeZone: "UTC"
+  }).format(diaSolicitado);
+
+  const mensaje =
+    "Solicitud de reservación de prueba — Taquería El Comal\n\n" +
+    "Nombre: " + nombre + "\n" +
+    "Teléfono: " + telefono + "\n" +
+    "Fecha: " + fechaLegible + "\n" +
+    "Hora local: " + hora + "\n" +
+    "Personas: " + personas + "\n" +
+    (comentarios ? "Comentarios: " + comentarios + "\n" : "") +
+    "\nEsta solicitud es una demostración y está pendiente de confirmación.";
+
+  abrirWhatsApp(mensaje);
+});

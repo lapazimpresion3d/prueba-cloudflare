@@ -83,6 +83,7 @@
 
     <!-- Enlace hacia la sección del menú -->
     <a href="#menu" class="boton">Explorar menú</a>
+    <a href="#reservacion" class="boton boton-reservacion">Solicitar mesa</a>
 
   </header>
 
@@ -294,6 +295,42 @@
 
       </section>
 
+    </section>
+
+    <section id="reservacion" aria-labelledby="reservacion-titulo">
+      <h2 id="reservacion-titulo">Solicitar una reservación</h2>
+      <p>Elige una fecha y una hora local del establecimiento.</p>
+      <p id="horario-reservacion" hidden></p>
+      <p class="aviso-demo">Esta es una demostración. En un restaurante real, la mesa queda reservada cuando el negocio confirma por WhatsApp.</p>
+
+      <form id="formulario-reservacion">
+        <div>
+          <label for="reserva-nombre">Tu nombre</label>
+          <input id="reserva-nombre" type="text" autocomplete="name" maxlength="80" required>
+        </div>
+        <div>
+          <label for="reserva-telefono">Teléfono de contacto</label>
+          <input id="reserva-telefono" type="tel" autocomplete="tel" maxlength="25" required>
+        </div>
+        <div>
+          <label for="reserva-fecha">Fecha</label>
+          <input id="reserva-fecha" type="date" required>
+        </div>
+        <div>
+          <label for="reserva-hora">Hora</label>
+          <input id="reserva-hora" type="time" required>
+        </div>
+        <div>
+          <label for="reserva-personas">Número de personas</label>
+          <input id="reserva-personas" type="number" min="1" step="1" required>
+        </div>
+        <div class="reserva-ancho-completo">
+          <label for="reserva-comentarios">Comentarios (opcional)</label>
+          <textarea id="reserva-comentarios" rows="3" maxlength="250"></textarea>
+        </div>
+        <p id="reserva-error" class="reserva-ancho-completo" role="alert" hidden></p>
+        <button class="boton reserva-ancho-completo" type="submit">Preparar solicitud en WhatsApp</button>
+      </form>
     </section>
 
   </main>
