@@ -1,0 +1,244 @@
+
+{
+  "negocio": "Taquería El Comal",
+  "moneda": "MXN",
+  "horario": {
+    "zonaHoraria": "America/Mazatlan",
+    "turnos": [
+      {
+        "dias": ["Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        "abre": "12:00",
+        "cierra": "22:00"
+      }
+    ]
+  },
+  "categorias": [
+    {
+      "id": "combos",
+      "nombre": "Combos",
+      "productos": [
+        {
+          "id": "combo-el-comal",
+          "nombre": "Combo El Comal",
+          "descripcion": "Elige la bebida de tu combo.",
+          "precio": 85,
+          "imagen": "imagenes/pastor.webp",
+          "incluye": ["3 tacos al pastor"],
+          "etiquetaVariante": "Bebida",
+          "variantes": [
+            { "id": "agua", "nombre": "Agua natural regular", "productoId": "agua", "recargo": 0 },
+            { "id": "refresco", "nombre": "Refresco", "productoId": "refresco", "recargo": 5 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tacos",
+      "nombre": "Tacos",
+      "productos": [
+        {
+          "id": "pastor",
+          "nombre": "Taco al pastor",
+          "descripcion": "Carne al pastor, cebolla y cilantro.",
+          "precio": 25,
+          "imagen": "imagenes/pastor.webp",
+          "ingredientes": [
+            {
+              "id": "cebolla",
+              "nombre": "Cebolla",
+              "incluido": true
+            },
+            {
+              "id": "cilantro",
+              "nombre": "Cilantro",
+              "incluido": true
+            }
+          ],
+          "extras": [
+            {
+              "id": "queso",
+              "nombre": "Queso extra",
+              "precio": 10
+            }
+          ]
+        },
+        {
+          "id": "asada",
+          "nombre": "Taco de asada",
+          "descripcion": "Carne asada, cebolla y cilantro.",
+          "precio": 30,
+          "precioEspecial": 27,
+          "imagen": "imagenes/asada.webp",
+          "ingredientes": [
+            {
+              "id": "cebolla",
+              "nombre": "Cebolla",
+              "incluido": true
+            },
+            {
+              "id": "cilantro",
+              "nombre": "Cilantro",
+              "incluido": true
+            },
+            {
+              "id": "salsa",
+              "nombre": "Salsa roja",
+              "incluido": true
+            }
+          ],
+          "extras": [
+            {
+              "id": "queso",
+              "nombre": "Queso extra",
+              "precio": 10
+            },
+            {
+              "id": "aguacate",
+              "nombre": "Aguacate extra",
+              "precio": 15
+            }
+          ]
+        },
+        {
+          "id": "birria",
+          "nombre": "Taco de birria",
+          "descripcion": "Carne de birria con cebolla y cilantro.",
+          "precio": 35,
+          "imagen": "imagenes/birria.webp",
+          "ingredientes": [
+            {
+              "id": "cebolla",
+              "nombre": "Cebolla",
+              "incluido": true
+            },
+            {
+              "id": "cilantro",
+              "nombre": "Cilantro",
+              "incluido": true
+            }
+          ],
+          "extras": [
+            {
+              "id": "queso",
+              "nombre": "Queso extra",
+              "precio": 10
+            },
+            {
+              "id": "consome",
+              "nombre": "Consomé extra",
+              "precio": 15
+            }
+          ]
+        },
+        {
+          "id": "carnitas",
+          "nombre": "Taco de carnitas",
+          "descripcion": "Carnitas de cerdo con cebolla y cilantro.",
+          "precio": 30,
+          "imagen": "imagenes/carnitas.webp",
+          "ingredientes": [
+            {
+              "id": "cebolla",
+              "nombre": "Cebolla",
+              "incluido": true
+            },
+            {
+              "id": "cilantro",
+              "nombre": "Cilantro",
+              "incluido": true
+            },
+            {
+              "id": "salsa_verde",
+              "nombre": "Salsa verde",
+              "incluido": true
+            }
+          ],
+          "extras": [
+            {
+              "id": "aguacate",
+              "nombre": "Aguacate extra",
+              "precio": 15
+            },
+            {
+              "id": "queso",
+              "nombre": "Queso extra",
+              "precio": 10
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "especialidades",
+      "nombre": "Especialidades",
+      "productos": [
+        {
+          "id": "quesadilla",
+          "nombre": "Quesadilla",
+          "descripcion": "Tortilla de harina con queso fundido.",
+          "precio": 45,
+          "imagen": "imagenes/quesadilla.webp",
+          "ingredientes": [
+            {
+              "id": "queso",
+              "nombre": "Queso",
+              "incluido": true,
+              "obligatorio": true
+            }
+          ],
+          "extras": [
+            {
+              "id": "carne_asada",
+              "nombre": "Carne asada",
+              "precio": 20
+            },
+            {
+              "id": "champiñones",
+              "nombre": "Champiñones",
+              "precio": 15
+            },
+            {
+              "id": "aguacate",
+              "nombre": "Aguacate extra",
+              "precio": 15
+            }
+          ]
+        }
+      ]
+    },
+    
+            {
+              "id": "bebidas",
+              "nombre": "Bebidas",
+              "productos": [
+                {
+                  "id": "agua",
+                  "nombre": "Agua natural",
+                  "descripcion": "Vaso de agua natural fría con hielo.",
+                  "precio": 20,
+                  "imagen": "imagenes/agua.webp",
+                  "tamanos": [
+                    { "id": "regular", "nombre": "Regular", "recargo": 0 },
+                    { "id": "grande", "nombre": "Grande", "recargo": 10 }
+                  ]
+                },
+                {
+                  "id": "refresco",
+                  "nombre": "Refresco",
+                  "descripcion": "Refresco frío acompañado de hielo.",
+                  "precio": 25,
+                  "imagen": "imagenes/refresco.webp"
+                },
+                {
+                  "id": "jamaica",
+                  "nombre": "Agua de jamaica",
+                  "disponible": false,
+                  "descripcion": "Agua fresca de jamaica servida con hielo.",
+                  "precio": 25,
+                  "imagen": "imagenes/jamaica.webp"
+                }
+              ]
+            }
+
+  ]
+}
