@@ -20,10 +20,15 @@
         {
           "id": "combo-el-comal",
           "nombre": "Combo El Comal",
-          "descripcion": "Tacos y bebida en un solo pedido.",
+          "descripcion": "Elige la bebida de tu combo.",
           "precio": 85,
           "imagen": "imagenes/pastor.webp",
-          "incluye": ["3 tacos al pastor", "1 agua natural"]
+          "incluye": ["3 tacos al pastor"],
+          "etiquetaVariante": "Bebida",
+          "variantes": [
+            { "id": "agua", "nombre": "Agua natural regular", "productoId": "agua", "recargo": 0 },
+            { "id": "refresco", "nombre": "Refresco", "productoId": "refresco", "recargo": 5 }
+          ]
         }
       ]
     },

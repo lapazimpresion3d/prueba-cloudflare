@@ -65,16 +65,27 @@ let revisandoPedido = false;
 let mostrarCatalogo = () => {};
 const lineasNoDisponibles = new Set();
 
-function precioBase(producto, tamano) {
-  return (producto.precioEspecial ?? producto.precio) + (tamano?.recargo ?? 0);
+function precioBase(producto, variante) {
+  return (producto.precioEspecial ?? producto.precio) + (variante?.recargo ?? 0);
 }
 
-function claveProducto(productoId, ingredientes, extras, tamanoId) {
-  return JSON.stringify({ id: productoId, ingredientes, extras, tamanoId });
+function variantesDe(producto) {
+  return producto.variantes ?? producto.tamanos ?? [];
+}
+
+function varianteDisponible(variante) {
+  if (!variante.productoId) return true;
+  const producto = productosCatalogo.get(variante.productoId);
+  return Boolean(producto && producto.disponible !== false);
+}
+
+function claveProducto(productoId, ingredientes, extras, varianteId) {
+  return JSON.stringify({ id: productoId, ingredientes, extras, varianteId });
 }
 
 function nombreLinea(item) {
-  return item.tamano ? item.nombre + " (" + item.tamano + ")" : item.nombre;
+  const opcion = item.variante ?? item.tamano;
+  return opcion ? item.nombre + " (" + opcion + ")" : item.nombre;
 }
 
 function sincronizarCarrito() {
@@ -105,11 +116,13 @@ function sincronizarCarrito() {
       return;
     }
 
-    const tamano = item.tamanoId
-      ? producto.tamanos?.find(opcion => opcion.id === item.tamanoId)
-      : producto.tamanos?.[0];
+    const variantes = variantesDe(producto);
+    const varianteId = item.varianteId ?? item.tamanoId;
+    const variante = varianteId
+      ? variantes.find(opcion => opcion.id === varianteId)
+      : variantes[0];
 
-    if (item.tamanoId && !tamano) {
+    if ((varianteId && !variante) || (variante && !varianteDisponible(variante))) {
       lineasNoDisponibles.add(item);
       return;
     }
@@ -117,13 +130,15 @@ function sincronizarCarrito() {
     item.productoId = productoId;
     item.nombre = producto.nombre;
     item.incluye = producto.incluye;
-    if (tamano) {
-      item.tamanoId = tamano.id;
-      item.tamano = tamano.nombre;
-      item.id = claveProducto(productoId, item.ingredientes || [], extras, tamano.id);
+    if (variante) {
+      item.varianteId = variante.id;
+      item.variante = variante.nombre;
+      item.id = claveProducto(productoId, item.ingredientes || [], extras, variante.id);
+      delete item.tamanoId;
+      delete item.tamano;
     }
 
-    item.precio = precioBase(producto, tamano) +
+    item.precio = precioBase(producto, variante) +
       extras.reduce((suma, nombre) => suma + extrasPorNombre.get(nombre), 0);
   });
 }
@@ -397,7 +412,9 @@ async function cargarMenu() {
           });
 
           const disponible = productosCatalogo?.get(producto.id)?.disponible ?? producto.disponible;
-          if (disponible === false) {
+          const variantes = variantesDe(producto);
+          let varianteElegida = variantes.find(varianteDisponible);
+          if (disponible === false || (variantes.length && !varianteElegida)) {
             const agotado = document.createElement("button");
             agotado.type = "button";
             agotado.className = "agregar-pedido";
@@ -418,28 +435,30 @@ async function cargarMenu() {
           const personalizacion = document.createElement("div");
           personalizacion.className = "personalizacion";
 
-          const tamanos = producto.tamanos || [];
-          let tamanoElegido = tamanos[0];
+          if (variantes.length) {
+            const etiquetaOpcion = document.createElement("label");
+            etiquetaOpcion.textContent = producto.etiquetaVariante ?? "Tamaño";
+            const selectorOpcion = document.createElement("select");
 
-          if (tamanos.length) {
-            const etiquetaTamano = document.createElement("label");
-            etiquetaTamano.textContent = "Tamaño";
-            const selectorTamano = document.createElement("select");
-
-            for (const tamano of tamanos) {
+            for (const variante of variantes) {
               const opcion = document.createElement("option");
-              opcion.value = tamano.id;
-              opcion.textContent = tamano.recargo
-                ? tamano.nombre + " (+" + formatoPrecio.format(tamano.recargo) + ")"
-                : tamano.nombre;
-              selectorTamano.appendChild(opcion);
+              opcion.value = variante.id;
+              opcion.disabled = !varianteDisponible(variante);
+              opcion.textContent = variante.nombre;
+              if (opcion.disabled) {
+                opcion.textContent += " (Agotado)";
+              } else if (variante.recargo) {
+                opcion.textContent += " (+" + formatoPrecio.format(variante.recargo) + ")";
+              }
+              selectorOpcion.appendChild(opcion);
             }
 
-            selectorTamano.addEventListener("change", () => {
-              tamanoElegido = tamanos.find(tamano => tamano.id === selectorTamano.value);
+            selectorOpcion.value = varianteElegida.id;
+            selectorOpcion.addEventListener("change", () => {
+              varianteElegida = variantes.find(variante => variante.id === selectorOpcion.value);
             });
-            etiquetaTamano.appendChild(selectorTamano);
-            personalizacion.appendChild(etiquetaTamano);
+            etiquetaOpcion.appendChild(selectorOpcion);
+            personalizacion.appendChild(etiquetaOpcion);
           }
 
           if (producto.ingredientes?.length) {
@@ -529,7 +548,7 @@ async function cargarMenu() {
 
         // Calcular el precio de los extras seleccionados
         function calcularPrecioUnitario() {
-          let precioUnitario = precioBase(producto, tamanoElegido);
+          let precioUnitario = precioBase(producto, varianteElegida);
 
           const casillas = personalizacion.querySelectorAll(
             'input[type="checkbox"]:checked'
@@ -623,7 +642,7 @@ agregar.addEventListener("click", () => {
 
   const precioFinal = calcularPrecioUnitario();
 
-  const clave = claveProducto(producto.id, ingredientes, extras, tamanoElegido?.id);
+  const clave = claveProducto(producto.id, ingredientes, extras, varianteElegida?.id);
 
   const existente = carrito.find(item => item.id === clave);
 
@@ -635,8 +654,8 @@ agregar.addEventListener("click", () => {
       productoId: producto.id,
       nombre: producto.nombre,
       incluye: producto.incluye,
-      tamanoId: tamanoElegido?.id,
-      tamano: tamanoElegido?.nombre,
+      varianteId: varianteElegida?.id,
+      variante: varianteElegida?.nombre,
       precio: precioFinal,
       cantidad: cantidad,
       ingredientes: ingredientes,
@@ -666,7 +685,7 @@ agregar.addEventListener("click", () => {
             
             // Mostrar personalización solamente si existen opciones
             if (
-              tamanos.length ||
+              variantes.length ||
               producto.ingredientes?.length ||
               producto.extras?.length
             ) {
@@ -723,9 +742,9 @@ agregar.addEventListener("click", () => {
 
     mostrarCatalogo = mostrarProductos;
     buscador.addEventListener("input", mostrarProductos);
+    actualizarCatalogo(menu);
     mostrarProductos();
     configurarHorario(menu.horario);
-    actualizarCatalogo(menu);
     avisoCarrito = "";
     actualizarCarrito();
 
