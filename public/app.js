@@ -355,9 +355,11 @@ function actualizarCatalogo(menu) {
     categoria.productos.map(producto => [producto.id, producto])
   ));
   sincronizarCarrito();
-  if (catalogoAnterior && Array.from(productosCatalogo).some(([id, producto]) =>
-    (catalogoAnterior.get(id)?.disponible === false) !== (producto.disponible === false)
-  )) {
+  if (catalogoAnterior && Array.from(productosCatalogo).some(([id, producto]) => {
+    const anterior = catalogoAnterior.get(id);
+    return (anterior?.disponible === false) !== (producto.disponible === false) ||
+      anterior?.precio !== producto.precio || anterior?.precioEspecial !== producto.precioEspecial;
+  })) {
     mostrarCatalogo();
   }
 }
@@ -401,7 +403,8 @@ async function cargarMenu() {
         titulo.style.gridColumn = "1 / -1";
         contenedor.appendChild(titulo);
 
-        productosVisibles.forEach(producto => {
+        productosVisibles.forEach(productoOriginal => {
+          const producto = productosCatalogo.get(productoOriginal.id) ?? productoOriginal;
           const tarjeta = document.createElement("article");
           tarjeta.className = "producto";
 

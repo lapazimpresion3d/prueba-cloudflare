@@ -21,15 +21,26 @@ async function leerMenu(request, env) {
   return archivo.json();
 }
 
-async function menuConDisponibilidad(request, env) {
-  const [menu, consulta] = await Promise.all([
+async function menuActualizado(request, env) {
+  const [menu, disponibilidad, precios] = await Promise.all([
     leerMenu(request, env),
-    env.DB.prepare("SELECT producto_id, disponible FROM disponibilidad_producto").all()
+    env.DB.prepare("SELECT producto_id, disponible FROM disponibilidad_producto").all(),
+    env.DB.prepare("SELECT producto_id, precio_centavos, especial_centavos FROM precios_menu").all()
   ]);
-  const estados = new Map(consulta.results.map(fila => [fila.producto_id, fila.disponible === 1]));
+  const estados = new Map(disponibilidad.results.map(fila => [fila.producto_id, fila.disponible === 1]));
+  const preciosPorProducto = new Map(precios.results.map(fila => [fila.producto_id, fila]));
   for (const categoria of menu.categorias) {
     for (const producto of categoria.productos) {
       if (estados.has(producto.id)) producto.disponible = estados.get(producto.id);
+      const precio = preciosPorProducto.get(producto.id);
+      if (precio) {
+        producto.precio = precio.precio_centavos / 100;
+        if (precio.especial_centavos === null) {
+          delete producto.precioEspecial;
+        } else {
+          producto.precioEspecial = precio.especial_centavos / 100;
+        }
+      }
     }
   }
   return menu;
@@ -139,13 +150,38 @@ async function administrar(request, env, url) {
   }
 
   if (url.pathname === "/api/admin/disponibilidad" && request.method === "GET") {
-    const menu = await menuConDisponibilidad(request, env);
+    const menu = await menuActualizado(request, env);
     return json(menu.categorias.map(categoria => ({
       nombre: categoria.nombre,
-      productos: categoria.productos.map(({ id, nombre, disponible }) => ({
-        id, nombre, disponible: disponible !== false
+      productos: categoria.productos.map(({ id, nombre, disponible, precio, precioEspecial }) => ({
+        id, nombre, disponible: disponible !== false, precio, precioEspecial, moneda: menu.moneda
       }))
     })));
+  }
+
+  if (url.pathname === "/api/admin/precios" && request.method === "PUT") {
+    const datos = await request.json().catch(() => null);
+    const { id, precioCentavos, especialCentavos } = datos ?? {};
+
+    if (typeof id !== "string" || !Number.isSafeInteger(precioCentavos) ||
+        precioCentavos < 0 || precioCentavos > 100000000 ||
+        (especialCentavos !== null && (!Number.isSafeInteger(especialCentavos) ||
+          especialCentavos < 0 || especialCentavos >= precioCentavos))) {
+      return json({ error: "El precio especial debe ser menor al regular y ambos deben ser importes válidos." }, 400);
+    }
+
+    const menu = await leerMenu(request, env);
+    if (!menu.categorias.some(categoria => categoria.productos.some(producto => producto.id === id))) {
+      return json({ error: "El producto ya no está en el catálogo." }, 404);
+    }
+
+    await env.DB.prepare(
+      "INSERT INTO precios_menu (producto_id, precio_centavos, especial_centavos) VALUES (?, ?, ?) " +
+      "ON CONFLICT (producto_id) DO UPDATE SET precio_centavos = excluded.precio_centavos, " +
+      "especial_centavos = excluded.especial_centavos"
+    ).bind(id, precioCentavos, especialCentavos).run();
+
+    return json({ precio: precioCentavos / 100, precioEspecial: especialCentavos === null ? null : especialCentavos / 100 });
   }
 
   if (url.pathname === "/api/admin/disponibilidad" && request.method === "PUT") {
@@ -172,7 +208,7 @@ export default {
     const url = new URL(request.url);
     try {
       if (url.pathname === "/menu.json" && request.method === "GET") {
-        return json(await menuConDisponibilidad(request, env));
+        return json(await menuActualizado(request, env));
       }
       if (url.pathname === "/api/reservaciones/disponibilidad" && request.method === "GET") {
         return await consultarDisponibilidad(env.DB, await leerMenu(request, env), url, json);

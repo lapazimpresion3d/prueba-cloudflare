@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Vista previa del panel · Taquería El Comal</title>
+  <link rel="stylesheet" href="/admin/panel.css">
+  <style>
+    .demo-etiqueta {
+      margin-bottom: 6px;
+      color: #705c4d;
+      font-weight: bold;
+    }
+
+    .demo-aviso {
+      padding: 12px;
+      border-left: 4px solid #e3a124;
+      border-radius: 6px;
+      background: white;
+    }
+
+    .demo-precio {
+      margin: -5px 0 14px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: white;
+    }
+
+    .demo-precio p {
+      margin: 0 0 8px;
+    }
+
+    button:disabled {
+      cursor: default;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <p><a href="/#menu">Volver al menú</a></p>
+    <p class="demo-etiqueta">Vista previa</p>
+    <h1>Panel del encargado</h1>
+    <p>Taquería El Comal</p>
+    <p class="demo-aviso">
+      Aquí puedes ver cómo el encargado administra el menú y las mesas.
+      Los datos son de ejemplo y los controles están desactivados.
+    </p>
+
+    <section aria-labelledby="productos-demo">
+      <h2 id="productos-demo">Productos y precios</h2>
+
+      <div class="fila">
+        <div>
+          <strong>Taco de asada</strong>
+          <span class="estado">Disponible</span>
+        </div>
+        <button type="button" disabled>Marcar agotado</button>
+      </div>
+      <div class="demo-precio">
+        <p>Precio regular: $30.00 · Precio especial: $27.00</p>
+        <button type="button" disabled>Editar precios</button>
+      </div>
+
+      <div class="fila">
+        <div>
+          <strong>Agua de jamaica</strong>
+          <span class="estado">Agotado</span>
+        </div>
+        <button type="button" disabled>Volver a ofrecer</button>
+      </div>
+      <div class="demo-precio">
+        <p>Precio regular: $25.00</p>
+        <button type="button" disabled>Editar precios</button>
+      </div>
+    </section>
+
+    <section aria-labelledby="agenda-demo">
+      <h2 id="agenda-demo">Agenda de mesas</h2>
+      <p>El encargado registra una mesa después de confirmar la solicitud por WhatsApp.</p>
+      <div class="fila">
+        <div>
+          <strong>Mesa 3 · 4 personas</strong>
+          <span class="estado">19:00–20:30 · Ejemplo de reserva</span>
+        </div>
+        <button type="button" disabled>Cancelar</button>
+      </div>
+      <button type="button" disabled>Registrar mesa</button>
+    </section>
+  </main>
+</body>
+</html>

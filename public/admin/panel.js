@@ -48,6 +48,76 @@ function mostrarError(error) {
   mensaje.textContent = error.status ? error.message : "No se pudo conectar. Intenta nuevamente.";
 }
 
+function editorPrecios(producto) {
+  const editor = document.createElement("details");
+  editor.className = "editor-precios";
+  const titulo = document.createElement("summary");
+  const formulario = document.createElement("form");
+  const formato = new Intl.NumberFormat("es-MX", { style: "currency", currency: producto.moneda });
+
+  function campo(etiqueta, valor, requerido) {
+    const label = document.createElement("label");
+    label.textContent = etiqueta;
+    const input = document.createElement("input");
+    input.type = "number";
+    input.inputMode = "decimal";
+    input.min = "0";
+    input.max = "1000000";
+    input.step = "0.01";
+    input.required = requerido;
+    input.value = valor ?? "";
+    label.appendChild(input);
+    formulario.appendChild(label);
+    return input;
+  }
+
+  const regular = campo("Precio regular", producto.precio, true);
+  const especial = campo("Precio especial (opcional)", producto.precioEspecial, false);
+  const guardar = document.createElement("button");
+  guardar.type = "submit";
+  guardar.textContent = "Guardar precios";
+  const estado = document.createElement("p");
+  estado.setAttribute("role", "status");
+
+  function actualizarTitulo() {
+    titulo.textContent = "Editar precios · " + formato.format(producto.precio);
+    if (producto.precioEspecial != null) {
+      titulo.textContent += " · Especial " + formato.format(producto.precioEspecial);
+    }
+  }
+
+  formulario.addEventListener("submit", async evento => {
+    evento.preventDefault();
+    const precioCentavos = Math.round(Number(regular.value) * 100);
+    const especialCentavos = especial.value === "" ? null : Math.round(Number(especial.value) * 100);
+    if (especialCentavos !== null && especialCentavos >= precioCentavos) {
+      estado.textContent = "El precio especial debe ser menor que el regular.";
+      especial.focus();
+      return;
+    }
+
+    regular.disabled = especial.disabled = guardar.disabled = true;
+    estado.textContent = "Guardando…";
+    try {
+      const resultado = await solicitar("precios", "PUT", { id: producto.id, precioCentavos, especialCentavos });
+      producto.precio = resultado.precio;
+      producto.precioEspecial = resultado.precioEspecial;
+      actualizarTitulo();
+      estado.textContent = "Precios guardados.";
+    } catch (error) {
+      if (error.status === 401) mostrarError(error);
+      else estado.textContent = error.status ? error.message : "No se pudo conectar. Intenta nuevamente.";
+    } finally {
+      regular.disabled = especial.disabled = guardar.disabled = false;
+    }
+  });
+
+  actualizarTitulo();
+  formulario.append(guardar, estado);
+  editor.append(titulo, formulario);
+  return editor;
+}
+
 function filaProducto(producto) {
   const fila = document.createElement("div");
   fila.className = "fila";
@@ -86,7 +156,9 @@ function filaProducto(producto) {
   mostrarEstado();
   etiqueta.append(nombre, estado);
   fila.append(etiqueta, boton);
-  return fila;
+  const productoPanel = document.createElement("div");
+  productoPanel.append(fila, editorPrecios(producto));
+  return productoPanel;
 }
 
 async function cargarPanel() {

@@ -25,3 +25,10 @@ button:disabled { opacity: .65; cursor: wait; }
 .estado { font-size: .9rem; color: #5d493c; }
 #salir { margin-top: 20px; }
 #mensaje:empty { display: none; }
+
+.editor-precios { margin: -4px 0 14px; padding: 8px 12px; border-radius: 8px; background: white; }
+.editor-precios summary { cursor: pointer; }
+.editor-precios form { margin-top: 12px; }
+.editor-precios input { display: block; width: 100%; margin: 4px 0 10px; }
+.editor-precios p { margin-bottom: 0; }
+.editor-precios p:empty { display: none; }
