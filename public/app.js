@@ -671,9 +671,23 @@ seccionCarrito.addEventListener("click", (evento) => {
 
 /* =====================================================
    SECCIÓN 6 — PEDIDOS POR WHATSAPP
-   Genera el mensaje con cliente, productos,
-   ingredientes, extras, precios y total.
+   Genera el mensaje con cliente, tipo de servicio,
+   dirección de entrega, productos, ingredientes,
+   extras, precios y total.
    ===================================================== */
+
+const tipoServicio = document.getElementById("tipo-servicio");
+const datosEntrega = document.getElementById("datos-entrega");
+
+function actualizarDatosEntrega() {
+  const esEntrega = tipoServicio.value === "domicilio";
+  datosEntrega.hidden = !esEntrega;
+  datosEntrega.disabled = !esEntrega;
+}
+
+tipoServicio.addEventListener("change", actualizarDatosEntrega);
+window.addEventListener("pageshow", actualizarDatosEntrega);
+actualizarDatosEntrega();
 
 /* Preparar el mensaje del pedido */
 document.getElementById("enviar-pedido")
@@ -691,9 +705,41 @@ document.getElementById("enviar-pedido")
       return;
     }
 
+    if (!tipoServicio.reportValidity()) return;
+
+    let detalleServicio =
+      "Servicio: " + tipoServicio.selectedOptions[0].textContent + "\n";
+
+    if (tipoServicio.value === "domicilio") {
+      const calle = document.getElementById("calle-entrega");
+      const colonia = document.getElementById("colonia-entrega");
+      const referencias = document
+        .getElementById("referencias-entrega")
+        .value.trim();
+
+      const campoVacio = [calle, colonia].find(
+        campo => !campo.value.trim()
+      );
+
+      if (campoVacio) {
+        alert("Completa la calle, el número y la colonia para la entrega.");
+        campoVacio.focus();
+        return;
+      }
+
+      detalleServicio +=
+        "Dirección: " + calle.value.trim() + "\n" +
+        "Colonia: " + colonia.value.trim() + "\n";
+
+      if (referencias) {
+        detalleServicio += "Referencias: " + referencias + "\n";
+      }
+    }
+
     let mensaje =
       "\uD83C\uDF2E DEMOSTRACIÓN - TAQUERÍA EL COMAL\n\n" +
-      "Cliente: " + nombreCliente + "\n\n" +
+      "Cliente: " + nombreCliente + "\n" +
+      detalleServicio + "\n" +
       "Hola, estoy probando el sistema de pedidos " +
       "desarrollado por Lapazimpresion3d.\n\n" +
       "Este es mi pedido de prueba:\n\n";

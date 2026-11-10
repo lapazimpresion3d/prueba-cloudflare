@@ -183,10 +183,9 @@
         <!-- ============================================
              SECCIÓN 6 — DATOS DEL CLIENTE
 
-             El nombre se incorpora al mensaje
-             de WhatsApp mediante app.js.
-
-             ID: nombre-cliente
+             El nombre y el tipo de servicio se incorporan
+             al mensaje de WhatsApp, junto con la dirección
+             cuando el cliente elige entrega a domicilio.
              ============================================ -->
 
         <div class="datos-cliente">
@@ -198,13 +197,39 @@
             autocomplete="name"
             maxlength="80"
           >
+
+          <label for="tipo-servicio">¿Cómo quieres recibir tu pedido?</label>
+          <select id="tipo-servicio" required>
+            <option value="">Selecciona una opción</option>
+            <option value="recoger">Recoger en el establecimiento</option>
+            <option value="domicilio">Entrega a domicilio</option>
+          </select>
+
+          <fieldset id="datos-entrega" hidden disabled>
+            <legend>Dirección de entrega</legend>
+
+            <label for="calle-entrega">Calle y número</label>
+            <input
+              type="text"
+              id="calle-entrega"
+              autocomplete="shipping address-line1"
+              maxlength="120"
+              required
+            >
+
+            <label for="colonia-entrega">Colonia</label>
+            <input type="text" id="colonia-entrega" maxlength="80" required>
+
+            <label for="referencias-entrega">Referencias (opcional)</label>
+            <input type="text" id="referencias-entrega" maxlength="160">
+          </fieldset>
         </div>
 
         <!-- ============================================
              SECCIÓN 6.1 — PEDIDOS POR WHATSAPP
 
              app.js genera el mensaje con:
-             - Nombre del cliente.
+             - Nombre del cliente, tipo de servicio y dirección de entrega.
              - Productos y cantidades.
              - Ingredientes y extras.
              - Precios y total.

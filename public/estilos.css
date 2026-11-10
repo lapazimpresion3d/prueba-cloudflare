@@ -586,12 +586,36 @@ header {
   font-weight: bold;
 }
 
-.datos-cliente input {
+.datos-cliente input,
+.datos-cliente select {
   width: 100%;
   padding: 12px;
   border: 1px solid #c9c2bb;
   border-radius: 8px;
   font-size: 1rem;
+}
+
+.datos-cliente input + label {
+  margin-top: 12px;
+}
+
+.datos-cliente select {
+  background: white;
+  color: var(--oscuro);
+}
+
+#datos-entrega {
+  min-inline-size: 0;
+  margin: 16px 0 0;
+  padding: 0;
+  border: 0;
+}
+
+#datos-entrega legend {
+  margin-bottom: 10px;
+  padding: 0;
+  color: var(--rojo);
+  font-weight: bold;
 }
 
 
