@@ -65,8 +65,16 @@ let revisandoPedido = false;
 let mostrarCatalogo = () => {};
 const lineasNoDisponibles = new Set();
 
-function precioBase(producto) {
-  return producto.precioEspecial ?? producto.precio;
+function precioBase(producto, tamano) {
+  return (producto.precioEspecial ?? producto.precio) + (tamano?.recargo ?? 0);
+}
+
+function claveProducto(productoId, ingredientes, extras, tamanoId) {
+  return JSON.stringify({ id: productoId, ingredientes, extras, tamanoId });
+}
+
+function nombreLinea(item) {
+  return item.tamano ? item.nombre + " (" + item.tamano + ")" : item.nombre;
 }
 
 function sincronizarCarrito() {
@@ -97,10 +105,25 @@ function sincronizarCarrito() {
       return;
     }
 
+    const tamano = item.tamanoId
+      ? producto.tamanos?.find(opcion => opcion.id === item.tamanoId)
+      : producto.tamanos?.[0];
+
+    if (item.tamanoId && !tamano) {
+      lineasNoDisponibles.add(item);
+      return;
+    }
+
     item.productoId = productoId;
     item.nombre = producto.nombre;
     item.incluye = producto.incluye;
-    item.precio = precioBase(producto) +
+    if (tamano) {
+      item.tamanoId = tamano.id;
+      item.tamano = tamano.nombre;
+      item.id = claveProducto(productoId, item.ingredientes || [], extras, tamano.id);
+    }
+
+    item.precio = precioBase(producto, tamano) +
       extras.reduce((suma, nombre) => suma + extrasPorNombre.get(nombre), 0);
   });
 }
@@ -180,8 +203,8 @@ function actualizarCarrito() {
     if (!noDisponible) total += subtotal;
 
     fila.textContent = noDisponible
-      ? `${item.cantidad} × ${item.nombre} — No disponible`
-      : `${item.cantidad} × ${item.nombre} — $${subtotal.toFixed(2)}`;
+      ? `${item.cantidad} × ${nombreLinea(item)} — No disponible`
+      : `${item.cantidad} × ${nombreLinea(item)} — $${subtotal.toFixed(2)}`;
 
     if (item.incluye?.length) {
       const contenido = document.createElement("small");
@@ -223,7 +246,7 @@ function actualizarCarrito() {
     eliminar.type = "button";
     eliminar.className = "eliminar-producto";
     eliminar.textContent = "Eliminar";
-    eliminar.setAttribute("aria-label", "Eliminar " + item.nombre);
+    eliminar.setAttribute("aria-label", "Eliminar " + nombreLinea(item));
 
 eliminar.addEventListener("click", (evento) => {
   evento.stopPropagation();
@@ -246,7 +269,7 @@ eliminar.addEventListener("click", (evento) => {
     const disminuir = document.createElement("button");
     disminuir.type = "button";
     disminuir.textContent = "−";
-    disminuir.setAttribute("aria-label", "Disminuir " + item.nombre);
+    disminuir.setAttribute("aria-label", "Disminuir " + nombreLinea(item));
 
     const numero = document.createElement("span");
     numero.textContent = item.cantidad;
@@ -254,7 +277,7 @@ eliminar.addEventListener("click", (evento) => {
     const aumentar = document.createElement("button");
     aumentar.type = "button";
     aumentar.textContent = "+";
-    aumentar.setAttribute("aria-label", "Aumentar " + item.nombre);
+    aumentar.setAttribute("aria-label", "Aumentar " + nombreLinea(item));
 
 disminuir.addEventListener("click", (evento) => {
   evento.stopPropagation();
@@ -381,12 +404,12 @@ async function cargarMenu() {
             agotado.textContent = "Agotado";
             agotado.disabled = true;
             const notaDemo = document.createElement("small");
-               notaDemo.style.marginTop = "8px";
-               notaDemo.textContent =
-                 "En esta demostración, el encargado puede marcar productos como agotados " +
-                 "y volver a ofrecerlos desde su panel privado.";
+            notaDemo.style.marginTop = "8px";
+            notaDemo.textContent =
+              "En esta demostración, el encargado puede marcar productos como agotados " +
+              "y volver a ofrecerlos desde su panel privado.";
 
-tarjeta.append(imagen, nombre, descripcion, agotado, notaDemo);
+            tarjeta.append(imagen, nombre, descripcion, agotado, notaDemo);
             contenedor.appendChild(tarjeta);
             return;
           }
@@ -394,6 +417,30 @@ tarjeta.append(imagen, nombre, descripcion, agotado, notaDemo);
           // Opciones de personalización del producto
           const personalizacion = document.createElement("div");
           personalizacion.className = "personalizacion";
+
+          const tamanos = producto.tamanos || [];
+          let tamanoElegido = tamanos[0];
+
+          if (tamanos.length) {
+            const etiquetaTamano = document.createElement("label");
+            etiquetaTamano.textContent = "Tamaño";
+            const selectorTamano = document.createElement("select");
+
+            for (const tamano of tamanos) {
+              const opcion = document.createElement("option");
+              opcion.value = tamano.id;
+              opcion.textContent = tamano.recargo
+                ? tamano.nombre + " (+" + formatoPrecio.format(tamano.recargo) + ")"
+                : tamano.nombre;
+              selectorTamano.appendChild(opcion);
+            }
+
+            selectorTamano.addEventListener("change", () => {
+              tamanoElegido = tamanos.find(tamano => tamano.id === selectorTamano.value);
+            });
+            etiquetaTamano.appendChild(selectorTamano);
+            personalizacion.appendChild(etiquetaTamano);
+          }
 
           if (producto.ingredientes?.length) {
             const tituloIngredientes = document.createElement("h4");
@@ -482,7 +529,7 @@ tarjeta.append(imagen, nombre, descripcion, agotado, notaDemo);
 
         // Calcular el precio de los extras seleccionados
         function calcularPrecioUnitario() {
-          let precioUnitario = precioBase(producto);
+          let precioUnitario = precioBase(producto, tamanoElegido);
 
           const casillas = personalizacion.querySelectorAll(
             'input[type="checkbox"]:checked'
@@ -576,12 +623,7 @@ agregar.addEventListener("click", () => {
 
   const precioFinal = calcularPrecioUnitario();
 
-  // Identificar cada combinación de ingredientes y extras
-  const clave = JSON.stringify({
-    id: producto.id,
-    ingredientes,
-    extras
-  });
+  const clave = claveProducto(producto.id, ingredientes, extras, tamanoElegido?.id);
 
   const existente = carrito.find(item => item.id === clave);
 
@@ -593,6 +635,8 @@ agregar.addEventListener("click", () => {
       productoId: producto.id,
       nombre: producto.nombre,
       incluye: producto.incluye,
+      tamanoId: tamanoElegido?.id,
+      tamano: tamanoElegido?.nombre,
       precio: precioFinal,
       cantidad: cantidad,
       ingredientes: ingredientes,
@@ -622,6 +666,7 @@ agregar.addEventListener("click", () => {
             
             // Mostrar personalización solamente si existen opciones
             if (
+              tamanos.length ||
               producto.ingredientes?.length ||
               producto.extras?.length
             ) {
@@ -986,7 +1031,7 @@ document.getElementById("enviar-pedido")
 
       // Datos principales del producto
       mensaje +=
-        `${item.cantidad} × ${item.nombre}\n`;
+        `${item.cantidad} × ${nombreLinea(item)}\n`;
 
       if (item.incluye?.length) {
         mensaje += "Incluye: " + item.incluye.join(", ") + "\n";

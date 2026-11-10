@@ -211,7 +211,11 @@
                   "nombre": "Agua natural",
                   "descripcion": "Vaso de agua natural fría con hielo.",
                   "precio": 20,
-                  "imagen": "imagenes/agua.webp"
+                  "imagen": "imagenes/agua.webp",
+                  "tamanos": [
+                    { "id": "regular", "nombre": "Regular", "recargo": 0 },
+                    { "id": "grande", "nombre": "Grande", "recargo": 10 }
+                  ]
                 },
                 {
                   "id": "refresco",
