@@ -25,6 +25,26 @@
     </form>
 
     <section id="panel" hidden>
+      <details id="agenda">
+        <summary>Agenda de mesas</summary>
+        <p>Registra una mesa después de confirmar la solicitud por WhatsApp.</p>
+        <form id="formulario-agenda">
+          <label for="agenda-fecha">Fecha</label>
+          <input id="agenda-fecha" type="date" required>
+          <label for="agenda-hora">Hora de inicio</label>
+          <input id="agenda-hora" type="time" required>
+          <label for="agenda-personas">Número de personas</label>
+          <input id="agenda-personas" type="number" min="1" step="1" required>
+          <button type="submit">Registrar mesa</button>
+        </form>
+        <p id="agenda-estado" role="status"></p>
+        <div id="agenda-mesas"></div>
+      </details>
+      <details id="panel-productos" open>
+        <summary>Productos</summary>
+        <p>Marca un producto como agotado cuando se termine. Puedes volver a activarlo desde aquí.</p>
+        <div id="productos"></div>
+      </details>
       <details id="editor-categorias">
         <summary>Categorías del menú</summary>
         <p>Cambia los nombres o usa Subir y Bajar para ajustar el orden.</p>
@@ -44,23 +64,6 @@
         </form>
         <p id="horario-estado" role="status"></p>
       </details>
-      <details id="agenda">
-        <summary>Agenda de mesas</summary>
-        <p>Registra una mesa después de confirmar la solicitud por WhatsApp.</p>
-        <form id="formulario-agenda">
-          <label for="agenda-fecha">Fecha</label>
-          <input id="agenda-fecha" type="date" required>
-          <label for="agenda-hora">Hora de inicio</label>
-          <input id="agenda-hora" type="time" required>
-          <label for="agenda-personas">Número de personas</label>
-          <input id="agenda-personas" type="number" min="1" step="1" required>
-          <button type="submit">Registrar mesa</button>
-        </form>
-        <p id="agenda-estado" role="status"></p>
-        <div id="agenda-mesas"></div>
-      </details>
-      <p>Marca un producto como agotado cuando se termine. Puedes volver a activarlo desde aquí.</p>
-      <div id="productos"></div>
       <button id="salir" type="button">Cerrar sesión</button>
     </section>
   </main>
