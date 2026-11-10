@@ -34,6 +34,16 @@
         </form>
         <p id="categorias-estado" role="status"></p>
       </details>
+      <details id="editor-horario">
+        <summary>Horario de atención</summary>
+        <p>Elige los días de cada turno. Para cerrar a medianoche, selecciona 00:00 como hora de cierre. Si quitas todos los turnos, el menú mostrará que el negocio está cerrado.</p>
+        <form id="formulario-horario">
+          <div id="lista-turnos"></div>
+          <button id="agregar-turno" type="button" disabled>Agregar turno</button>
+          <button id="guardar-horario" type="submit" disabled>Guardar horario</button>
+        </form>
+        <p id="horario-estado" role="status"></p>
+      </details>
       <details id="agenda">
         <summary>Agenda de mesas</summary>
         <p>Registra una mesa después de confirmar la solicitud por WhatsApp.</p>

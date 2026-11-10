@@ -903,7 +903,7 @@ let relojNegocio = crearRelojNegocio("America/Mazatlan");
 
 function crearRelojNegocio(zonaHoraria) {
   return new Intl.DateTimeFormat("en-GB", {
-    timeZone: zonaHoraria,
+    timeZone: zonaHoraria || "America/Mazatlan",
     weekday: "short",
     year: "numeric",
     month: "2-digit",
@@ -932,7 +932,7 @@ function dentroDelHorario(dia, hora) {
 }
 
 function configurarHorario(horario) {
-  if (!horario?.turnos?.length) return;
+  if (!Array.isArray(horario?.turnos)) return;
 
   const nombresDias = {
     Mon: "lunes", Tue: "martes", Wed: "miércoles", Thu: "jueves",
@@ -950,7 +950,7 @@ function configurarHorario(horario) {
       turno.dias.map(dia => nombresDias[dia]).join(", ") +
       " · " + turno.abre + " a " + turno.cierra
     )
-    .join(" | ");
+    .join(" | ") || "Cerrado todos los días";
   document.getElementById("horario-detalle").textContent = detalleHorario;
 
   const horarioReservacion = document.getElementById("horario-reservacion");

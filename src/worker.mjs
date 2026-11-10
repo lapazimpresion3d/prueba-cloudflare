@@ -16,9 +16,16 @@ function json(datos, status = 200, headers = {}) {
 
 async function leerMenu(request, env) {
   const url = new URL("/menu.json", request.url);
-  const archivo = await env.ASSETS.fetch(new Request(url));
+  const [archivo, preferencias] = await Promise.all([
+    env.ASSETS.fetch(new Request(url)),
+    env.DB.prepare("SELECT turnos_json FROM preferencias_horario WHERE id = 1").first()
+  ]);
   if (!archivo.ok) throw new Error("No se pudo cargar menu.json");
-  return archivo.json();
+  const menu = await archivo.json();
+  if (preferencias) {
+    menu.horario = { ...menu.horario, turnos: JSON.parse(preferencias.turnos_json) };
+  }
+  return menu;
 }
 
 async function menuActualizado(request, env) {
@@ -139,6 +146,33 @@ async function iniciarSesion(request, db, clave, contrasena) {
   return json({ ok: true }, 200, cabeceraSesion(valor + "." + firma, duracion));
 }
 
+const diasSemana = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const formatoHora = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
+
+function validarTurnos(turnos) {
+  if (!Array.isArray(turnos) || turnos.length > 32) return null;
+  const validados = [];
+
+  for (const turno of turnos) {
+    const { dias, abre, cierra } = turno ?? {};
+    if (!Array.isArray(dias) || !dias.length || new Set(dias).size !== dias.length ||
+        dias.some(dia => !diasSemana.includes(dia)) ||
+        typeof abre !== "string" || !formatoHora.test(abre) ||
+        typeof cierra !== "string" || (!formatoHora.test(cierra) && cierra !== "24:00") ||
+        abre >= cierra) {
+      return null;
+    }
+
+    if (validados.some(anterior =>
+      dias.some(dia => anterior.dias.includes(dia)) && abre < anterior.cierra && cierra > anterior.abre
+    )) {
+      return null;
+    }
+    validados.push({ dias: diasSemana.filter(dia => dias.includes(dia)), abre, cierra });
+  }
+  return validados;
+}
+
 async function administrar(request, env, url) {
   if (!env.ADMIN_PASSWORD || env.ADMIN_PASSWORD.length < 16) {
     return json({ error: "El acceso del encargado todavía no está configurado." }, 503);
@@ -163,6 +197,25 @@ async function administrar(request, env, url) {
 
   if (!await sesionValida(request, clave)) {
     return json({ error: "Inicia sesión para administrar el menú." }, 401);
+  }
+
+  if (url.pathname === "/api/admin/horario" && request.method === "GET") {
+    const menu = await leerMenu(request, env);
+    return json({ turnos: menu.horario?.turnos ?? [] });
+  }
+
+  if (url.pathname === "/api/admin/horario" && request.method === "PUT") {
+    const datos = await request.json().catch(() => null);
+    const turnos = validarTurnos(datos?.turnos);
+    if (!turnos) {
+      return json({ error: "Revisa los días y las horas. Los turnos deben terminar después de abrir y no pueden traslaparse." }, 400);
+    }
+
+    await env.DB.prepare(
+      "INSERT INTO preferencias_horario (id, turnos_json) VALUES (1, ?) " +
+      "ON CONFLICT (id) DO UPDATE SET turnos_json = excluded.turnos_json"
+    ).bind(JSON.stringify(turnos)).run();
+    return json({ turnos });
   }
 
   if (url.pathname === "/api/admin/agenda") {

@@ -10,6 +10,17 @@ const listaCategorias = document.getElementById("lista-categorias");
 const estadoCategorias = document.getElementById("categorias-estado");
 const seccionesCategorias = new Map();
 let filasCategorias = [];
+const editorHorario = document.getElementById("editor-horario");
+const formularioHorario = document.getElementById("formulario-horario");
+const listaTurnos = document.getElementById("lista-turnos");
+const agregarTurno = document.getElementById("agregar-turno");
+const guardarHorario = document.getElementById("guardar-horario");
+const estadoHorario = document.getElementById("horario-estado");
+const diasHorario = [
+  ["Mon", "Lunes"], ["Tue", "Martes"], ["Wed", "Miércoles"], ["Thu", "Jueves"],
+  ["Fri", "Viernes"], ["Sat", "Sábado"], ["Sun", "Domingo"]
+];
+let versionHorario = 0;
 const agenda = document.getElementById("agenda");
 const formularioAgenda = document.getElementById("formulario-agenda");
 const fechaAgenda = document.getElementById("agenda-fecha");
@@ -45,6 +56,11 @@ function mostrarAcceso() {
   listaCategorias.replaceChildren();
   estadoCategorias.textContent = "";
   editorCategorias.open = false;
+  editorHorario.open = false;
+  versionHorario++;
+  listaTurnos.replaceChildren();
+  estadoHorario.textContent = "";
+  agregarTurno.disabled = guardarHorario.disabled = true;
   mesasAgenda.replaceChildren();
   estadoAgenda.textContent = "";
   agenda.open = false;
@@ -315,6 +331,7 @@ async function cargarPanel() {
   actualizarOrdenCategorias();
   acceso.hidden = true;
   panel.hidden = false;
+  cargarHorarioEditor();
 }
 
 acceso.addEventListener("submit", async evento => {
@@ -343,6 +360,110 @@ salir.addEventListener("click", async () => {
     mensaje.textContent = "Sesión cerrada.";
   } catch (error) {
     mostrarError(error);
+  }
+});
+
+function mostrarErrorHorario(error) {
+  if (error.status === 401) mostrarError(error);
+  else estadoHorario.textContent = error.status ? error.message : "No se pudo conectar. Intenta nuevamente.";
+}
+
+function crearTurno(turno = { dias: [], abre: "12:00", cierra: "22:00" }) {
+  const grupo = document.createElement("fieldset");
+  grupo.className = "turno-horario";
+  const titulo = document.createElement("legend");
+  titulo.textContent = "Turno de atención";
+  const dias = document.createElement("div");
+  dias.className = "dias-turno";
+
+  for (const [valor, texto] of diasHorario) {
+    const etiqueta = document.createElement("label");
+    const control = document.createElement("input");
+    control.type = "checkbox";
+    control.name = "dia";
+    control.value = valor;
+    control.checked = turno.dias.includes(valor);
+    etiqueta.append(control, document.createTextNode(" " + texto));
+    dias.appendChild(etiqueta);
+  }
+
+  const horas = document.createElement("div");
+  horas.className = "horas-turno";
+  for (const [nombre, texto, valor] of [
+    ["abre", "Abre", turno.abre],
+    ["cierra", "Cierra", turno.cierra === "24:00" ? "00:00" : turno.cierra]
+  ]) {
+    const etiqueta = document.createElement("label");
+    etiqueta.textContent = texto;
+    const control = document.createElement("input");
+    control.type = "time";
+    control.name = nombre;
+    control.required = true;
+    control.value = valor;
+    etiqueta.appendChild(control);
+    horas.appendChild(etiqueta);
+  }
+
+  const quitar = document.createElement("button");
+  quitar.type = "button";
+  quitar.textContent = "Quitar turno";
+  quitar.addEventListener("click", () => {
+    grupo.remove();
+    agregarTurno.focus();
+  });
+  grupo.append(titulo, dias, horas, quitar);
+  return grupo;
+}
+
+async function cargarHorarioEditor() {
+  const version = ++versionHorario;
+  estadoHorario.textContent = "Consultando horario…";
+  try {
+    const { turnos } = await solicitar("horario");
+    if (version !== versionHorario) return;
+    listaTurnos.replaceChildren(...turnos.map(crearTurno));
+    estadoHorario.textContent = "";
+    agregarTurno.disabled = guardarHorario.disabled = false;
+  } catch (error) {
+    if (version === versionHorario) mostrarErrorHorario(error);
+  }
+}
+
+agregarTurno.addEventListener("click", () => {
+  if (listaTurnos.children.length >= 32) return;
+  const turno = crearTurno();
+  listaTurnos.appendChild(turno);
+  turno.querySelector("input").focus();
+});
+
+formularioHorario.addEventListener("submit", async evento => {
+  evento.preventDefault();
+  if (guardarHorario.disabled) return;
+  const version = versionHorario;
+  const turnos = [];
+
+  for (const grupo of listaTurnos.children) {
+    const dias = [...grupo.querySelectorAll('input[name="dia"]:checked')].map(campo => campo.value);
+    if (!dias.length) {
+      estadoHorario.textContent = "Selecciona al menos un día en cada turno.";
+      grupo.querySelector("input").focus();
+      return;
+    }
+    const abre = grupo.querySelector('input[name="abre"]').value;
+    const cierre = grupo.querySelector('input[name="cierra"]').value;
+    turnos.push({ dias, abre, cierra: cierre === "00:00" ? "24:00" : cierre });
+  }
+
+  const controles = [...formularioHorario.querySelectorAll("input, button")];
+  controles.forEach(control => { control.disabled = true; });
+  estadoHorario.textContent = "Guardando…";
+  try {
+    await solicitar("horario", "PUT", { turnos });
+    if (version === versionHorario) estadoHorario.textContent = "Horario guardado.";
+  } catch (error) {
+    if (version === versionHorario) mostrarErrorHorario(error);
+  } finally {
+    if (version === versionHorario) controles.forEach(control => { control.disabled = false; });
   }
 });
 
