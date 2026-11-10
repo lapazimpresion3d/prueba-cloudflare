@@ -301,6 +301,7 @@
       <h2 id="reservacion-titulo">Solicitar una reservación</h2>
       <p>Elige una fecha y una hora local del establecimiento.</p>
       <p id="horario-reservacion" hidden></p>
+      <p id="reglas-reservacion"></p>
       <p class="aviso-demo">Esta es una demostración. En un restaurante real, la mesa queda reservada cuando el negocio confirma por WhatsApp.</p>
 
       <form id="formulario-reservacion">
@@ -318,7 +319,10 @@
         </div>
         <div>
           <label for="reserva-hora">Hora</label>
-          <input id="reserva-hora" type="time" required>
+          <select id="reserva-hora" aria-describedby="reserva-horarios-estado" required disabled>
+            <option value="">Elige primero una fecha</option>
+          </select>
+          <small id="reserva-horarios-estado" role="status"></small>
         </div>
         <div>
           <label for="reserva-personas">Número de personas</label>
@@ -329,7 +333,7 @@
           <textarea id="reserva-comentarios" rows="3" maxlength="250"></textarea>
         </div>
         <p id="reserva-error" class="reserva-ancho-completo" role="alert" hidden></p>
-        <button class="boton reserva-ancho-completo" type="submit">Preparar solicitud en WhatsApp</button>
+        <button id="reserva-enviar" class="boton reserva-ancho-completo" type="submit" disabled>Preparar solicitud en WhatsApp</button>
       </form>
     </section>
 

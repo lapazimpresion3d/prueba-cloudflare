@@ -839,6 +839,7 @@ header {
 }
 
 #formulario-reservacion input,
+#formulario-reservacion select,
 #formulario-reservacion textarea {
   width: 100%;
   min-width: 0;
@@ -850,6 +851,16 @@ header {
 
 #formulario-reservacion textarea {
   resize: vertical;
+}
+
+#reserva-horarios-estado {
+  display: block;
+  margin-top: 6px;
+}
+
+#formulario-reservacion .boton:disabled {
+  opacity: .65;
+  cursor: not-allowed;
 }
 
 .reserva-ancho-completo {

@@ -12,6 +12,12 @@
       }
     ]
   },
+  "reservaciones": {
+    "intervaloMinutos": 30,
+    "duracionMinutos": 90,
+    "anticipacionDias": 14,
+    "maxPersonas": 8
+  },
   "categorias": [
     {
       "id": "combos",
