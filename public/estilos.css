@@ -61,11 +61,71 @@ body {
    ===================================================== */
 /* Encabezado principal */
 header {
+  position: relative;
   background: var(--oscuro);
   color: white;
   text-align: center;
   padding: 110px 20px 100px;
   border-bottom: 8px solid var(--amarillo);
+}
+
+.encabezado-fotos {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  pointer-events: none;
+  filter: saturate(.18);
+  transition: filter .35s ease;
+}
+
+#encabezado-negocio.en-horario .encabezado-fotos {
+  filter: saturate(1);
+}
+
+.encabezado-fotos > span {
+  background-position: center;
+  background-size: cover;
+}
+
+.encabezado-foto-asada { background-image: url("imagenes/asada.webp"); }
+.encabezado-foto-pastor { background-image: url("imagenes/pastor.webp"); }
+.encabezado-foto-birria { background-image: url("imagenes/birria.webp"); }
+
+.encabezado-fotos::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg,
+    rgba(25, 17, 13, .40), rgba(25, 17, 13, .75) 34%,
+    rgba(25, 17, 13, .75) 66%, rgba(25, 17, 13, .40)
+  );
+}
+
+.encabezado-contenido {
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 700px) {
+  .encabezado-fotos {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .encabezado-foto-asada,
+  .encabezado-foto-birria {
+    display: none;
+  }
+
+  .encabezado-fotos::after {
+    background: rgba(25, 17, 13, .70);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .encabezado-fotos {
+    transition: none;
+  }
 }
 
 header h1 {
@@ -415,10 +475,6 @@ footer {
    Acceso fijo, panel, controles, total y acciones del pedido.
    ===================================================== */
 /* Acceso al carrito en el encabezado */
-header {
-  position: relative;
-}
-
 #abrir-carrito {
   position: fixed;
   z-index: 1000;

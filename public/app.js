@@ -958,10 +958,11 @@ function configurarHorario(horario) {
   horarioReservacion.hidden = false;
 
   const estado = document.getElementById("estado-negocio");
+  const encabezado = document.getElementById("encabezado-negocio");
   function actualizarEstado() {
-    estado.textContent = consultarHorario()
-      ? "En horario de atención"
-      : "Fuera del horario de atención";
+    const abierto = consultarHorario();
+    estado.textContent = abierto ? "En horario de atención" : "Fuera del horario de atención";
+    encabezado.classList.toggle("en-horario", abierto);
   }
 
   actualizarEstado();
