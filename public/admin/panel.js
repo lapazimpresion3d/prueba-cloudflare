@@ -35,6 +35,8 @@ const vistaPedidos = document.getElementById("vista-pedidos");
 const actualizarPedidos = document.getElementById("actualizar-pedidos");
 const estadoPedidos = document.getElementById("pedidos-estado");
 const listaPedidos = document.getElementById("lista-pedidos");
+const comandaImpresa = document.getElementById("comanda-impresa");
+const contenidoComanda = document.getElementById("contenido-comanda");
 let versionPedidos = 0;
 let firmaListaPedidos = "";
 let cambiandoPedido = false;
@@ -81,6 +83,7 @@ function mostrarAcceso() {
   agenda.open = false;
   panelPedidos.open = false;
   listaPedidos.replaceChildren();
+  limpiarComanda();
   estadoPedidos.textContent = "";
   firmaListaPedidos = "";
   versionPedidos++;
@@ -595,9 +598,25 @@ function mostrarErrorPedidos(error) {
   else estadoPedidos.textContent = error.status ? error.message : "No se pudo consultar la lista.";
 }
 
+function limpiarComanda() {
+  comandaImpresa.hidden = true;
+  contenidoComanda.replaceChildren();
+  document.body.classList.remove("imprimiendo-comanda");
+}
+
+function imprimirComanda(contenido) {
+  contenidoComanda.replaceChildren(contenido.cloneNode(true));
+  comandaImpresa.hidden = false;
+  document.body.classList.add("imprimiendo-comanda");
+  window.print();
+}
+
+window.addEventListener("afterprint", limpiarComanda);
+
 function tarjetaPedido(pedido) {
   const tarjeta = document.createElement("article");
   tarjeta.className = "pedido-cocina";
+  const contenido = document.createElement("div");
   const titulo = document.createElement("h2");
   titulo.textContent = "Pedido #" + pedido.folio + " · " + pedido.etiqueta;
   const { detalle } = pedido;
@@ -619,22 +638,29 @@ function tarjetaPedido(pedido) {
     productosPedido.appendChild(producto);
   }
 
-  tarjeta.append(titulo, info, productosPedido);
+  contenido.append(titulo, info, productosPedido);
   if (detalle.notas) {
     const notas = document.createElement("p");
+    notas.className = "instrucciones-cocina";
     notas.textContent = "Instrucciones: " + detalle.notas;
-    tarjeta.appendChild(notas);
+    contenido.appendChild(notas);
   }
 
   const total = document.createElement("p");
   const importe = new Intl.NumberFormat("es-MX", { style: "currency", currency: detalle.moneda })
     .format(pedido.totalCentavos / 100);
   total.textContent = (detalle.servicio === "domicilio" ? "Subtotal: " : "Total: ") + importe;
-  tarjeta.appendChild(total);
+  tarjeta.append(contenido, total);
 
   if (pedido.acciones.length) {
     const acciones = document.createElement("div");
     acciones.className = "acciones-cocina";
+    const imprimir = document.createElement("button");
+    imprimir.type = "button";
+    imprimir.textContent = "Imprimir comanda";
+    imprimir.setAttribute("aria-label", "Imprimir comanda del pedido " + pedido.folio);
+    imprimir.addEventListener("click", () => imprimirComanda(contenido));
+    acciones.appendChild(imprimir);
     for (const accion of pedido.acciones) {
       const boton = document.createElement("button");
       boton.type = "button";

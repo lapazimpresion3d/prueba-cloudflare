@@ -65,3 +65,23 @@ button:disabled { opacity: .65; cursor: wait; }
 #estadisticas-resumen > div { background: #fff6e7; border-radius: 8px; padding: 10px; }
 #estadisticas-resumen dt { color: #5d493c; font-size: .9rem; }
 #estadisticas-resumen dd { margin: 0; font-size: 1.2rem; font-weight: bold; }
+
+#comanda-impresa { display: none; }
+
+@media print {
+  :root { color: black; background: white; }
+  body.imprimiendo-comanda > main { display: none; }
+  #comanda-impresa:not([hidden]) {
+    display: block;
+    max-width: 78mm;
+    padding: 0 2mm;
+    font-size: 11pt;
+    overflow-wrap: anywhere;
+  }
+  #comanda-impresa .titulo-comanda { font-weight: bold; }
+  #comanda-impresa h2 { font-size: 13pt; break-after: avoid; }
+  #comanda-impresa ul { padding-left: 1.2em; }
+  #comanda-impresa li { margin-bottom: 0.4em; break-inside: avoid; }
+  #comanda-impresa small { display: block; font-size: 10pt; }
+  #comanda-impresa .instrucciones-cocina { white-space: pre-wrap; }
+}
