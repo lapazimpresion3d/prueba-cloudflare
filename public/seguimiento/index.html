@@ -7,6 +7,7 @@
   <meta name="referrer" content="no-referrer">
   <title>Seguimiento del pedido · Taquería El Comal</title>
   <link rel="stylesheet" href="/admin/panel.css">
+  <link rel="stylesheet" href="/seguimiento/seguimiento.css">
   <script src="/seguimiento/memoria.js" defer></script>
   <script src="/seguimiento/seguimiento.js" defer></script>
 </head>
@@ -20,6 +21,13 @@
       <p id="estado-seguimiento" role="status">Consultando el pedido…</p>
       <p id="fecha-seguimiento" hidden></p>
     </section>
+    <details id="detalle-seguimiento" hidden>
+      <summary>Ver detalle del pedido</summary>
+      <p id="servicio-seguimiento"></p>
+      <ul id="productos-seguimiento"></ul>
+      <p id="notas-seguimiento" hidden></p>
+      <dl id="importes-seguimiento"></dl>
+    </details>
     <button id="actualizar-seguimiento" type="button" hidden>Actualizar estado</button>
   </main>
 </body>

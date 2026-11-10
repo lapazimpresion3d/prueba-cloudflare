@@ -233,6 +233,19 @@ function editorPrecios(producto) {
 
   const regular = campo("Precio regular", producto.precio, true);
   const especial = campo("Precio especial (opcional)", producto.precioEspecial, false);
+  const programar = campoCatalogo(formulario, "Programar precio especial por fechas", "checkbox", Boolean(producto.promocion));
+  const desde = campoCatalogo(formulario, "Primer día de la promoción", "date", producto.promocion?.desde, { required: true });
+  const hasta = campoCatalogo(formulario, "Último día de la promoción (incluido)", "date", producto.promocion?.hasta, { required: true });
+  const ayuda = document.createElement("p");
+  ayuda.textContent = "Las fechas usan la zona horaria del negocio · " + producto.zonaHoraria +
+    ". Para quitar la promoción, desmarca la programación y deja vacío el precio especial.";
+  formulario.appendChild(ayuda);
+  function actualizarProgramacion() {
+    desde.disabled = hasta.disabled = !programar.checked;
+    especial.required = programar.checked;
+  }
+  programar.addEventListener("change", actualizarProgramacion);
+  actualizarProgramacion();
   const guardar = document.createElement("button");
   guardar.type = "submit";
   guardar.textContent = "Guardar precios";
@@ -240,10 +253,12 @@ function editorPrecios(producto) {
   estado.setAttribute("role", "status");
 
   function actualizarTitulo() {
-    titulo.textContent = "Editar precios · " + formato.format(producto.precio);
+    titulo.textContent = "Editar precios y promociones · " + formato.format(producto.precio);
     if (producto.precioEspecial != null) {
       titulo.textContent += " · Especial " + formato.format(producto.precioEspecial);
     }
+    const estados = { programada: "Programada", activa: "Activa", finalizada: "Finalizada" };
+    if (producto.promocion) titulo.textContent += " · " + estados[producto.promocion.estado];
   }
 
   formulario.addEventListener("submit", async evento => {
@@ -255,20 +270,30 @@ function editorPrecios(producto) {
       especial.focus();
       return;
     }
+    if (programar.checked && (!desde.value || !hasta.value || desde.value > hasta.value)) {
+      estado.textContent = "Revisa las fechas de la promoción.";
+      desde.focus();
+      return;
+    }
 
-    regular.disabled = especial.disabled = guardar.disabled = true;
+    regular.disabled = especial.disabled = guardar.disabled = programar.disabled = desde.disabled = hasta.disabled = true;
     estado.textContent = "Guardando…";
     try {
-      const resultado = await solicitar("precios", "PUT", { id: producto.id, precioCentavos, especialCentavos });
+      const resultado = await solicitar("precios", "PUT", {
+        id: producto.id, precioCentavos, especialCentavos,
+        promocion: programar.checked ? { desde: desde.value, hasta: hasta.value } : null
+      });
       producto.precio = resultado.precio;
       producto.precioEspecial = resultado.precioEspecial;
+      producto.promocion = resultado.promocion;
       actualizarTitulo();
       estado.textContent = "Precios guardados.";
     } catch (error) {
       if (error.status === 401) mostrarError(error);
       else estado.textContent = error.status ? error.message : "No se pudo conectar. Intenta nuevamente.";
     } finally {
-      regular.disabled = especial.disabled = guardar.disabled = false;
+      regular.disabled = especial.disabled = guardar.disabled = programar.disabled = false;
+      actualizarProgramacion();
     }
   });
 

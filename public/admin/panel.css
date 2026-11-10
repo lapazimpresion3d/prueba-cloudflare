@@ -118,3 +118,4 @@ button:disabled { opacity: .65; cursor: wait; }
 .crear-producto { background: #f5b841; color: #29211c; border-color: #b38321; }
 .crear-producto:hover { background: #ffd06b; }
 .formulario-catalogo h3 { font-size: 1rem; margin: 18px 0 10px; color: #705c4d; }
+.editor-producto input[type="checkbox"] { display: inline; width: auto; margin-left: 8px; }

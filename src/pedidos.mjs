@@ -134,7 +134,7 @@ function estadoPublico(fila) {
 
 async function pedidoPorToken(db, seguimientoHash) {
   return db.prepare(
-    "SELECT folio, estado, actualizado FROM pedidos_demo WHERE seguimiento_hash = ?"
+    "SELECT folio, estado, actualizado, detalle_json, total_centavos FROM pedidos_demo WHERE seguimiento_hash = ?"
   ).bind(seguimientoHash).first();
 }
 
@@ -152,7 +152,20 @@ export async function pedidosPublicos(request, env, url, obtenerMenu, json) {
   const previo = soloRevisar ? null : await pedidoPorToken(env.DB, seguimientoHash);
 
   if (url.pathname === "/api/pedidos/seguimiento") {
-    return previo ? json(estadoPublico(previo)) : json({ error: "No encontramos ese pedido de prueba." }, 404);
+    if (!previo) return json({ error: "No encontramos ese pedido de prueba." }, 404);
+    const detalle = JSON.parse(previo.detalle_json);
+    const { servicio, mesa, notas, moneda, lineas, entrega } = detalle;
+    return json({
+      ...estadoPublico(previo),
+      subtotalCentavos: previo.total_centavos,
+      detalle: {
+        servicio, mesa, notas, moneda,
+        lineas: lineas.map(({ nombre, cantidad, incluye, omitidos, extras, precioUnitarioCentavos }) => ({
+          nombre, cantidad, incluye, omitidos, extras, precioUnitarioCentavos
+        })),
+        ...(entrega ? { entrega: { colonia: entrega.colonia, envioCentavos: entrega.envioCentavos } } : {})
+      }
+    });
   }
 
   if (previo) return json(estadoPublico(previo));

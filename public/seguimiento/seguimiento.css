@@ -1,0 +1,17 @@
+#detalle-seguimiento {
+  margin: 16px 0;
+  padding: 16px;
+  border: 1px solid #c9c2bb;
+  border-radius: 10px;
+  background: white;
+  overflow-wrap: anywhere;
+}
+#detalle-seguimiento > summary { font-weight: bold; color: #a02f1c; cursor: pointer; }
+#detalle-seguimiento > summary:focus-visible { outline: 2px solid #a02f1c; outline-offset: 4px; }
+#productos-seguimiento { margin: 16px 0; padding-left: 20px; }
+#productos-seguimiento li { padding: 10px 0; border-bottom: 1px solid #e5ddd3; }
+#productos-seguimiento small { display: block; }
+#productos-seguimiento p { margin: 6px 0 0; font-size: .9rem; }
+#notas-seguimiento { white-space: pre-wrap; }
+#importes-seguimiento > div { display: flex; justify-content: space-between; gap: 12px; margin: 8px 0; }
+#importes-seguimiento dd { margin: 0; text-align: right; font-weight: bold; }

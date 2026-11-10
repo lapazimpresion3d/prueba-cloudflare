@@ -65,6 +65,8 @@ let claveCarrito = codigoMesa === null ? claveCarritoGeneral : null;
 let mesaPedido = null;
 let productosCatalogo = null;
 let firmaCatalogo = "";
+let fechaPreciosCatalogo = null;
+let actualizandoPrecios = false;
 let avisoCarrito = "";
 let revisandoPedido = false;
 let mostrarCatalogo = () => {};
@@ -782,6 +784,7 @@ agregar.addEventListener("click", () => {
     actualizarCatalogo(menu);
     mostrarProductos();
     configurarHorario(menu.horario);
+    fechaPreciosCatalogo = fechaHoraNegocio().fecha;
     configurarReservacion(menu.reservaciones);
     avisoCarrito = "";
     actualizarCarrito();
@@ -1122,6 +1125,26 @@ window.addEventListener("pageshow", actualizarDatosEntrega);
 actualizarDatosEntrega();
 actualizarCarrito();
 
+async function actualizarPreciosDelDia() {
+  const hoy = fechaHoraNegocio().fecha;
+  if (!fechaPreciosCatalogo || hoy === fechaPreciosCatalogo || actualizandoPrecios ||
+      document.hidden || revisandoPedido || revisionPedido.open) return;
+  actualizandoPrecios = true;
+  try {
+    const menu = await obtenerMenu();
+    actualizarCatalogo(menu);
+    actualizarCarrito();
+    fechaPreciosCatalogo = hoy;
+  } catch (error) {
+    console.warn("No se pudieron actualizar los precios del día", error);
+  } finally {
+    actualizandoPrecios = false;
+  }
+}
+
+window.setInterval(actualizarPreciosDelDia, 60000);
+document.addEventListener("visibilitychange", actualizarPreciosDelDia);
+
 /* Preparar el mensaje del pedido */
 document.getElementById("enviar-pedido")
   .addEventListener("click", async () => {
@@ -1348,7 +1371,7 @@ registrarPedidoDemo.addEventListener("click", async () => {
     const { respuesta, resultado } = await solicitarRevisionPedido("/api/pedidos");
     if (!respuesta.ok) {
       requiereRevision = respuesta.status === 409;
-      revisionDesactualizada = requiereRevision && borradorRegistro.datos.servicio === "domicilio";
+      revisionDesactualizada = requiereRevision;
       estadoRegistroPedido.textContent = resultado.error;
       return;
     }
@@ -1394,7 +1417,7 @@ continuarWhatsApp.addEventListener("click", async () => {
   if (procesandoRevision || revisionDesactualizada) return;
   const referencia = folioRegistrado !== null ? "Pedido de prueba #" + folioRegistrado + "\n\n" : "";
   const texto = referencia + resumenPedido.textContent;
-  if (borradorRegistro?.datos.servicio !== "domicilio" || folioRegistrado !== null) {
+  if (!borradorRegistro || folioRegistrado !== null) {
     if (abrirWhatsApp(texto)) revisionPedido.close();
     return;
   }
@@ -1409,7 +1432,7 @@ continuarWhatsApp.addEventListener("click", async () => {
   procesandoRevision = true;
   const registroDeshabilitado = registrarPedidoDemo.disabled;
   registrarPedidoDemo.disabled = volverCarrito.disabled = continuarWhatsApp.disabled = true;
-  estadoRegistroPedido.textContent = "Comprobando el costo de envío…";
+  estadoRegistroPedido.textContent = "Comprobando precios y disponibilidad…";
   try {
     const { respuesta, resultado } = await solicitarRevisionPedido("/api/pedidos/revisar");
     if (!respuesta.ok) {
@@ -1425,7 +1448,7 @@ continuarWhatsApp.addEventListener("click", async () => {
     }
   } catch {
     ventana.close();
-    estadoRegistroPedido.textContent = "No pudimos comprobar el envío. Intenta nuevamente.";
+    estadoRegistroPedido.textContent = "No pudimos comprobar los precios. Intenta nuevamente.";
   } finally {
     procesandoRevision = false;
     registrarPedidoDemo.disabled = registroDeshabilitado || revisionDesactualizada;

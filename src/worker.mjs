@@ -2,6 +2,7 @@ import { administrarPedidos, consultarEstadisticas, pedidosPublicos } from "./pe
 import { administrarAgenda, consultarDisponibilidad } from "./reservaciones.mjs";
 import { aplicarCatalogo, guardarProducto, servirFoto } from "./catalogo.mjs";
 import { administrarEntrega, leerEntrega } from "./entrega.mjs";
+import { aplicarPrecio, fechaNegocio, validarPromocion } from "./promociones.mjs";
 
 const encoder = new TextEncoder();
 const cookieSesion = "__Host-comal-admin";
@@ -39,17 +40,19 @@ async function leerCatalogo(request, env, incluirArchivados) {
 }
 
 async function menuActualizado(request, env, incluirArchivados = false) {
-  const [menu, disponibilidad, precios, descripciones, preferencias, entrega] = await Promise.all([
+  const [menu, disponibilidad, precios, descripciones, preferencias, entrega, programados] = await Promise.all([
     leerCatalogo(request, env, incluirArchivados),
     env.DB.prepare("SELECT producto_id, disponible FROM disponibilidad_producto").all(),
     env.DB.prepare("SELECT producto_id, precio_centavos, especial_centavos FROM precios_menu").all(),
     env.DB.prepare("SELECT producto_id, descripcion FROM descripciones_menu").all(),
     env.DB.prepare("SELECT categorias_json FROM preferencias_categorias WHERE id = 1").first(),
-    incluirArchivados ? null : leerEntrega(env.DB)
+    incluirArchivados ? null : leerEntrega(env.DB),
+    env.DB.prepare("SELECT producto_id, precio_centavos, especial_centavos, fecha_desde, fecha_hasta FROM precios_programados").all()
   ]);
   if (entrega) menu.entrega = entrega.modo === "colonias" ? entrega : { modo: "confirmar" };
   const estados = new Map(disponibilidad.results.map(fila => [fila.producto_id, fila.disponible === 1]));
-  const preciosPorProducto = new Map(precios.results.map(fila => [fila.producto_id, fila]));
+  const preciosPorProducto = new Map([...precios.results, ...programados.results].map(fila => [fila.producto_id, fila]));
+  const hoy = fechaNegocio(menu.horario?.zonaHoraria);
   const descripcionesPorProducto = new Map(
     descripciones.results.map(fila => [fila.producto_id, fila.descripcion])
   );
@@ -69,12 +72,7 @@ async function menuActualizado(request, env, incluirArchivados = false) {
       }
       const precio = preciosPorProducto.get(producto.id);
       if (precio) {
-        producto.precio = precio.precio_centavos / 100;
-        if (precio.especial_centavos === null) {
-          delete producto.precioEspecial;
-        } else {
-          producto.precioEspecial = precio.especial_centavos / 100;
-        }
+        aplicarPrecio(producto, precio, hoy, incluirArchivados);
       }
     }
   }
@@ -328,7 +326,8 @@ async function administrar(request, env, url) {
       id: categoria.id,
       nombre: categoria.nombre,
       productos: categoria.productos.map(producto => ({
-        ...producto, disponible: producto.disponible !== false, moneda: menu.moneda
+        ...producto, disponible: producto.disponible !== false, moneda: menu.moneda,
+        zonaHoraria: menu.horario?.zonaHoraria || "America/Mazatlan"
       }))
     })));
   }
@@ -400,13 +399,26 @@ async function administrar(request, env, url) {
       return json({ error: "El producto ya no está en el catálogo." }, 404);
     }
 
+    let promocion;
+    try {
+      promocion = validarPromocion(datos.promocion, especialCentavos);
+    } catch (error) {
+      return json({error:error.message}, 400);
+    }
     await env.DB.prepare(
-      "INSERT INTO precios_menu (producto_id, precio_centavos, especial_centavos) VALUES (?, ?, ?) " +
+      "INSERT INTO precios_programados (producto_id, precio_centavos, especial_centavos, fecha_desde, fecha_hasta) VALUES (?, ?, ?, ?, ?) " +
       "ON CONFLICT (producto_id) DO UPDATE SET precio_centavos = excluded.precio_centavos, " +
-      "especial_centavos = excluded.especial_centavos"
-    ).bind(id, precioCentavos, especialCentavos).run();
+      "especial_centavos = excluded.especial_centavos, fecha_desde = excluded.fecha_desde, fecha_hasta = excluded.fecha_hasta"
+    ).bind(id, precioCentavos, especialCentavos, promocion?.desde ?? null, promocion?.hasta ?? null).run();
 
-    return json({ precio: precioCentavos / 100, precioEspecial: especialCentavos === null ? null : especialCentavos / 100 });
+    const hoy = fechaNegocio(menu.horario?.zonaHoraria);
+    return json({
+      precio: precioCentavos / 100, precioEspecial: especialCentavos === null ? null : especialCentavos / 100,
+      promocion: promocion ? {
+        ...promocion,
+        estado: hoy < promocion.desde ? "programada" : hoy > promocion.hasta ? "finalizada" : "activa"
+      } : null
+    });
   }
 
   if (url.pathname === "/api/admin/disponibilidad" && request.method === "PUT") {
