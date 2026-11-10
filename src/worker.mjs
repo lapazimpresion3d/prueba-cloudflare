@@ -1,6 +1,9 @@
 const encoder = new TextEncoder();
 const cookieSesion = "__Host-comal-admin";
-const duracionSesion = 8 * 60 * 60;
+const sesionNormal = 8 * 60 * 60;
+const sesionRecordada = 7 * 24 * 60 * 60;
+const maximoFallos = 10;
+const ventanaFallos = 60;
 
 function json(datos, status = 200, headers = {}) {
   return Response.json(datos, {
@@ -57,8 +60,54 @@ async function sesionValida(request, clave) {
   return crypto.subtle.verify("HMAC", clave, firma, encoder.encode(partes[1]));
 }
 
+function demasiadosIntentos(espera) {
+  return json({
+    error: "Demasiados intentos. Espera " + espera + " segundos y vuelve a intentar."
+  }, 429, { "Retry-After": String(espera) });
+}
+
+async function iniciarSesion(request, db, clave, contrasena) {
+  const datos = await request.json().catch(() => null);
+  const ahora = Math.floor(Date.now() / 1000);
+  const ip = request.headers.get("CF-Connecting-IP") || "sin-ip";
+  const origen = aHex(await firmar(clave, "intentos:" + ip));
+  const previo = await db.prepare(
+    "SELECT fallos, vence FROM intentos_acceso WHERE origen = ? AND vence > ?"
+  ).bind(origen, ahora).first();
+
+  if (previo?.fallos >= maximoFallos) {
+    return demasiadosIntentos(previo.vence - ahora);
+  }
+
+  const firmaEsperada = await firmar(clave, "acceso:" + contrasena);
+  const correcto = typeof datos?.clave === "string" && datos.clave.length <= 256 &&
+    await crypto.subtle.verify("HMAC", clave, firmaEsperada, encoder.encode("acceso:" + datos.clave));
+
+  if (!correcto) {
+    const nuevo = await db.prepare(
+      "INSERT INTO intentos_acceso (origen, fallos, vence) VALUES (?, 1, ?) " +
+      "ON CONFLICT (origen) DO UPDATE SET " +
+      "fallos = CASE WHEN vence <= ? THEN 1 ELSE fallos + 1 END, " +
+      "vence = CASE WHEN vence <= ? THEN excluded.vence ELSE vence END " +
+      "WHERE vence <= ? OR fallos < ? RETURNING fallos, vence"
+    ).bind(origen, ahora + ventanaFallos, ahora, ahora, ahora, maximoFallos).first();
+
+    await db.prepare("DELETE FROM intentos_acceso WHERE vence <= ?").bind(ahora).run();
+    if (!nuevo || nuevo.fallos >= maximoFallos) {
+      return demasiadosIntentos(nuevo ? nuevo.vence - ahora : ventanaFallos);
+    }
+    return json({ error: "Contraseña incorrecta." }, 401);
+  }
+
+  await db.prepare("DELETE FROM intentos_acceso WHERE origen = ?").bind(origen).run();
+  const duracion = datos.recordar === true ? sesionRecordada : sesionNormal;
+  const valor = (ahora + duracion) + "." + crypto.randomUUID();
+  const firma = aHex(await firmar(clave, valor));
+  return json({ ok: true }, 200, cabeceraSesion(valor + "." + firma, duracion));
+}
+
 async function administrar(request, env, url) {
-  if (!env.ADMIN_PASSWORD || env.ADMIN_PASSWORD.length < 24) {
+  if (!env.ADMIN_PASSWORD || env.ADMIN_PASSWORD.length < 16) {
     return json({ error: "El acceso del encargado todavía no está configurado." }, 503);
   }
 
@@ -72,19 +121,7 @@ async function administrar(request, env, url) {
   );
 
   if (url.pathname === "/api/admin/entrar" && request.method === "POST") {
-    const datos = await request.json().catch(() => null);
-    if (typeof datos?.clave !== "string" || datos.clave.length > 256) {
-      return json({ error: "Contraseña incorrecta." }, 401);
-    }
-
-    const intento = await firmar(clave, "acceso:" + env.ADMIN_PASSWORD);
-    const correcto = await crypto.subtle.verify("HMAC", clave, intento, encoder.encode("acceso:" + datos.clave));
-    if (!correcto) return json({ error: "Contraseña incorrecta." }, 401);
-
-    const expira = Math.floor(Date.now() / 1000) + duracionSesion;
-    const valor = expira + "." + crypto.randomUUID();
-    const firma = aHex(await firmar(clave, valor));
-    return json({ ok: true }, 200, cabeceraSesion(valor + "." + firma, duracionSesion));
+    return iniciarSesion(request, env.DB, clave, env.ADMIN_PASSWORD);
   }
 
   if (url.pathname === "/api/admin/salir" && request.method === "POST") {

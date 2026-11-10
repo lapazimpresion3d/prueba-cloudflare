@@ -93,7 +93,10 @@ acceso.addEventListener("submit", async evento => {
   boton.disabled = true;
   mensaje.textContent = "";
   try {
-    await solicitar("entrar", "POST", { clave: clave.value });
+    await solicitar("entrar", "POST", {
+      clave: clave.value,
+      recordar: document.getElementById("recordar").checked
+    });
     clave.value = "";
     await cargarPanel();
   } catch (error) {
