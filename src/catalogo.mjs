@@ -1,10 +1,15 @@
 const idNuevo = /^prod-[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/;
 const idOpcion = /^[\p{L}\p{N}_-]{1,80}$/u;
 const maxImporte = 1000000;
+const rutaFotos = "/api/catalogo/foto/";
+const patronFoto = /^\/api\/catalogo\/foto\/([\w-]{1,80})\/[a-f0-9]{64}\.jpg$/;
+const maxFotoCodificada = 240000;
+const maxSolicitudProducto = 350000;
 
 export async function aplicarCatalogo(db, menu, incluirArchivados) {
   const { results } = await db.prepare(
-    "SELECT producto_id, categoria_id, datos_json, archivado, version FROM catalogo_productos ORDER BY rowid"
+    "SELECT producto_id, categoria_id, json_remove(datos_json, '$.fotoSubida') AS datos_json, " +
+    "archivado, version FROM catalogo_productos ORDER BY rowid"
   ).all();
   const categorias = new Map(menu.categorias.map(categoria => [categoria.id, categoria]));
   const guardados = new Map(results.map(fila => [fila.producto_id, fila]));
@@ -65,6 +70,74 @@ function foto(valor) {
   return url.href;
 }
 
+function bytesFoto(valor) {
+  if (typeof valor !== "string" || valor.length > maxFotoCodificada || /[^A-Za-z0-9+/=]/.test(valor)) {
+    throw new Error("La foto supera el tamaño permitido o su formato es inválido.");
+  }
+  let bytes;
+  try {
+    bytes = Uint8Array.from(atob(valor), caracter => caracter.charCodeAt(0));
+  } catch {
+    throw new Error("La foto no se pudo leer.");
+  }
+  if (bytes.length < 16 || bytes[0] !== 255 || bytes[1] !== 216 || bytes[2] !== 255 ||
+      bytes.at(-2) !== 255 || bytes.at(-1) !== 217) {
+    throw new Error("Selecciona una foto JPG, PNG o WebP que se pueda abrir.");
+  }
+  return bytes;
+}
+
+async function datosFoto(datos, producto) {
+  if (datos.fotoSubida != null) {
+    if (!/^[\w-]{1,80}$/.test(datos.id)) throw new Error("El identificador del producto no es válido.");
+    const bytes = bytesFoto(datos.fotoSubida);
+    const hash = await crypto.subtle.digest("SHA-256", bytes);
+    const version = Array.from(new Uint8Array(hash), byte => byte.toString(16).padStart(2, "0")).join("");
+    return { imagen: rutaFotos + datos.id + "/" + version + ".jpg", fotoSubida: datos.fotoSubida };
+  }
+  const imagen = datos.imagen;
+  if (imagen === producto?.imagen && patronFoto.test(imagen)) return { imagen };
+  return { imagen: foto(imagen) };
+}
+
+export async function servirFoto(request, db, url) {
+  const coincidencia = url.pathname.match(patronFoto);
+  if (!coincidencia || !["GET", "HEAD"].includes(request.method)) {
+    return new Response(null, { status: 404, headers: { "Cache-Control": "no-store" } });
+  }
+  const fila = await db.prepare(
+    "SELECT json_extract(datos_json, '$.fotoSubida') AS foto FROM catalogo_productos " +
+    "WHERE producto_id = ? AND archivado = 0 AND json_extract(datos_json, '$.imagen') = ?"
+  ).bind(coincidencia[1], url.pathname).first();
+  if (!fila?.foto) return new Response(null, { status: 404, headers: { "Cache-Control": "no-store" } });
+  const foto = bytesFoto(fila.foto);
+  return new Response(request.method === "GET" ? foto : null, {
+    headers: {
+      "Content-Type": "image/jpeg", "Content-Length": String(foto.length),
+      "Cache-Control": "public, max-age=300", "X-Content-Type-Options": "nosniff"
+    }
+  });
+}
+
+async function leerFicha(request) {
+  const lector = request.body?.getReader();
+  if (!lector) return null;
+  const decodificador = new TextDecoder();
+  let total = 0;
+  let texto = "";
+  while (true) {
+    const { done, value } = await lector.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > maxSolicitudProducto) {
+      await lector.cancel();
+      return null;
+    }
+    texto += decodificador.decode(value, { stream: true });
+  }
+  return JSON.parse(texto + decodificador.decode());
+}
+
 function opciones(lista, validar, tipo) {
   if (!Array.isArray(lista) || lista.length > 30) throw new Error("Puedes guardar hasta 30 opciones por grupo.");
   const ids = new Set();
@@ -82,7 +155,7 @@ function opciones(lista, validar, tipo) {
   });
 }
 
-function validarProducto(datos, ids, id) {
+function validarProducto(datos, ids, id, imagen) {
   const nombre = texto(datos.nombre, 80);
   if (!nombre) throw new Error("Escribe el nombre del producto.");
   const ingredientes = opciones(datos.ingredientes, opcion => ({
@@ -109,7 +182,7 @@ function validarProducto(datos, ids, id) {
     throw new Error("Indica un máximo de extras entre 0 y 30 o deja el campo vacío.");
   }
   return {
-    nombre, imagen: foto(datos.imagen), ingredientes, extras, variantes, incluye,
+    nombre, ...imagen, ingredientes, extras, variantes, incluye,
     etiquetaVariante: texto(datos.etiquetaVariante, 50) || "Tamaño",
     maxExtras
   };
@@ -117,7 +190,7 @@ function validarProducto(datos, ids, id) {
 
 export async function guardarProducto(request, db, menu, json) {
   if (!["POST", "PUT"].includes(request.method)) return json({ error: "Método no permitido." }, 405);
-  const datos = await request.json().catch(() => null);
+  const datos = await leerFicha(request).catch(() => null);
   const creando = request.method === "POST";
   if (typeof datos?.id !== "string" || typeof datos.archivado !== "boolean" ||
       !Number.isSafeInteger(datos.version) || datos.version < 0) {
@@ -134,7 +207,7 @@ export async function guardarProducto(request, db, menu, json) {
   const ids = new Set(menu.categorias.flatMap(item => item.productos.map(opcion => opcion.id)));
   let cambios;
   try {
-    cambios = validarProducto(datos, ids, id);
+    cambios = validarProducto(datos, ids, id, await datosFoto(datos, producto));
     if (creando) {
       cambios.descripcion = texto(datos.descripcion, 240);
       if (!cambios.descripcion) throw new Error("Escribe la descripción del producto.");
@@ -171,6 +244,7 @@ export async function guardarProducto(request, db, menu, json) {
     const anterior = await db.prepare("SELECT datos_json FROM catalogo_productos WHERE producto_id = ?")
       .bind(id).first();
     const datosAnteriores = JSON.parse(anterior?.datos_json ?? "{}");
+    if (cambios.imagen !== datosAnteriores.imagen) delete datosAnteriores.fotoSubida;
     fila = await db.prepare(
       "UPDATE catalogo_productos SET datos_json = ?, archivado = ?, version = version + 1 " +
       "WHERE producto_id = ? AND version = ? RETURNING version"

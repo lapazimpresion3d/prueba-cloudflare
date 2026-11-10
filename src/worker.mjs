@@ -1,6 +1,6 @@
 import { administrarPedidos, consultarEstadisticas, pedidosPublicos } from "./pedidos.mjs";
 import { administrarAgenda, consultarDisponibilidad } from "./reservaciones.mjs";
-import { aplicarCatalogo, guardarProducto } from "./catalogo.mjs";
+import { aplicarCatalogo, guardarProducto, servirFoto } from "./catalogo.mjs";
 
 const encoder = new TextEncoder();
 const cookieSesion = "__Host-comal-admin";
@@ -355,6 +355,9 @@ export default {
     try {
       if (url.pathname === "/menu.json" && request.method === "GET") {
         return json(await menuActualizado(request, env));
+      }
+      if (url.pathname.startsWith("/api/catalogo/foto/")) {
+        return await servirFoto(request, env.DB, url);
       }
       if (url.pathname === "/api/reservaciones/disponibilidad" && request.method === "GET") {
         return await consultarDisponibilidad(env.DB, await leerMenu(request, env), url, json);

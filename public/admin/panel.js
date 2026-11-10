@@ -291,6 +291,41 @@ function seleccionarCatalogo(contenedor, etiqueta, valor, opciones) {
   return select;
 }
 
+async function prepararFotoProducto(archivo) {
+  if (!/\.(jpe?g|png|webp)$/i.test(archivo.name) ||
+      (archivo.type && !["image/jpeg", "image/png", "image/webp"].includes(archivo.type))) {
+    throw new Error("Elige una foto en formato JPG, PNG o WebP.");
+  }
+  if (archivo.size > 12 * 1024 * 1024) {
+    throw new Error("Elige una foto que pese hasta 12 MB.");
+  }
+
+  const url = URL.createObjectURL(archivo);
+  try {
+    const imagen = new Image();
+    imagen.src = url;
+    await imagen.decode();
+    const lienzo = document.createElement("canvas");
+    const contexto = lienzo.getContext("2d");
+    for (const [lado, calidad] of [[960, 0.84], [960, 0.67], [720, 0.65], [480, 0.60]]) {
+      const escala = Math.min(1, lado / Math.max(imagen.naturalWidth, imagen.naturalHeight));
+      lienzo.width = Math.max(1, Math.round(imagen.naturalWidth * escala));
+      lienzo.height = Math.max(1, Math.round(imagen.naturalHeight * escala));
+      contexto.fillStyle = "#fff";
+      contexto.fillRect(0, 0, lienzo.width, lienzo.height);
+      contexto.drawImage(imagen, 0, 0, lienzo.width, lienzo.height);
+      const foto = lienzo.toDataURL("image/jpeg", calidad);
+      const prefijo = "data:image/jpeg;base64,";
+      if (foto.startsWith(prefijo) && foto.length <= prefijo.length + 240000) {
+        return foto.slice(prefijo.length);
+      }
+    }
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+  throw new Error("La foto es demasiado grande para guardarse.");
+}
+
 function editorCatalogo(producto, categorias) {
   const creando = !producto;
   const datos = producto ?? {};
@@ -316,10 +351,17 @@ function editorCatalogo(producto, categorias) {
     archivado = campoCatalogo(campos, "Archivar del menú público", "checkbox", datos.archivado);
   }
   const nombre = campoCatalogo(campos, "Nombre del producto", "text", datos.nombre, { required: true, maxLength: 80 });
-  const imagen = campoCatalogo(campos, "Foto (ruta en imágenes o enlace HTTPS)", "text", datos.imagen,
+  const archivoFoto = campoCatalogo(campos, "Subir foto del dispositivo (JPG, PNG o WebP)", "file", "", {
+    accept: ".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+  });
+  const imagen = campoCatalogo(campos, "Ruta o enlace HTTPS de la foto (opcional)", "text", datos.imagen,
     { maxLength: 500, placeholder: "imagenes/pastor.webp" });
-  const incluye = campoCatalogo(campos, "Incluye (un elemento por renglón)", "textarea",
+  archivoFoto.addEventListener("change", () => { imagen.readOnly = archivoFoto.files.length > 0; });
+  const incluye = campoCatalogo(campos, "Incluye (combos)", "textarea",
     datos.incluye?.join("\n"), { rows: 2, maxLength: 971 });
+  const ayudaIncluye = document.createElement("small");
+  ayudaIncluye.textContent = "Escribe un elemento por renglón.";
+  incluye.parentElement.appendChild(ayudaIncluye);
   const maxExtras = campoCatalogo(campos, "Máximo de extras (vacío para sin límite)", "number", datos.maxExtras,
     { min: "0", max: "30", step: "1" });
   const etiquetaVariante = campoCatalogo(campos, "Etiqueta de variantes", "text", datos.etiquetaVariante,
@@ -366,6 +408,20 @@ function editorCatalogo(producto, categorias) {
     let requiereRecarga = false;
     estado.textContent = "Guardando…";
     try {
+      const archivo = archivoFoto.files[0];
+      if (archivo) {
+        estado.textContent = "Preparando la foto…";
+        try {
+          ficha.fotoSubida = await prepararFotoProducto(archivo);
+        } catch (error) {
+          estado.textContent = error instanceof DOMException
+            ? "No se pudo abrir la foto. Elige otro archivo JPG, PNG o WebP."
+            : error.message;
+          return;
+        }
+        if (panel.hidden || !editor.isConnected) return;
+        estado.textContent = "Guardando producto y foto…";
+      }
       const resultado = await solicitar("productos", creando ? "POST" : "PUT", ficha);
       if (!creando) datos.version = resultado.version;
       estado.textContent = "Guardado.";
