@@ -72,8 +72,7 @@ header {
 .encabezado-fotos {
   position: absolute;
   inset: 0;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  background: url("imagenes/banner-el-comal.webp") center / cover no-repeat;
   pointer-events: none;
   filter: saturate(.18);
   transition: filter .35s ease;
@@ -83,22 +82,13 @@ header {
   filter: saturate(1);
 }
 
-.encabezado-fotos > span {
-  background-position: center;
-  background-size: cover;
-}
-
-.encabezado-foto-asada { background-image: url("imagenes/asada.webp"); }
-.encabezado-foto-pastor { background-image: url("imagenes/pastor.webp"); }
-.encabezado-foto-birria { background-image: url("imagenes/birria.webp"); }
-
 .encabezado-fotos::after {
   content: "";
   position: absolute;
   inset: 0;
   background: linear-gradient(90deg,
-    rgba(25, 17, 13, .40), rgba(25, 17, 13, .75) 34%,
-    rgba(25, 17, 13, .75) 66%, rgba(25, 17, 13, .40)
+    rgba(25, 17, 13, .20), rgba(25, 17, 13, .52) 34%,
+    rgba(25, 17, 13, .52) 66%, rgba(25, 17, 13, .20)
   );
 }
 
@@ -109,16 +99,11 @@ header {
 
 @media (max-width: 700px) {
   .encabezado-fotos {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .encabezado-foto-asada,
-  .encabezado-foto-birria {
-    display: none;
+    background-position: 88% center;
   }
 
   .encabezado-fotos::after {
-    background: rgba(25, 17, 13, .70);
+    background: rgba(25, 17, 13, .62);
   }
 }
 
