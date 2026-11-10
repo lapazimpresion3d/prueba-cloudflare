@@ -380,7 +380,13 @@ async function cargarMenu() {
             agotado.className = "agregar-pedido";
             agotado.textContent = "Agotado";
             agotado.disabled = true;
-            tarjeta.append(imagen, nombre, descripcion, agotado);
+            const notaDemo = document.createElement("small");
+               notaDemo.style.marginTop = "8px";
+               notaDemo.textContent =
+                 "En esta demostración, el encargado puede marcar productos como agotados " +
+                 "y volver a ofrecerlos desde su panel privado.";
+
+tarjeta.append(imagen, nombre, descripcion, agotado, notaDemo);
             contenedor.appendChild(tarjeta);
             return;
           }
