@@ -90,6 +90,26 @@
         </form>
         <p id="horario-estado" role="status"></p>
       </details>
+      <details id="editor-entrega">
+        <summary>Entrega a domicilio</summary>
+        <p>Define las colonias que atiendes, la tarifa de cada una y el mínimo de productos para entregar.</p>
+        <form id="formulario-entrega" hidden>
+          <fieldset id="campos-entrega">
+            <legend>Reglas de entrega</legend>
+            <label for="modo-entrega">Cómo se calcula el envío</label>
+            <select id="modo-entrega">
+              <option value="confirmar">Confirmar por WhatsApp</option>
+              <option value="colonias">Calcular por colonia</option>
+            </select>
+            <label for="minimo-entrega">Pedido mínimo de productos (MXN)</label>
+            <input id="minimo-entrega" type="number" min="0" max="1000000" step="0.01" required>
+            <div id="colonias-entrega"></div>
+            <button id="agregar-colonia" type="button">Agregar colonia</button>
+            <button type="submit">Guardar reglas de entrega</button>
+          </fieldset>
+        </form>
+        <p id="editor-entrega-estado" role="status"></p>
+      </details>
       <details id="panel-estadisticas">
         <summary>Estadísticas de pedidos de prueba</summary>
         <p>El período usa la fecha en que se registró cada pedido. Los importes corresponden a los productos de los pedidos entregados.</p>

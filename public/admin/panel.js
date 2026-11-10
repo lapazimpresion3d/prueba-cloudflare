@@ -18,6 +18,15 @@ const listaTurnos = document.getElementById("lista-turnos");
 const agregarTurno = document.getElementById("agregar-turno");
 const guardarHorario = document.getElementById("guardar-horario");
 const estadoHorario = document.getElementById("horario-estado");
+const editorEntrega = document.getElementById("editor-entrega");
+const formularioEntrega = document.getElementById("formulario-entrega");
+const camposEntrega = document.getElementById("campos-entrega");
+const modoEntrega = document.getElementById("modo-entrega");
+const minimoEntrega = document.getElementById("minimo-entrega");
+const coloniasEntrega = document.getElementById("colonias-entrega");
+const agregarColonia = document.getElementById("agregar-colonia");
+const estadoEntrega = document.getElementById("editor-entrega-estado");
+let versionEntrega = 0;
 const diasHorario = [
   ["Mon", "Lunes"], ["Tue", "Martes"], ["Wed", "Miércoles"], ["Thu", "Jueves"],
   ["Fri", "Viernes"], ["Sat", "Sábado"], ["Sun", "Domingo"]
@@ -86,6 +95,12 @@ function mostrarAcceso() {
   listaTurnos.replaceChildren();
   estadoHorario.textContent = "";
   agregarTurno.disabled = guardarHorario.disabled = true;
+  versionEntrega++;
+  editorEntrega.open = false;
+  formularioEntrega.hidden = true;
+  camposEntrega.disabled = false;
+  estadoEntrega.textContent = "";
+  coloniasEntrega.replaceChildren();
   mesasAgenda.replaceChildren();
   estadoAgenda.textContent = "";
   agenda.open = false;
@@ -114,6 +129,84 @@ function mostrarError(error) {
   if (error.status === 401) mostrarAcceso();
   mensaje.textContent = error.status ? error.message : "No se pudo conectar. Intenta nuevamente.";
 }
+
+function agregarFilaColonia(colonia = { nombre: "", envioCentavos: 0 }) {
+  const fila = document.createElement("div");
+  fila.className = "fila-categoria";
+  const nombre = campoCatalogo(fila, "Colonia", "text", colonia.nombre, { required: true, maxLength: 80 });
+  const envio = campoCatalogo(fila, "Envío (MXN)", "number", colonia.envioCentavos / 100, {
+    required: true, min: "0", max: "1000000", step: "0.01"
+  });
+  nombre.name = "colonia";
+  envio.name = "envio";
+  const quitar = document.createElement("button");
+  quitar.type = "button";
+  quitar.textContent = "Quitar";
+  quitar.addEventListener("click", () => {
+    fila.remove();
+    agregarColonia.disabled = false;
+    agregarColonia.focus();
+  });
+  fila.appendChild(quitar);
+  coloniasEntrega.appendChild(fila);
+  agregarColonia.disabled = coloniasEntrega.children.length >= 100;
+  return nombre;
+}
+
+function mostrarReglasEntrega(reglas) {
+  modoEntrega.value = reglas.modo;
+  minimoEntrega.value = reglas.minimoCentavos / 100;
+  coloniasEntrega.replaceChildren();
+  agregarColonia.disabled = false;
+  reglas.colonias.forEach(agregarFilaColonia);
+  formularioEntrega.hidden = false;
+}
+
+function mostrarErrorEntrega(error) {
+  if (error.status === 401) mostrarError(error);
+  else estadoEntrega.textContent = error.status ? error.message : "No se pudo conectar. Intenta de nuevo.";
+}
+
+editorEntrega.addEventListener("toggle", async () => {
+  if (!editorEntrega.open || panel.hidden || !formularioEntrega.hidden) return;
+  const version = ++versionEntrega;
+  estadoEntrega.textContent = "Cargando reglas…";
+  try {
+    const reglas = await solicitar("entrega");
+    if (version !== versionEntrega) return;
+    mostrarReglasEntrega(reglas);
+    estadoEntrega.textContent = "";
+  } catch (error) {
+    if (version === versionEntrega) mostrarErrorEntrega(error);
+  }
+});
+
+agregarColonia.addEventListener("click", () => agregarFilaColonia().focus());
+formularioEntrega.addEventListener("submit", async evento => {
+  evento.preventDefault();
+  if (camposEntrega.disabled) return;
+  const version = ++versionEntrega;
+  const reglas = {
+    modo: modoEntrega.value,
+    minimoCentavos: Math.round(minimoEntrega.valueAsNumber * 100),
+    colonias: Array.from(coloniasEntrega.children, fila => ({
+      nombre: fila.querySelector('[name="colonia"]').value,
+      envioCentavos: Math.round(fila.querySelector('[name="envio"]').valueAsNumber * 100)
+    }))
+  };
+  camposEntrega.disabled = true;
+  estadoEntrega.textContent = "Guardando…";
+  try {
+    const guardadas = await solicitar("entrega", "PUT", reglas);
+    if (version !== versionEntrega) return;
+    mostrarReglasEntrega(guardadas);
+    estadoEntrega.textContent = "Reglas de entrega guardadas.";
+  } catch (error) {
+    if (version === versionEntrega) mostrarErrorEntrega(error);
+  } finally {
+    if (version === versionEntrega) camposEntrega.disabled = false;
+  }
+});
 
 function editorPrecios(producto) {
   const editor = document.createElement("details");
@@ -885,9 +978,13 @@ function tarjetaPedido(pedido) {
   }
 
   const total = document.createElement("p");
-  const importe = new Intl.NumberFormat("es-MX", { style: "currency", currency: detalle.moneda })
-    .format(pedido.totalCentavos / 100);
-  total.textContent = (detalle.servicio === "domicilio" ? "Subtotal: " : "Total: ") + importe;
+  const moneda = new Intl.NumberFormat("es-MX", { style: "currency", currency: detalle.moneda });
+  const importe = centavos => moneda.format(centavos / 100);
+  total.textContent = (detalle.servicio === "domicilio" ? "Subtotal: " : "Total: ") + importe(pedido.totalCentavos);
+  if (detalle.entrega) {
+    total.textContent += " · " + detalle.entrega.colonia + " · Envío " + importe(detalle.entrega.envioCentavos) +
+      " · Total " + importe(pedido.totalCentavos + detalle.entrega.envioCentavos);
+  }
   tarjeta.append(contenido, total);
 
   if (pedido.acciones.length) {

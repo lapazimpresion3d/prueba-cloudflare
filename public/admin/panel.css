@@ -92,3 +92,10 @@ button:disabled { opacity: .65; cursor: wait; }
   #comanda-impresa small { display: block; font-size: 10pt; }
   #comanda-impresa .instrucciones-cocina { white-space: pre-wrap; }
 }
+#editor-entrega { padding: 12px; margin: 16px 0; background: white; border-radius: 8px; }
+#editor-entrega > summary { font-weight: bold; cursor: pointer; }
+#campos-entrega { min-width: 0; margin: 0; padding: 12px; border: 1px solid #c9c2bb; border-radius: 8px; }
+#modo-entrega, #minimo-entrega { display: block; width: 100%; margin-bottom: 12px; font: inherit; }
+#modo-entrega { padding: 8px; }
+#campos-entrega > button { margin: 4px 4px 4px 0; }
+#editor-entrega-estado:empty { display: none; }

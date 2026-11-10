@@ -1,3 +1,5 @@
+import { cotizarEntrega } from "./entrega.mjs";
+
 const encoder = new TextEncoder();
 const tokenValido = /^[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/;
 const servicios = ["recoger", "domicilio", "mesa"];
@@ -145,15 +147,16 @@ export async function pedidosPublicos(request, env, url, obtenerMenu, json) {
     return json({ error: "Referencia de seguimiento inválida." }, 400);
   }
 
-  const seguimientoHash = await hash("seguimiento:" + datos.token);
-  const previo = await pedidoPorToken(env.DB, seguimientoHash);
+  const soloRevisar = url.pathname === "/api/pedidos/revisar";
+  const seguimientoHash = soloRevisar ? null : await hash("seguimiento:" + datos.token);
+  const previo = soloRevisar ? null : await pedidoPorToken(env.DB, seguimientoHash);
 
   if (url.pathname === "/api/pedidos/seguimiento") {
     return previo ? json(estadoPublico(previo)) : json({ error: "No encontramos ese pedido de prueba." }, 404);
   }
 
   if (previo) return json(estadoPublico(previo));
-  if (!env.ADMIN_PASSWORD || env.ADMIN_PASSWORD.length < 16) {
+  if (!soloRevisar && (!env.ADMIN_PASSWORD || env.ADMIN_PASSWORD.length < 16)) {
     return json({ error: "El registro de pedidos de prueba todavía no está configurado." }, 503);
   }
   if (!servicios.includes(datos.servicio) || typeof datos.notas !== "string" || datos.notas.length > 200 ||
@@ -161,10 +164,17 @@ export async function pedidosPublicos(request, env, url, obtenerMenu, json) {
     return json({ error: "Revisa los datos del pedido de prueba." }, 400);
   }
 
-  const pedido = prepararDetalle(datos, await obtenerMenu());
+  const menu = await obtenerMenu();
+  const pedido = prepararDetalle(datos, menu);
   if (!pedido) {
     return json({ error: "El menú cambió o alguna opción no está disponible. Vuelve al carrito y revisa el pedido." }, 409);
   }
+  if (datos.servicio === "domicilio") {
+    const { entrega, error } = cotizarEntrega(menu.entrega, datos.entrega, pedido.totalCentavos);
+    if (error) return json({ error }, 409);
+    if (entrega) pedido.detalle.entrega = entrega;
+  }
+  if (soloRevisar) return json({ ok: true });
 
   const ip = request.headers.get("CF-Connecting-IP") || "sin-ip";
   const origenHash = await hash(env.ADMIN_PASSWORD + ":pedidos:" + ip);

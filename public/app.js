@@ -347,6 +347,8 @@ aumentar.addEventListener("click", (evento) => {
   });
 
   totalElemento.textContent = `$${total.toFixed(2)}`;
+  subtotalCarritoCentavos = Math.round(total * 100);
+  actualizarImportesEntrega();
 }
 
 /* =====================================================
@@ -362,6 +364,7 @@ async function obtenerMenu() {
 }
 
 function actualizarCatalogo(menu) {
+  configurarEntrega(menu.entrega);
   const firma = JSON.stringify(menu.categorias);
   productosCatalogo = new Map(menu.categorias.flatMap(categoria =>
     categoria.productos.map(producto => [producto.id, producto])
@@ -863,10 +866,6 @@ document.addEventListener("keydown", (evento) => {
   }
 });
 
-// Recuperar el pedido al abrir la página
-actualizarCarrito();
-
-
 /* =====================================================
    SECCIÓN 5 — VACIAR CARRITO
    Solicita confirmación antes de eliminar el pedido.
@@ -988,6 +987,15 @@ const tipoServicio = document.getElementById("tipo-servicio");
 const datosEntrega = document.getElementById("datos-entrega");
 const etiquetaTotal = document.getElementById("etiqueta-total");
 const avisoEntrega = document.getElementById("aviso-entrega");
+const desgloseEntrega = document.getElementById("desglose-entrega");
+const importeEnvio = document.getElementById("importe-envio");
+const totalConEnvio = document.getElementById("total-con-envio");
+const recogerSinCobertura = document.getElementById("recoger-sin-cobertura");
+const coloniaManualEntrega = document.getElementById("colonia-entrega");
+const zonaEntrega = document.getElementById("zona-entrega");
+const fueraDeCobertura = "__fuera__";
+let reglasEntrega = { modo: "confirmar" };
+let subtotalCarritoCentavos = 0;
 const revisionPedido = document.getElementById("revision-pedido");
 const resumenPedido = document.getElementById("revision-resumen");
 const revisionFueraHorario = document.getElementById("revision-fuera-horario");
@@ -1000,8 +1008,68 @@ const enlaceUltimoPedido = document.getElementById("enlace-ultimo-pedido");
 const volverCarrito = document.getElementById("volver-carrito");
 const continuarWhatsApp = document.getElementById("continuar-whatsapp");
 let borradorRegistro = null;
-let registrandoPedido = false;
+let procesandoRevision = false;
 let folioRegistrado = null;
+let revisionDesactualizada = false;
+
+function importeEntrega(centavos) {
+  return "$" + (centavos / 100).toFixed(2) + " MXN";
+}
+
+function configurarEntrega(reglas = { modo: "confirmar" }) {
+  if (JSON.stringify(reglas) === JSON.stringify(reglasEntrega)) return;
+  const anterior = zonaEntrega.value;
+  const nombreAnterior = reglasEntrega.colonias?.find(colonia => colonia.id === anterior)?.nombre;
+  reglasEntrega = reglas;
+  if (reglas.modo === "colonias") {
+    const opciones = reglas.colonias.map(colonia => new Option(
+      colonia.nombre + " · " + importeEntrega(colonia.envioCentavos), colonia.id
+    ));
+    zonaEntrega.replaceChildren(
+      new Option("Selecciona tu colonia", ""), ...opciones,
+      new Option("Mi colonia no aparece", fueraDeCobertura)
+    );
+    zonaEntrega.value = anterior && !reglas.colonias.some(colonia => colonia.id === anterior)
+      ? fueraDeCobertura : anterior;
+  } else {
+    if (nombreAnterior) coloniaManualEntrega.value = nombreAnterior;
+    zonaEntrega.replaceChildren();
+  }
+  actualizarDatosEntrega();
+}
+
+function revisarEntrega() {
+  if (reglasEntrega.modo !== "colonias") {
+    return { aviso: "El negocio confirmará el costo de envío y el tiempo de entrega por WhatsApp." };
+  }
+  const colonia = reglasEntrega.colonias.find(item => item.id === zonaEntrega.value);
+  if (!colonia) return {
+    error: zonaEntrega.value === fueraDeCobertura
+      ? "Tu colonia está fuera de cobertura. Puedes recoger el pedido en el establecimiento."
+      : "Selecciona tu colonia para consultar el costo de envío."
+  };
+  const faltante = reglasEntrega.minimoCentavos - subtotalCarritoCentavos;
+  return {
+    colonia,
+    ...(faltante > 0
+      ? { error: "Te faltan " + importeEntrega(faltante) + " en productos para alcanzar el mínimo de entrega." }
+      : { aviso: "El negocio confirmará el tiempo de entrega por WhatsApp." })
+  };
+}
+
+function actualizarImportesEntrega() {
+  const esEntrega = !mesaPedido && tipoServicio.value === "domicilio";
+  const cotizacion = esEntrega ? revisarEntrega() : {};
+  avisoEntrega.textContent = cotizacion.error ?? cotizacion.aviso ?? "";
+  avisoEntrega.hidden = !esEntrega;
+  recogerSinCobertura.hidden = !esEntrega || reglasEntrega.modo !== "colonias" || zonaEntrega.value !== fueraDeCobertura;
+  desgloseEntrega.hidden = !cotizacion.colonia;
+  if (cotizacion.colonia) {
+    const envio = cotizacion.colonia.envioCentavos;
+    importeEnvio.textContent = importeEntrega(envio);
+    totalConEnvio.textContent = importeEntrega(subtotalCarritoCentavos + envio);
+  }
+}
 
 function mesaDelMenu(menu) {
   return menu.reservaciones?.mesas?.find(mesa => mesa.codigo === codigoMesa);
@@ -1037,12 +1105,24 @@ function actualizarDatosEntrega() {
   datosEntrega.hidden = !esEntrega;
   datosEntrega.disabled = !esEntrega;
   etiquetaTotal.textContent = esEntrega ? "Subtotal de productos:" : "Total:";
-  avisoEntrega.hidden = !esEntrega;
+  const porColonias = reglasEntrega.modo === "colonias";
+  coloniaManualEntrega.disabled = !esEntrega || porColonias;
+  zonaEntrega.disabled = !esEntrega || !porColonias;
+  document.getElementById("colonia-manual-entrega").hidden = porColonias;
+  document.getElementById("colonia-catalogo-entrega").hidden = !porColonias;
+  actualizarImportesEntrega();
 }
 
 tipoServicio.addEventListener("change", actualizarDatosEntrega);
+zonaEntrega.addEventListener("change", actualizarImportesEntrega);
+recogerSinCobertura.addEventListener("click", () => {
+  tipoServicio.value = "recoger";
+  actualizarDatosEntrega();
+  tipoServicio.focus();
+});
 window.addEventListener("pageshow", actualizarDatosEntrega);
 actualizarDatosEntrega();
+actualizarCarrito();
 
 /* Preparar el mensaje del pedido */
 document.getElementById("enviar-pedido")
@@ -1092,17 +1172,21 @@ document.getElementById("enviar-pedido")
       : "Servicio: " + tipoServicio.selectedOptions[0].textContent + "\n";
 
     const esEntrega = !mesaPedido && tipoServicio.value === "domicilio";
+    let entrega;
 
     if (esEntrega) {
       const calle = document.getElementById("calle-entrega");
-      const colonia = document.getElementById("colonia-entrega");
+      const cotizacion = revisarEntrega();
+      if (cotizacion.error) {
+        zonaEntrega.focus();
+        return;
+      }
+      const colonia = cotizacion.colonia?.nombre ?? coloniaManualEntrega.value.trim();
       const referencias = document
         .getElementById("referencias-entrega")
         .value.trim();
 
-      const campoVacio = [calle, colonia].find(
-        campo => !campo.value.trim()
-      );
+      const campoVacio = !calle.value.trim() ? calle : !colonia ? coloniaManualEntrega : null;
 
       if (campoVacio) {
         alert("Completa la calle, el número y la colonia para la entrega.");
@@ -1121,7 +1205,10 @@ document.getElementById("enviar-pedido")
 
       detalleServicio +=
         "Dirección: " + calle.value.trim() + "\n" +
-        "Colonia: " + colonia.value.trim() + "\n";
+        "Colonia: " + colonia + "\n";
+      if (cotizacion.colonia) {
+        entrega = { coloniaId: cotizacion.colonia.id, envioCentavos: cotizacion.colonia.envioCentavos };
+      }
 
       if (contacto) {
         detalleServicio += "Teléfono de contacto: " + contacto + "\n";
@@ -1188,9 +1275,11 @@ document.getElementById("enviar-pedido")
     });
 
     if (esEntrega) {
-      mensaje +=
-        `SUBTOTAL DE PRODUCTOS: $${total.toFixed(2)} MXN\n` +
-        "Costo de envío y tiempo de entrega: por confirmar.\n\n";
+      mensaje += `SUBTOTAL DE PRODUCTOS: $${total.toFixed(2)} MXN\n`;
+      mensaje += entrega
+        ? "ENVÍO: " + importeEntrega(entrega.envioCentavos) + "\nTOTAL: " +
+          importeEntrega(subtotalCarritoCentavos + entrega.envioCentavos) + "\nTiempo de entrega: por confirmar.\n\n"
+        : "Costo de envío y tiempo de entrega: por confirmar.\n\n";
     } else {
       mensaje += `TOTAL: $${total.toFixed(2)} MXN\n\n`;
     }
@@ -1199,18 +1288,19 @@ document.getElementById("enviar-pedido")
       "Me interesa conocer las funciones de este sistema.";
 
 
-    prepararRegistroPedido(notas);
+    prepararRegistroPedido(notas, entrega);
     resumenPedido.textContent = mensaje;
     resumenPedido.scrollTop = 0;
     revisionFueraHorario.hidden = consultarHorario() !== false;
     revisionPedido.showModal();
   });
 
-function prepararRegistroPedido(notas) {
+function prepararRegistroPedido(notas, entrega) {
   const datos = {
     servicio: mesaPedido ? "mesa" : tipoServicio.value,
     codigoMesa: mesaPedido ? codigoMesa : null,
     notas,
+    ...(entrega ? { entrega } : {}),
     lineas: carrito.map(item => ({
       productoId: item.productoId,
       cantidad: item.cantidad,
@@ -1227,32 +1317,40 @@ function prepararRegistroPedido(notas) {
     borradorRegistro = { contenido, datos, token: crypto.randomUUID() };
   }
   folioRegistrado = null;
+  revisionDesactualizada = false;
   estadoRegistroPedido.textContent = "";
   enlaceRegistroPedido.hidden = true;
   registrarPedidoDemo.disabled = false;
+  continuarWhatsApp.disabled = false;
 }
 
 revisionPedido.addEventListener("cancel", evento => {
-  if (registrandoPedido) evento.preventDefault();
+  if (procesandoRevision) evento.preventDefault();
 });
 
+async function solicitarRevisionPedido(ruta) {
+  const { datos, token } = borradorRegistro;
+  const respuesta = await fetch(ruta, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...datos, token })
+  });
+  return { respuesta, resultado: await respuesta.json() };
+}
+
 registrarPedidoDemo.addEventListener("click", async () => {
-  if (!borradorRegistro || registrandoPedido || folioRegistrado !== null) return;
-  registrandoPedido = true;
+  if (!borradorRegistro || procesandoRevision || revisionDesactualizada || folioRegistrado !== null) return;
+  procesandoRevision = true;
   registrarPedidoDemo.disabled = volverCarrito.disabled = continuarWhatsApp.disabled = true;
   estadoRegistroPedido.textContent = "Registrando pedido de prueba…";
   let requiereRevision = false;
 
   try {
-    const { datos, token } = borradorRegistro;
-    const respuesta = await fetch("/api/pedidos", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...datos, token })
-    });
-    const resultado = await respuesta.json();
+    const { token } = borradorRegistro;
+    const { respuesta, resultado } = await solicitarRevisionPedido("/api/pedidos");
     if (!respuesta.ok) {
       requiereRevision = respuesta.status === 409;
+      revisionDesactualizada = requiereRevision && borradorRegistro.datos.servicio === "domicilio";
       estadoRegistroPedido.textContent = resultado.error;
       return;
     }
@@ -1270,13 +1368,14 @@ registrarPedidoDemo.addEventListener("click", async () => {
   } catch {
     estadoRegistroPedido.textContent = "No pudimos comprobar el registro. Pulsa de nuevo para reintentar.";
   } finally {
-    registrandoPedido = false;
+    procesandoRevision = false;
     registrarPedidoDemo.disabled = folioRegistrado !== null || requiereRevision;
-    volverCarrito.disabled = continuarWhatsApp.disabled = false;
+    volverCarrito.disabled = false;
+    continuarWhatsApp.disabled = revisionDesactualizada;
   }
 });
 
-function abrirWhatsApp(texto) {
+function abrirWhatsApp(texto, ventana) {
   const telefono = "526121992396";
   if (!telefono) {
     alert("Falta configurar el número de WhatsApp.");
@@ -1289,13 +1388,53 @@ function abrirWhatsApp(texto) {
     ? "https://wa.me/" + telefono + "?text=" + mensaje
     : "https://web.whatsapp.com/send?phone=" + telefono + "&text=" + mensaje;
 
-  window.open(url, "_blank", "noopener");
+  if (ventana) ventana.location.replace(url);
+  else window.open(url, "_blank", "noopener");
   return true;
 }
 
-continuarWhatsApp.addEventListener("click", () => {
+continuarWhatsApp.addEventListener("click", async () => {
+  if (procesandoRevision || revisionDesactualizada) return;
   const referencia = folioRegistrado !== null ? "Pedido de prueba #" + folioRegistrado + "\n\n" : "";
-  if (abrirWhatsApp(referencia + resumenPedido.textContent)) revisionPedido.close();
+  const texto = referencia + resumenPedido.textContent;
+  if (borradorRegistro?.datos.servicio !== "domicilio" || folioRegistrado !== null) {
+    if (abrirWhatsApp(texto)) revisionPedido.close();
+    return;
+  }
+
+  // Abrir la pestaña durante el clic para que el navegador no bloquee WhatsApp tras la consulta.
+  const ventana = window.open("about:blank", "_blank");
+  if (!ventana) {
+    estadoRegistroPedido.textContent = "Permite las ventanas emergentes y vuelve a pulsar WhatsApp.";
+    return;
+  }
+  ventana.opener = null;
+  procesandoRevision = true;
+  const registroDeshabilitado = registrarPedidoDemo.disabled;
+  registrarPedidoDemo.disabled = volverCarrito.disabled = continuarWhatsApp.disabled = true;
+  estadoRegistroPedido.textContent = "Comprobando el costo de envío…";
+  try {
+    const { respuesta, resultado } = await solicitarRevisionPedido("/api/pedidos/revisar");
+    if (!respuesta.ok) {
+      ventana.close();
+      revisionDesactualizada = respuesta.status === 409;
+      estadoRegistroPedido.textContent = resultado.error;
+    } else if (ventana.closed) {
+      estadoRegistroPedido.textContent = "La pestaña se cerró. Pulsa WhatsApp para abrirla de nuevo.";
+    } else if (abrirWhatsApp(texto, ventana)) {
+      revisionPedido.close();
+    } else {
+      ventana.close();
+    }
+  } catch {
+    ventana.close();
+    estadoRegistroPedido.textContent = "No pudimos comprobar el envío. Intenta nuevamente.";
+  } finally {
+    procesandoRevision = false;
+    registrarPedidoDemo.disabled = registroDeshabilitado || revisionDesactualizada;
+    continuarWhatsApp.disabled = revisionDesactualizada;
+    volverCarrito.disabled = false;
+  }
 });
 
 /* =====================================================

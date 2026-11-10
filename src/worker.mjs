@@ -1,6 +1,7 @@
 import { administrarPedidos, consultarEstadisticas, pedidosPublicos } from "./pedidos.mjs";
 import { administrarAgenda, consultarDisponibilidad } from "./reservaciones.mjs";
 import { aplicarCatalogo, guardarProducto, servirFoto } from "./catalogo.mjs";
+import { administrarEntrega, leerEntrega } from "./entrega.mjs";
 
 const encoder = new TextEncoder();
 const cookieSesion = "__Host-comal-admin";
@@ -38,13 +39,15 @@ async function leerCatalogo(request, env, incluirArchivados) {
 }
 
 async function menuActualizado(request, env, incluirArchivados = false) {
-  const [menu, disponibilidad, precios, descripciones, preferencias] = await Promise.all([
+  const [menu, disponibilidad, precios, descripciones, preferencias, entrega] = await Promise.all([
     leerCatalogo(request, env, incluirArchivados),
     env.DB.prepare("SELECT producto_id, disponible FROM disponibilidad_producto").all(),
     env.DB.prepare("SELECT producto_id, precio_centavos, especial_centavos FROM precios_menu").all(),
     env.DB.prepare("SELECT producto_id, descripcion FROM descripciones_menu").all(),
-    env.DB.prepare("SELECT categorias_json FROM preferencias_categorias WHERE id = 1").first()
+    env.DB.prepare("SELECT categorias_json FROM preferencias_categorias WHERE id = 1").first(),
+    incluirArchivados ? null : leerEntrega(env.DB)
   ]);
+  if (entrega) menu.entrega = entrega.modo === "colonias" ? entrega : { modo: "confirmar" };
   const estados = new Map(disponibilidad.results.map(fila => [fila.producto_id, fila.disponible === 1]));
   const preciosPorProducto = new Map(precios.results.map(fila => [fila.producto_id, fila]));
   const descripcionesPorProducto = new Map(
@@ -306,6 +309,10 @@ async function administrar(request, env, url) {
     return generarClaveCocina(env.DB, clave, env.ADMIN_PASSWORD);
   }
 
+  if (url.pathname === "/api/admin/entrega") {
+    return administrarEntrega(request, env.DB, json);
+  }
+
   if (url.pathname === "/api/admin/agenda") {
     return administrarAgenda(request, env.DB, url, () => leerMenu(request, env), json);
   }
@@ -434,7 +441,7 @@ export default {
       if (url.pathname === "/api/reservaciones/disponibilidad" && request.method === "GET") {
         return await consultarDisponibilidad(env.DB, await leerMenu(request, env), url, json);
       }
-      if (url.pathname === "/api/pedidos" || url.pathname === "/api/pedidos/seguimiento") {
+      if (["/api/pedidos", "/api/pedidos/seguimiento", "/api/pedidos/revisar"].includes(url.pathname)) {
         return await pedidosPublicos(request, env, url, () => menuActualizado(request, env), json);
       }
       if (url.pathname.startsWith("/api/admin/")) {

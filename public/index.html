@@ -196,6 +196,10 @@
           <strong id="etiqueta-total">Total:</strong>
           <strong id="carrito-total">$0.00</strong>
         </div>
+        <dl id="desglose-entrega" hidden>
+          <div><dt>Envío</dt><dd id="importe-envio"></dd></div>
+          <div><dt>Total con envío</dt><dd id="total-con-envio"></dd></div>
+        </dl>
 
         <!-- ============================================
              SECCIÓN 6 — DATOS DEL CLIENTE
@@ -224,9 +228,10 @@
 
           <p id="mesa-carrito" hidden></p>
 
-          <p id="aviso-entrega" hidden>
+          <p id="aviso-entrega" role="status" hidden>
             El negocio confirmará el costo de envío y el tiempo de entrega por WhatsApp.
           </p>
+          <button id="recoger-sin-cobertura" type="button" hidden>Recoger en el establecimiento</button>
 
           <fieldset id="datos-entrega" hidden disabled>
             <legend>Dirección de entrega</legend>
@@ -240,8 +245,14 @@
               required
             >
 
-            <label for="colonia-entrega">Colonia</label>
-            <input type="text" id="colonia-entrega" maxlength="80" required>
+            <div id="colonia-manual-entrega">
+              <label for="colonia-entrega">Colonia</label>
+              <input type="text" id="colonia-entrega" maxlength="80" required>
+            </div>
+            <div id="colonia-catalogo-entrega" hidden>
+              <label for="zona-entrega">Colonia</label>
+              <select id="zona-entrega" aria-describedby="aviso-entrega" required disabled></select>
+            </div>
 
             <label for="referencias-entrega">Referencias (opcional)</label>
             <input type="text" id="referencias-entrega" maxlength="160">
