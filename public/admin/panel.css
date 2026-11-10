@@ -26,9 +26,11 @@ button:disabled { opacity: .65; cursor: wait; }
 #salir { margin-top: 20px; }
 #mensaje:empty { display: none; }
 
-.editor-precios { margin: -4px 0 14px; padding: 8px 12px; border-radius: 8px; background: white; }
-.editor-precios summary { cursor: pointer; }
-.editor-precios form { margin-top: 12px; }
-.editor-precios input { display: block; width: 100%; margin: 4px 0 10px; }
-.editor-precios p { margin-bottom: 0; }
-.editor-precios p:empty { display: none; }
+.editor-producto { margin: -4px 0 14px; padding: 8px 12px; border-radius: 8px; background: white; }
+.editor-producto summary { cursor: pointer; }
+.editor-producto form { margin-top: 12px; }
+.editor-producto input,
+.editor-producto textarea { display: block; width: 100%; margin: 4px 0 10px; }
+.editor-producto textarea { font: inherit; padding: 8px; border: 1px solid #705c4d; border-radius: 8px; resize: vertical; }
+.editor-producto p { margin-bottom: 0; }
+.editor-producto p:empty { display: none; }

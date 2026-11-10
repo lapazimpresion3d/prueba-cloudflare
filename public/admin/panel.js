@@ -50,7 +50,7 @@ function mostrarError(error) {
 
 function editorPrecios(producto) {
   const editor = document.createElement("details");
-  editor.className = "editor-precios";
+  editor.className = "editor-producto";
   const titulo = document.createElement("summary");
   const formulario = document.createElement("form");
   const formato = new Intl.NumberFormat("es-MX", { style: "currency", currency: producto.moneda });
@@ -118,6 +118,56 @@ function editorPrecios(producto) {
   return editor;
 }
 
+function editorDescripcion(producto) {
+  const editor = document.createElement("details");
+  editor.className = "editor-producto";
+  const titulo = document.createElement("summary");
+  titulo.textContent = "Editar descripción";
+
+  const formulario = document.createElement("form");
+  const etiqueta = document.createElement("label");
+  etiqueta.textContent = "Descripción del producto";
+  const campo = document.createElement("textarea");
+  campo.rows = 3;
+  campo.maxLength = 240;
+  campo.required = true;
+  campo.value = producto.descripcion ?? "";
+  etiqueta.appendChild(campo);
+
+  const guardar = document.createElement("button");
+  guardar.type = "submit";
+  guardar.textContent = "Guardar descripción";
+  const estado = document.createElement("p");
+  estado.setAttribute("role", "status");
+
+  formulario.addEventListener("submit", async evento => {
+    evento.preventDefault();
+    const descripcion = campo.value.trim();
+    if (!descripcion) {
+      estado.textContent = "Escribe una descripción antes de guardar.";
+      campo.focus();
+      return;
+    }
+
+    campo.disabled = guardar.disabled = true;
+    estado.textContent = "Guardando…";
+    try {
+      const resultado = await solicitar("descripciones", "PUT", { id: producto.id, descripcion });
+      campo.value = resultado.descripcion;
+      estado.textContent = "Descripción guardada.";
+    } catch (error) {
+      if (error.status === 401) mostrarError(error);
+      else estado.textContent = error.status ? error.message : "No se pudo conectar. Intenta nuevamente.";
+    } finally {
+      campo.disabled = guardar.disabled = false;
+    }
+  });
+
+  formulario.append(etiqueta, guardar, estado);
+  editor.append(titulo, formulario);
+  return editor;
+}
+
 function filaProducto(producto) {
   const fila = document.createElement("div");
   fila.className = "fila";
@@ -157,7 +207,7 @@ function filaProducto(producto) {
   etiqueta.append(nombre, estado);
   fila.append(etiqueta, boton);
   const productoPanel = document.createElement("div");
-  productoPanel.append(fila, editorPrecios(producto));
+  productoPanel.append(fila, editorPrecios(producto), editorDescripcion(producto));
   return productoPanel;
 }
 

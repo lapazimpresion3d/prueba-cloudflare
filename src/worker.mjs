@@ -22,16 +22,23 @@ async function leerMenu(request, env) {
 }
 
 async function menuActualizado(request, env) {
-  const [menu, disponibilidad, precios] = await Promise.all([
+  const [menu, disponibilidad, precios, descripciones] = await Promise.all([
     leerMenu(request, env),
     env.DB.prepare("SELECT producto_id, disponible FROM disponibilidad_producto").all(),
-    env.DB.prepare("SELECT producto_id, precio_centavos, especial_centavos FROM precios_menu").all()
+    env.DB.prepare("SELECT producto_id, precio_centavos, especial_centavos FROM precios_menu").all(),
+    env.DB.prepare("SELECT producto_id, descripcion FROM descripciones_menu").all()
   ]);
   const estados = new Map(disponibilidad.results.map(fila => [fila.producto_id, fila.disponible === 1]));
   const preciosPorProducto = new Map(precios.results.map(fila => [fila.producto_id, fila]));
+  const descripcionesPorProducto = new Map(
+    descripciones.results.map(fila => [fila.producto_id, fila.descripcion])
+  );
   for (const categoria of menu.categorias) {
     for (const producto of categoria.productos) {
       if (estados.has(producto.id)) producto.disponible = estados.get(producto.id);
+      if (descripcionesPorProducto.has(producto.id)) {
+        producto.descripcion = descripcionesPorProducto.get(producto.id);
+      }
       const precio = preciosPorProducto.get(producto.id);
       if (precio) {
         producto.precio = precio.precio_centavos / 100;
@@ -44,6 +51,10 @@ async function menuActualizado(request, env) {
     }
   }
   return menu;
+}
+
+function productoEnCatalogo(menu, id) {
+  return menu.categorias.some(categoria => categoria.productos.some(producto => producto.id === id));
 }
 
 function firmar(clave, valor) {
@@ -153,10 +164,30 @@ async function administrar(request, env, url) {
     const menu = await menuActualizado(request, env);
     return json(menu.categorias.map(categoria => ({
       nombre: categoria.nombre,
-      productos: categoria.productos.map(({ id, nombre, disponible, precio, precioEspecial }) => ({
-        id, nombre, disponible: disponible !== false, precio, precioEspecial, moneda: menu.moneda
+      productos: categoria.productos.map(({ id, nombre, descripcion, disponible, precio, precioEspecial }) => ({
+        id, nombre, descripcion, disponible: disponible !== false, precio, precioEspecial, moneda: menu.moneda
       }))
     })));
+  }
+
+  if (url.pathname === "/api/admin/descripciones" && request.method === "PUT") {
+    const datos = await request.json().catch(() => null);
+    const descripcion = typeof datos?.descripcion === "string" ? datos.descripcion.trim() : "";
+    if (typeof datos?.id !== "string" || !descripcion || descripcion.length > 240) {
+      return json({ error: "Escribe una descripción de 1 a 240 caracteres." }, 400);
+    }
+
+    const menu = await leerMenu(request, env);
+    if (!productoEnCatalogo(menu, datos.id)) {
+      return json({ error: "El producto ya no está en el catálogo." }, 404);
+    }
+
+    await env.DB.prepare(
+      "INSERT INTO descripciones_menu (producto_id, descripcion) VALUES (?, ?) " +
+      "ON CONFLICT (producto_id) DO UPDATE SET descripcion = excluded.descripcion"
+    ).bind(datos.id, descripcion).run();
+
+    return json({ descripcion });
   }
 
   if (url.pathname === "/api/admin/precios" && request.method === "PUT") {
@@ -171,7 +202,7 @@ async function administrar(request, env, url) {
     }
 
     const menu = await leerMenu(request, env);
-    if (!menu.categorias.some(categoria => categoria.productos.some(producto => producto.id === id))) {
+    if (!productoEnCatalogo(menu, id)) {
       return json({ error: "El producto ya no está en el catálogo." }, 404);
     }
 
@@ -190,7 +221,7 @@ async function administrar(request, env, url) {
       return json({ error: "Indica un producto y su disponibilidad." }, 400);
     }
     const menu = await leerMenu(request, env);
-    if (!menu.categorias.some(categoria => categoria.productos.some(producto => producto.id === datos.id))) {
+    if (!productoEnCatalogo(menu, datos.id)) {
       return json({ error: "El producto ya no está en el catálogo." }, 404);
     }
     await env.DB.prepare(

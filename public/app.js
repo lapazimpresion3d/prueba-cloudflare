@@ -358,7 +358,8 @@ function actualizarCatalogo(menu) {
   if (catalogoAnterior && Array.from(productosCatalogo).some(([id, producto]) => {
     const anterior = catalogoAnterior.get(id);
     return (anterior?.disponible === false) !== (producto.disponible === false) ||
-      anterior?.precio !== producto.precio || anterior?.precioEspecial !== producto.precioEspecial;
+      anterior?.precio !== producto.precio || anterior?.precioEspecial !== producto.precioEspecial ||
+      anterior?.descripcion !== producto.descripcion;
   })) {
     mostrarCatalogo();
   }
