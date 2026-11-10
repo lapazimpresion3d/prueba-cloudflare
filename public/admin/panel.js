@@ -30,6 +30,14 @@ const estadoAgenda = document.getElementById("agenda-estado");
 const mesasAgenda = document.getElementById("agenda-mesas");
 let solicitudAgenda = null;
 let versionAgenda = 0;
+const panelPedidos = document.getElementById("panel-pedidos");
+const vistaPedidos = document.getElementById("vista-pedidos");
+const actualizarPedidos = document.getElementById("actualizar-pedidos");
+const estadoPedidos = document.getElementById("pedidos-estado");
+const listaPedidos = document.getElementById("lista-pedidos");
+let versionPedidos = 0;
+let firmaListaPedidos = "";
+let cambiandoPedido = false;
 
 async function solicitar(ruta, method = "GET", datos) {
   const respuesta = await fetch("/api/admin/" + ruta, {
@@ -64,6 +72,11 @@ function mostrarAcceso() {
   mesasAgenda.replaceChildren();
   estadoAgenda.textContent = "";
   agenda.open = false;
+  panelPedidos.open = false;
+  listaPedidos.replaceChildren();
+  estadoPedidos.textContent = "";
+  firmaListaPedidos = "";
+  versionPedidos++;
   solicitudAgenda = null;
   versionAgenda++;
   panel.hidden = true;
@@ -563,6 +576,108 @@ formularioAgenda.addEventListener("submit", async evento => {
     boton.disabled = false;
   }
 });
+
+function mostrarErrorPedidos(error) {
+  if (error.status === 401) mostrarError(error);
+  else estadoPedidos.textContent = error.status ? error.message : "No se pudo consultar la lista.";
+}
+
+function tarjetaPedido(pedido) {
+  const tarjeta = document.createElement("article");
+  tarjeta.className = "pedido-cocina";
+  const titulo = document.createElement("h2");
+  titulo.textContent = "Pedido #" + pedido.folio + " · " + pedido.etiqueta;
+  const { detalle } = pedido;
+  const servicio = { mesa: detalle.mesa, recoger: "Recoger", domicilio: "Entrega a domicilio" }[detalle.servicio];
+  const info = document.createElement("p");
+  const fecha = new Intl.DateTimeFormat("es-MX", { dateStyle: "short", timeStyle: "short" }).format(pedido.creado);
+  info.textContent = servicio + " · Recibido " + fecha;
+  const productosPedido = document.createElement("ul");
+
+  for (const linea of detalle.lineas) {
+    const producto = document.createElement("li");
+    producto.textContent = linea.cantidad + " × " + linea.nombre;
+    for (const [etiqueta, opciones] of [["Incluye", linea.incluye], ["Sin", linea.omitidos], ["Extras", linea.extras]]) {
+      if (!opciones.length) continue;
+      const dato = document.createElement("small");
+      dato.textContent = etiqueta + ": " + opciones.join(", ");
+      producto.appendChild(dato);
+    }
+    productosPedido.appendChild(producto);
+  }
+
+  tarjeta.append(titulo, info, productosPedido);
+  if (detalle.notas) {
+    const notas = document.createElement("p");
+    notas.textContent = "Instrucciones: " + detalle.notas;
+    tarjeta.appendChild(notas);
+  }
+
+  const total = document.createElement("p");
+  const importe = new Intl.NumberFormat("es-MX", { style: "currency", currency: detalle.moneda })
+    .format(pedido.totalCentavos / 100);
+  total.textContent = (detalle.servicio === "domicilio" ? "Subtotal: " : "Total: ") + importe;
+  tarjeta.appendChild(total);
+
+  if (pedido.acciones.length) {
+    const acciones = document.createElement("div");
+    acciones.className = "acciones-cocina";
+    for (const accion of pedido.acciones) {
+      const boton = document.createElement("button");
+      boton.type = "button";
+      boton.textContent = accion.id === "cancelado" ? "Cancelar pedido" : "Marcar " + accion.etiqueta.toLowerCase();
+      boton.addEventListener("click", () => cambiarEstadoPedido(pedido, accion, boton));
+      acciones.appendChild(boton);
+    }
+    tarjeta.appendChild(acciones);
+  }
+  return tarjeta;
+}
+
+async function cambiarEstadoPedido(pedido, accion, boton) {
+  if (cambiandoPedido) return;
+  if (accion.id === "cancelado" && !window.confirm("¿Cancelar este pedido de prueba?")) return;
+  cambiandoPedido = true;
+  versionPedidos++;
+  boton.disabled = true;
+  estadoPedidos.textContent = "Guardando estado…";
+  try {
+    await solicitar("pedidos", "PUT", { folio: pedido.folio, actual: pedido.estado, nuevo: accion.id });
+    estadoPedidos.textContent = "Estado guardado.";
+    await cargarPedidos();
+  } catch (error) {
+    mostrarErrorPedidos(error);
+  } finally {
+    boton.disabled = false;
+    cambiandoPedido = false;
+  }
+}
+
+async function cargarPedidos() {
+  const version = ++versionPedidos;
+  try {
+    const pedidos = await solicitar("pedidos?vista=" + encodeURIComponent(vistaPedidos.value));
+    if (version !== versionPedidos || panel.hidden) return;
+    const firma = JSON.stringify(pedidos);
+    if (firma !== firmaListaPedidos) {
+      listaPedidos.replaceChildren(...pedidos.map(tarjetaPedido));
+      firmaListaPedidos = firma;
+    }
+    if (!pedidos.length) estadoPedidos.textContent = "No hay pedidos en esta vista.";
+    else if (estadoPedidos.textContent !== "Estado guardado.") estadoPedidos.textContent = "";
+  } catch (error) {
+    if (version === versionPedidos) mostrarErrorPedidos(error);
+  }
+}
+
+panelPedidos.addEventListener("toggle", () => {
+  if (panelPedidos.open && !panel.hidden) cargarPedidos();
+});
+vistaPedidos.addEventListener("change", cargarPedidos);
+actualizarPedidos.addEventListener("click", cargarPedidos);
+window.setInterval(() => {
+  if (panelPedidos.open && !panel.hidden && !document.hidden && !cambiandoPedido) cargarPedidos();
+}, 15000);
 
 cargarPanel().catch(error => {
   if (error.status === 401) mostrarAcceso();

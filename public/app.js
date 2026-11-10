@@ -976,6 +976,17 @@ const avisoEntrega = document.getElementById("aviso-entrega");
 const revisionPedido = document.getElementById("revision-pedido");
 const resumenPedido = document.getElementById("revision-resumen");
 const revisionFueraHorario = document.getElementById("revision-fuera-horario");
+const registrarPedidoDemo = document.getElementById("registrar-pedido-demo");
+const estadoRegistroPedido = document.getElementById("registro-pedido-estado");
+const enlaceRegistroPedido = document.getElementById("registro-pedido-enlace");
+const seguirPedido = document.getElementById("seguir-pedido");
+const ultimoPedidoDemo = document.getElementById("ultimo-pedido-demo");
+const enlaceUltimoPedido = document.getElementById("enlace-ultimo-pedido");
+const volverCarrito = document.getElementById("volver-carrito");
+const continuarWhatsApp = document.getElementById("continuar-whatsapp");
+let borradorRegistro = null;
+let registrandoPedido = false;
+let folioRegistrado = null;
 
 function mesaDelMenu(menu) {
   return menu.reservaciones?.mesas?.find(mesa => mesa.codigo === codigoMesa);
@@ -1173,11 +1184,82 @@ document.getElementById("enviar-pedido")
       "Me interesa conocer las funciones de este sistema.";
 
 
+    prepararRegistroPedido(notas);
     resumenPedido.textContent = mensaje;
     resumenPedido.scrollTop = 0;
     revisionFueraHorario.hidden = consultarHorario() !== false;
     revisionPedido.showModal();
   });
+
+function prepararRegistroPedido(notas) {
+  const datos = {
+    servicio: mesaPedido ? "mesa" : tipoServicio.value,
+    codigoMesa: mesaPedido ? codigoMesa : null,
+    notas,
+    lineas: carrito.map(item => ({
+      productoId: item.productoId,
+      cantidad: item.cantidad,
+      ingredientes: item.ingredientes ?? (productosCatalogo.get(item.productoId)?.ingredientes ?? [])
+        .filter(ingrediente => ingrediente.incluido || ingrediente.obligatorio)
+        .map(ingrediente => ingrediente.nombre),
+      extras: item.extras ?? [],
+      varianteId: item.varianteId ?? null,
+      precioUnitarioCentavos: Math.round(item.precio * 100)
+    }))
+  };
+  const contenido = JSON.stringify(datos);
+  if (borradorRegistro?.contenido !== contenido) {
+    borradorRegistro = { contenido, datos, token: crypto.randomUUID() };
+  }
+  folioRegistrado = null;
+  estadoRegistroPedido.textContent = "";
+  enlaceRegistroPedido.hidden = true;
+  registrarPedidoDemo.disabled = false;
+}
+
+revisionPedido.addEventListener("cancel", evento => {
+  if (registrandoPedido) evento.preventDefault();
+});
+
+registrarPedidoDemo.addEventListener("click", async () => {
+  if (!borradorRegistro || registrandoPedido || folioRegistrado !== null) return;
+  registrandoPedido = true;
+  registrarPedidoDemo.disabled = volverCarrito.disabled = continuarWhatsApp.disabled = true;
+  estadoRegistroPedido.textContent = "Registrando pedido de prueba…";
+  let requiereRevision = false;
+
+  try {
+    const { datos, token } = borradorRegistro;
+    const respuesta = await fetch("/api/pedidos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...datos, token })
+    });
+    const resultado = await respuesta.json();
+    if (!respuesta.ok) {
+      requiereRevision = respuesta.status === 409;
+      estadoRegistroPedido.textContent = resultado.error;
+      return;
+    }
+
+    folioRegistrado = resultado.folio;
+    estadoRegistroPedido.textContent = "Pedido de prueba #" + folioRegistrado + " registrado.";
+    seguirPedido.href = "/seguimiento/#" + token;
+    enlaceUltimoPedido.href = seguirPedido.href;
+    ultimoPedidoDemo.hidden = false;
+    enlaceRegistroPedido.hidden = false;
+    seguirPedido.focus();
+    borradorRegistro = null;
+    carrito.length = 0;
+    actualizarCarrito();
+  } catch {
+    estadoRegistroPedido.textContent = "No pudimos comprobar el registro. Pulsa de nuevo para reintentar.";
+  } finally {
+    registrandoPedido = false;
+    registrarPedidoDemo.disabled = folioRegistrado !== null || requiereRevision;
+    volverCarrito.disabled = continuarWhatsApp.disabled = false;
+  }
+});
 
 function abrirWhatsApp(texto) {
   const telefono = "526121992396";
@@ -1196,10 +1278,10 @@ function abrirWhatsApp(texto) {
   return true;
 }
 
-document.getElementById("continuar-whatsapp")
-  .addEventListener("click", () => {
-    if (abrirWhatsApp(resumenPedido.textContent)) revisionPedido.close();
-  });
+continuarWhatsApp.addEventListener("click", () => {
+  const referencia = folioRegistrado !== null ? "Pedido de prueba #" + folioRegistrado + "\n\n" : "";
+  if (abrirWhatsApp(referencia + resumenPedido.textContent)) revisionPedido.close();
+});
 
 /* =====================================================
    SECCIÓN 7 — SOLICITUD DE RESERVACIÓN

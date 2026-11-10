@@ -1,3 +1,4 @@
+import { administrarPedidos, pedidosPublicos } from "./pedidos.mjs";
 import { administrarAgenda, consultarDisponibilidad } from "./reservaciones.mjs";
 
 const encoder = new TextEncoder();
@@ -218,6 +219,10 @@ async function administrar(request, env, url) {
     return json({ turnos });
   }
 
+  if (url.pathname === "/api/admin/pedidos") {
+    return administrarPedidos(request, env.DB, url, json);
+  }
+
   if (url.pathname === "/api/admin/agenda") {
     return administrarAgenda(request, env.DB, url, () => leerMenu(request, env), json);
   }
@@ -337,6 +342,9 @@ export default {
       }
       if (url.pathname === "/api/reservaciones/disponibilidad" && request.method === "GET") {
         return await consultarDisponibilidad(env.DB, await leerMenu(request, env), url, json);
+      }
+      if (url.pathname === "/api/pedidos" || url.pathname === "/api/pedidos/seguimiento") {
+        return await pedidosPublicos(request, env, url, () => menuActualizado(request, env), json);
       }
       if (url.pathname.startsWith("/api/admin/")) {
         return await administrar(request, env, url);

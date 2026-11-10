@@ -40,6 +40,18 @@
         <p id="agenda-estado" role="status"></p>
         <div id="agenda-mesas"></div>
       </details>
+      <details id="panel-pedidos">
+        <summary>Pedidos de prueba y cocina</summary>
+        <p>Revisa los pedidos registrados desde el menú y actualiza su estado.</p>
+        <label for="vista-pedidos">Mostrar</label>
+        <select id="vista-pedidos">
+          <option value="activos">Pedidos activos</option>
+          <option value="historial">Entregados y cancelados</option>
+        </select>
+        <button id="actualizar-pedidos" type="button">Actualizar</button>
+        <p id="pedidos-estado" role="status"></p>
+        <div id="lista-pedidos"></div>
+      </details>
       <details id="panel-productos" open>
         <summary>Productos</summary>
         <p>Marca un producto como agotado cuando se termine. Puedes volver a activarlo desde aquí.</p>

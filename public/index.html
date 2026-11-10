@@ -251,6 +251,9 @@
 
           <label for="notas-pedido" class="etiqueta-notas">Instrucciones para el pedido (opcional)</label>
           <textarea id="notas-pedido" rows="2" maxlength="200"></textarea>
+          <p id="ultimo-pedido-demo" hidden>
+            <a id="enlace-ultimo-pedido" target="_blank" rel="noopener noreferrer">Seguir el último pedido de prueba</a>
+          </p>
         </div>
 
         <!-- ============================================
@@ -281,9 +284,14 @@
             Tu solicitud queda pendiente de respuesta.
           </p>
           <pre id="revision-resumen" tabindex="0" aria-label="Resumen del pedido"></pre>
-          <p>El negocio confirmará el pedido por WhatsApp.</p>
+          <p>Registra la prueba para ver su avance en el panel o prepara el mensaje de WhatsApp. Usa instrucciones ficticias.</p>
+          <p id="registro-pedido-estado" role="status"></p>
+          <p id="registro-pedido-enlace" hidden>
+            <a id="seguir-pedido" target="_blank" rel="noopener noreferrer">Ver seguimiento del pedido</a>
+          </p>
           <form method="dialog" class="revision-acciones">
-            <button type="submit" autofocus>Volver al carrito</button>
+            <button id="volver-carrito" type="submit" autofocus>Volver al carrito</button>
+            <button id="registrar-pedido-demo" type="button">Registrar pedido de prueba</button>
             <button id="continuar-whatsapp" type="button">Continuar a WhatsApp</button>
           </form>
         </dialog>

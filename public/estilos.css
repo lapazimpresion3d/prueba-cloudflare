@@ -726,6 +726,19 @@ header {
   cursor: pointer;
 }
 
+#registro-pedido-estado:empty {
+  display: none;
+}
+
+#registrar-pedido-demo {
+  background: var(--rojo);
+  color: white;
+}
+
+#registrar-pedido-demo:disabled {
+  opacity: .65;
+}
+
 #continuar-whatsapp {
   border-color: #146c39;
   background: #146c39;
