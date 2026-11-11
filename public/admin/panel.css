@@ -138,8 +138,8 @@ button:disabled { opacity: .65; cursor: wait; }
 #editor-negocio { padding: 12px; margin: 16px 0; background: white; border-radius: 8px; }
 #editor-negocio > summary { font-weight: bold; cursor: pointer; }
 #campos-negocio { min-width: 0; padding: 12px; border: 1px solid #c9c2bb; border-radius: 8px; }
-#campos-negocio input, #campos-negocio textarea { display: block; width: 100%; margin: 4px 0 12px; }
-#campos-negocio textarea { padding: 10px; font: inherit; border: 1px solid #705c4d; border-radius: 8px; resize: vertical; }
+#campos-negocio input, #campos-negocio textarea, #formulario-pagos textarea { display: block; width: 100%; margin: 4px 0 12px; }
+#campos-negocio textarea, #formulario-pagos textarea { padding: 10px; font: inherit; border: 1px solid #705c4d; border-radius: 8px; resize: vertical; }
 #negocio-estado:empty { display: none; }
 #buscar-historial, #paginas-historial { margin: 12px 0; }
 #folio-historial { max-width: 100%; }

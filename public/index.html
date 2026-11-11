@@ -141,7 +141,10 @@
         <p id="horario-detalle"></p>
       </section>
 
-      <p id="aviso-mesa" class="aviso-demo" role="status" hidden></p>
+      <div id="aviso-mesa" class="aviso-demo" hidden>
+        <p id="aviso-mesa-texto" role="status">Abriste el menú desde un enlace de mesa.</p>
+        <a class="salir-mesa" data-salir-mesa href="/#menu">Cambiar a recoger o a domicilio</a>
+      </div>
       <p id="seguimiento-reciente" class="acceso-seguimiento" data-seguimiento-contenedor hidden>
         <a data-seguimiento-reciente href="/seguimiento/">Ver seguimiento de mi último pedido</a>
       </p>
@@ -231,9 +234,12 @@
           </select>
 
           <p id="mesa-carrito" hidden></p>
+          <p id="salida-mesa-carrito" hidden>
+            <a class="salir-mesa" data-salir-mesa href="/#menu">Cambiar a recoger o a domicilio</a>
+          </p>
 
           <p id="aviso-entrega" role="status" hidden>
-            El negocio confirmará el costo de envío y el tiempo de entrega por WhatsApp.
+            El negocio cotizará el envío. Si registras el pedido, consulta el total en Seguimiento.
           </p>
           <button id="recoger-sin-cobertura" type="button" hidden>Recoger en el establecimiento</button>
 
@@ -300,7 +306,7 @@
             Tu solicitud queda pendiente de respuesta.
           </p>
           <pre id="revision-resumen" tabindex="0" aria-label="Resumen del pedido"></pre>
-          <p>Registra la prueba para ver su avance en el panel o prepara el mensaje de WhatsApp. Usa instrucciones ficticias.</p>
+          <p>Registra la prueba para ver su avance en el panel o prepara el mensaje de WhatsApp. Usa datos ficticios. Si registras el pedido a domicilio, el encargado verá la dirección.</p>
           <p id="registro-pedido-estado" role="status"></p>
           <p id="registro-pedido-enlace" hidden>
             <a id="seguir-pedido" target="_blank" rel="noopener noreferrer">Ver seguimiento del pedido</a>

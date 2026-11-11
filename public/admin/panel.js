@@ -11,6 +11,10 @@ const camposNegocio = document.getElementById("campos-negocio");
 const estadoNegocio = document.getElementById("negocio-estado");
 const editorNegocio = document.getElementById("editor-negocio");
 const nombreNegocioPanel = document.getElementById("nombre-negocio-panel");
+const formularioPagos = document.getElementById("formulario-pagos");
+const datosTransferenciaNegocio = document.getElementById("datos-transferencia-negocio");
+const estadoPagos = document.getElementById("pagos-estado");
+let versionPagos = 0;
 let versionNegocio = 0;
 const editorCategorias = document.getElementById("editor-categorias");
 const formularioCategorias = document.getElementById("formulario-categorias");
@@ -124,6 +128,12 @@ function mostrarAcceso() {
   camposNegocio.disabled = false;
   estadoNegocio.textContent = "";
   editorNegocio.open = false;
+  versionPagos++;
+  formularioPagos.hidden = true;
+  formularioPagos.querySelector("button").disabled = false;
+  datosTransferenciaNegocio.disabled = false;
+  datosTransferenciaNegocio.value = "";
+  estadoPagos.textContent = "";
   seccionesCategorias.clear();
   filasCategorias = [];
   listaCategorias.replaceChildren();
@@ -212,6 +222,42 @@ formularioNegocio.addEventListener("submit", async evento => {
     else estadoNegocio.textContent = error.status ? error.message : "No se pudo conectar. Intenta nuevamente.";
   } finally {
     if (version === versionNegocio) camposNegocio.disabled = false;
+  }
+});
+
+editorNegocio.addEventListener("toggle", async () => {
+  if (!editorNegocio.open || panel.hidden || !formularioPagos.hidden) return;
+  const version = ++versionPagos;
+  try {
+    const datos = await solicitar("pagos");
+    if (version !== versionPagos) return;
+    datosTransferenciaNegocio.value = datos.instrucciones;
+    formularioPagos.hidden = false;
+    estadoPagos.textContent = "";
+  } catch (error) {
+    if (version !== versionPagos) return;
+    if (error.status === 401) mostrarError(error);
+    else estadoPagos.textContent = "No pudimos cargar las instrucciones de pago.";
+  }
+});
+
+formularioPagos.addEventListener("submit", async evento => {
+  evento.preventDefault();
+  const boton = formularioPagos.querySelector("button");
+  if (boton.disabled) return;
+  const version = ++versionPagos;
+  boton.disabled = datosTransferenciaNegocio.disabled = true;
+  try {
+    const resultado = await solicitar("pagos", "PUT", { instrucciones: datosTransferenciaNegocio.value });
+    if (version !== versionPagos) return;
+    datosTransferenciaNegocio.value = resultado.instrucciones;
+    estadoPagos.textContent = "Instrucciones de pago guardadas.";
+  } catch (error) {
+    if (version !== versionPagos) return;
+    if (error.status === 401) mostrarError(error);
+    else estadoPagos.textContent = error.status ? error.message : "No pudimos guardar las instrucciones.";
+  } finally {
+    if (version === versionPagos) boton.disabled = datosTransferenciaNegocio.disabled = false;
   }
 });
 
@@ -1108,8 +1154,15 @@ function tarjetaPedido(pedido) {
   const importe = centavos => moneda.format(centavos / 100);
   total.textContent = (detalle.servicio === "domicilio" ? "Subtotal: " : "Total: ") + importe(pedido.totalCentavos);
   if (detalle.entrega) {
-    total.textContent += " · " + detalle.entrega.colonia + " · Envío " + importe(detalle.entrega.envioCentavos) +
+    if (detalle.entrega.colonia) total.textContent += " · " + detalle.entrega.colonia;
+    total.textContent += " · Envío " + importe(detalle.entrega.envioCentavos) +
       " · Total " + importe(pedido.totalCentavos + detalle.entrega.envioCentavos);
+  }
+  if (detalle.direccionEntrega) {
+    const { calle, colonia, referencias, telefono } = detalle.direccionEntrega;
+    const direccion = document.createElement("p");
+    direccion.textContent = "Entrega: " + [calle, colonia, referencias, telefono].filter(Boolean).join(" · ");
+    tarjeta.appendChild(direccion);
   }
   tarjeta.append(contenido, total);
   tarjeta.appendChild(controlCobro(pedido, importe));
@@ -1181,9 +1234,14 @@ function controlCobro(pedido, importe) {
   const total = pedido.totalCentavos + (pedido.detalle.entrega?.envioCentavos ?? 0);
   const sinCosto = !envioPendiente && total === 0;
   const estado = document.createElement("p");
+  const transferenciaPendiente = pedido.transferenciaReportada && pedido.estado !== "cancelado";
   estado.textContent = pedido.cobro
     ? `Pagado · ${importe(pedido.cobro.importeCentavos)} · ${nombreMetodoCobro(pedido.cobro.metodo)}` :
-    sinCosto ? "Pedido sin costo" : "Pago pendiente de confirmar";
+    sinCosto ? "Pedido sin costo" :
+    transferenciaPendiente ? "Transferencia reportada por el cliente · Verifica si recibiste el pago." :
+    envioPendiente ? "Envío por cotizar." :
+    pedido.transferenciaNoLocalizada ? "Transferencia no localizada · Aviso enviado al cliente." :
+    "Pago pendiente de confirmar";
   bloque.appendChild(estado);
   if (pedido.cobro) {
     const corregir = document.createElement("button");
@@ -1197,7 +1255,33 @@ function controlCobro(pedido, importe) {
     bloque.append(editorMetodoCobro(pedido), corregir);
     return bloque;
   }
-  if (pedido.estado === "cancelado" || sinCosto) return bloque;
+  if (pedido.estado === "cancelado") return bloque;
+  if (envioPendiente || (pedido.detalle.entrega?.origen === "manual" && !transferenciaPendiente)) {
+    const formularioEnvio = document.createElement("form");
+    const previo = pedido.detalle.entrega?.envioCentavos ?? null;
+    const envio = campoCatalogo(formularioEnvio, "Costo de envío (MXN)", "number",
+      previo === null ? "" : previo / 100, { required: true, min: "0", max: "1000000", step: "0.01" });
+    const guardarEnvio = document.createElement("button");
+    guardarEnvio.type = "submit";
+    guardarEnvio.textContent = "Publicar costo de envío";
+    formularioEnvio.addEventListener("submit", evento => {
+      evento.preventDefault();
+      guardarCobro(pedido, { accion: "cotizar-envio", envioAnterior: previo,
+        envioCentavos: Math.round(envio.valueAsNumber * 100) }, guardarEnvio);
+    });
+    formularioEnvio.append(guardarEnvio);
+    bloque.append(formularioEnvio);
+  }
+  if (transferenciaPendiente) {
+    const noLocalizada = document.createElement("button");
+    noLocalizada.type = "button";
+    noLocalizada.textContent = "Transferencia no localizada";
+    noLocalizada.addEventListener("click", () => {
+      guardarCobro(pedido, { accion: "no-localizada", reportada: pedido.transferenciaReportada }, noLocalizada);
+    });
+    bloque.append(noLocalizada);
+  }
+  if (sinCosto) return bloque;
 
   const editor = document.createElement("details");
   const titulo = document.createElement("summary");
@@ -1206,7 +1290,7 @@ function controlCobro(pedido, importe) {
   const monto = campoCatalogo(formulario, "Importe recibido", "number", envioPendiente ? "" : total / 100, {
     required: true, min: String(Math.max(1, total) / 100), step: "0.01", readOnly: !envioPendiente
   });
-  const metodo = selectorMetodoCobro(formulario);
+  const metodo = selectorMetodoCobro(formulario, transferenciaPendiente ? "transferencia" : "");
   const guardar = document.createElement("button");
   guardar.type = "submit";
   guardar.textContent = "Marcar pagado";
@@ -1231,7 +1315,10 @@ async function guardarCobro(pedido, datos, boton) {
   estadoPedidos.textContent = "Guardando cobro…";
   try {
     await solicitar("pedidos/cobro", "PUT", { folio: pedido.folio, ...datos });
-    estadoPedidos.textContent = "Cobro actualizado.";
+    estadoPedidos.textContent = {
+      "cotizar-envio": "Costo de envío publicado.",
+      "no-localizada": "Aviso enviado al cliente."
+    }[datos.accion] ?? "Cobro actualizado.";
     await cargarPedidos();
   } catch (error) {
     mostrarErrorPedidos(error);
@@ -1273,7 +1360,8 @@ function actualizarPaginasHistorial() {
 async function cargarPedidos(pagina = historialActual) {
   const version = ++versionPedidos;
   const vista = vistaPedidos.value;
-  const historial = vista === "historial" || vista === "sin-cobro";
+  const reportados = vista === "transferencias-reportadas";
+  const historial = vista === "historial" || vista === "sin-cobro" || reportados;
   filtroEstadoActivos.hidden = vista !== "activos";
   buscarHistorial.hidden = !historial;
   filtroMetodoHistorial.hidden = vista !== "historial";
@@ -1299,7 +1387,11 @@ async function cargarPedidos(pagina = historialActual) {
       firmaListaPedidos = firma;
     }
     if (!pedidos.length) {
-      if (vista === "sin-cobro") {
+      if (reportados) {
+        estadoPedidos.textContent = pagina.folio
+          ? "Ese folio no tiene una transferencia pendiente de verificar."
+          : "No hay transferencias pendientes de verificar en esta página.";
+      } else if (vista === "sin-cobro") {
         estadoPedidos.textContent = pagina.folio
           ? "No hay un pedido entregado sin cobro registrado con ese folio."
           : "No hay pedidos entregados sin cobro registrado en esta página.";
@@ -1313,7 +1405,9 @@ async function cargarPedidos(pagina = historialActual) {
           : "No hay pedidos en esta vista.";
       }
     }
-    else if (!["Estado guardado.", "Cobro actualizado."].includes(estadoPedidos.textContent)) estadoPedidos.textContent = "";
+    else if (!["Estado guardado.", "Cobro actualizado.", "Costo de envío publicado.", "Aviso enviado al cliente."].includes(estadoPedidos.textContent)) {
+      estadoPedidos.textContent = "";
+    }
   } catch (error) {
     if (version === versionPedidos) mostrarErrorPedidos(error);
   } finally {
@@ -1384,7 +1478,8 @@ generarClaveCocina.addEventListener("click", async () => {
 });
 window.setInterval(() => {
   if (panelPedidos.open && !panel.hidden && !document.hidden && !cambiandoPedido &&
-      !document.activeElement?.closest(".control-cobro") && vistaPedidos.value === "activos") {
+      !document.activeElement?.closest(".control-cobro") &&
+      ["activos", "transferencias-reportadas"].includes(vistaPedidos.value)) {
     cargarPedidos();
   }
 }, 15000);

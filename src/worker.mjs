@@ -1,4 +1,4 @@
-import { administrarCobro, administrarPedidos, consultarEstadisticas, pedidosPublicos } from "./pedidos.mjs";
+import { administrarCobro, administrarPedidos, administrarPreferenciasPagos, consultarEstadisticas, exportarCobros, pedidosPublicos } from "./pedidos.mjs";
 import { administrarAgenda, consultarDisponibilidad } from "./reservaciones.mjs";
 import { aplicarCatalogo, guardarProducto, servirFoto } from "./catalogo.mjs";
 import { administrarEntrega, leerEntrega } from "./entrega.mjs";
@@ -301,6 +301,9 @@ async function administrar(request, env, url) {
   if (url.pathname === "/api/admin/estadisticas" && request.method === "GET") {
     return consultarEstadisticas(env.DB, url, await leerMenu(request, env), json);
   }
+  if (url.pathname === "/api/admin/estadisticas/cobros.csv" && request.method === "GET") {
+    return exportarCobros(env.DB, url, await leerMenu(request, env), json);
+  }
 
   if (url.pathname === "/api/admin/pedidos") {
     return administrarPedidos(request, env.DB, url, json);
@@ -308,6 +311,9 @@ async function administrar(request, env, url) {
 
   if (url.pathname === "/api/admin/pedidos/cobro") {
     return administrarCobro(request, env.DB, json);
+  }
+  if (url.pathname === "/api/admin/pagos") {
+    return administrarPreferenciasPagos(request, env.DB, json);
   }
 
   if (url.pathname === "/api/admin/cocina/clave" && request.method === "POST") {
@@ -469,7 +475,7 @@ export default {
       if (url.pathname === "/api/reservaciones/disponibilidad" && request.method === "GET") {
         return await consultarDisponibilidad(env.DB, await leerMenu(request, env), url, json);
       }
-      if (["/api/pedidos", "/api/pedidos/seguimiento", "/api/pedidos/revisar"].includes(url.pathname)) {
+      if (["/api/pedidos", "/api/pedidos/seguimiento", "/api/pedidos/revisar", "/api/pedidos/avisar-transferencia"].includes(url.pathname)) {
         return await pedidosPublicos(request, env, url, () => menuActualizado(request, env), json);
       }
       if (url.pathname.startsWith("/api/admin/")) {

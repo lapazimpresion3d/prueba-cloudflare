@@ -134,6 +134,12 @@ function estadoPublico(fila) {
 
 const columnasCobro = ", c.importe_centavos AS cobro_centavos, c.registrado AS cobro_registrado ";
 const unionCobro = "LEFT JOIN cobros_pedido c ON c.pedido_folio = folio AND c.anulado IS NULL ";
+const totalConEnvio = "total_centavos + COALESCE(json_extract(detalle_json, '$.entrega.envioCentavos'), 0)";
+const pedidoConCobro = `(
+  ${totalConEnvio} > 0
+  OR (json_extract(detalle_json, '$.servicio') = 'domicilio'
+    AND json_extract(detalle_json, '$.entrega') IS NULL)
+)`;
 const metodosCobro = new Map([
   ["efectivo", "Efectivo"], ["tarjeta", "Tarjeta"],
   ["transferencia", "Transferencia"], ["otro", "Otro"]
@@ -150,9 +156,53 @@ function cobroRegistrado(fila, incluirMetodo = false) {
 
 async function pedidoPorToken(db, seguimientoHash) {
   return db.prepare(
-    "SELECT folio, estado, actualizado, detalle_json, total_centavos" + columnasCobro +
+    "SELECT folio, estado, actualizado, detalle_json, total_centavos, transferencia_reportada, transferencia_no_localizada" + columnasCobro +
     "FROM pedidos_demo " + unionCobro + "WHERE seguimiento_hash = ?"
   ).bind(seguimientoHash).first();
+}
+
+async function reportarTransferencia(db, seguimientoHash, totalEsperado, json) {
+  if (!Number.isSafeInteger(totalEsperado) || totalEsperado < 1) {
+    return json({ error: "Actualiza el pedido para consultar el total a pagar." }, 400);
+  }
+  const fila = await db.prepare(`
+    UPDATE pedidos_demo
+    SET transferencia_reportada = COALESCE(transferencia_reportada, MAX(?, COALESCE(transferencia_no_localizada + 1, 0))),
+      transferencia_no_localizada = NULL
+    WHERE seguimiento_hash = ? AND estado <> 'cancelado' AND ${pedidoConCobro}
+      AND ${totalConEnvio} = ?
+      AND (json_extract(detalle_json, '$.servicio') <> 'domicilio' OR json_extract(detalle_json, '$.entrega') IS NOT NULL)
+      AND NOT EXISTS (
+        SELECT 1 FROM cobros_pedido WHERE pedido_folio = pedidos_demo.folio AND anulado IS NULL
+      )
+    RETURNING transferencia_reportada
+  `).bind(Date.now(), seguimientoHash, totalEsperado).first();
+  if (fila) return json({ transferenciaReportada: fila.transferencia_reportada });
+
+  const pedido = await pedidoPorToken(db, seguimientoHash);
+  return pedido
+    ? json({ error: "El pedido o su total cambió. Revisa el seguimiento antes de volver a avisar." }, 409)
+    : json({ error: "No encontramos ese pedido de prueba." }, 404);
+}
+
+async function instruccionesTransferencia(db) {
+  const fila = await db.prepare("SELECT instrucciones_transferencia FROM preferencias_pagos WHERE id = 1").first();
+  return fila?.instrucciones_transferencia ?? "";
+}
+
+export async function administrarPreferenciasPagos(request, db, json) {
+  if (request.method === "GET") return json({ instrucciones: await instruccionesTransferencia(db) });
+  if (request.method !== "PUT") return json({ error: "Método no permitido." }, 405);
+  const datos = await leerJson(request);
+  if (typeof datos?.instrucciones !== "string" || datos.instrucciones.length > 600) {
+    return json({ error: "Escribe hasta 600 caracteres en las instrucciones de transferencia." }, 400);
+  }
+  const instrucciones = datos.instrucciones.trim();
+  await db.prepare(
+    "INSERT INTO preferencias_pagos (id, instrucciones_transferencia) VALUES (1, ?) " +
+    "ON CONFLICT (id) DO UPDATE SET instrucciones_transferencia = excluded.instrucciones_transferencia"
+  ).bind(instrucciones).run();
+  return json({ instrucciones });
 }
 
 export async function pedidosPublicos(request, env, url, obtenerMenu, json) {
@@ -166,15 +216,26 @@ export async function pedidosPublicos(request, env, url, obtenerMenu, json) {
 
   const soloRevisar = url.pathname === "/api/pedidos/revisar";
   const seguimientoHash = soloRevisar ? null : await hash("seguimiento:" + datos.token);
+  if (url.pathname === "/api/pedidos/avisar-transferencia") {
+    return reportarTransferencia(env.DB, seguimientoHash, datos.totalCentavos, json);
+  }
   const previo = soloRevisar ? null : await pedidoPorToken(env.DB, seguimientoHash);
 
   if (url.pathname === "/api/pedidos/seguimiento") {
     if (!previo) return json({ error: "No encontramos ese pedido de prueba." }, 404);
     const detalle = JSON.parse(previo.detalle_json);
     const { servicio, mesa, notas, moneda, lineas, entrega } = detalle;
+    const cobro = cobroRegistrado(previo);
+    const envioPendiente = servicio === "domicilio" && !entrega;
+    const totalAPagarCentavos = envioPendiente ? null : previo.total_centavos + (entrega?.envioCentavos ?? 0);
+    const puedeTransferir = !cobro && previo.estado !== "cancelado" && totalAPagarCentavos > 0;
     return json({
       ...estadoPublico(previo),
-      cobro: cobroRegistrado(previo),
+      cobro,
+      transferenciaReportada: previo.transferencia_reportada,
+      transferenciaNoLocalizada: previo.transferencia_no_localizada,
+      totalAPagarCentavos,
+      instruccionesTransferencia: puedeTransferir ? await instruccionesTransferencia(env.DB) : "",
       subtotalCentavos: previo.total_centavos,
       detalle: {
         servicio, mesa, notas, moneda,
@@ -204,6 +265,17 @@ export async function pedidosPublicos(request, env, url, obtenerMenu, json) {
     const { entrega, error } = cotizarEntrega(menu.entrega, datos.entrega, pedido.totalCentavos);
     if (error) return json({ error }, 409);
     if (entrega) pedido.detalle.entrega = entrega;
+    if (datos.direccionEntrega !== undefined) {
+      const direccion = datos.direccionEntrega;
+      const limites = { calle: 120, colonia: 80, referencias: 160, telefono: 25 };
+      if (!direccion || !Object.entries(limites).every(([campo, maximo]) =>
+        typeof direccion[campo] === "string" && direccion[campo].length <= maximo) ||
+        !direccion.calle.trim() || !direccion.colonia.trim()) {
+        return json({ error: "Revisa la calle, el número y la colonia del pedido." }, 400);
+      }
+      pedido.detalle.direccionEntrega = Object.fromEntries(Object.keys(limites).map(campo =>
+        [campo, direccion[campo].trim()]));
+    }
   }
   if (soloRevisar) return json({ ok: true });
 
@@ -229,18 +301,19 @@ export async function administrarPedidos(request, db, url, json, cocina = false)
   if (request.method === "GET") {
     const vista = cocina ? null : url.searchParams.get("vista");
     const sinCobro = vista === "sin-cobro";
-    const historial = vista === "historial" || sinCobro;
+    const reportados = vista === "transferencias-reportadas";
+    const historial = vista === "historial" || sinCobro || reportados;
     const paginado = historial && url.searchParams.get("pagina") === "1";
     const condiciones = [cocina ? "estado IN ('confirmado', 'preparacion')" :
       historial ? "estado IN ('entregado', 'cancelado')" :
       "estado NOT IN ('entregado', 'cancelado')"];
     if (sinCobro) {
       condiciones[0] = "estado = 'entregado'";
-      condiciones.push("c.pedido_folio IS NULL", `(
-        total_centavos + COALESCE(json_extract(detalle_json, '$.entrega.envioCentavos'), 0) > 0
-        OR (json_extract(detalle_json, '$.servicio') = 'domicilio'
-          AND json_extract(detalle_json, '$.entrega') IS NULL)
-      )`);
+      condiciones.push("c.pedido_folio IS NULL", pedidoConCobro);
+    }
+    if (reportados) {
+      condiciones[0] = "estado <> 'cancelado'";
+      condiciones.push("transferencia_reportada IS NOT NULL", "c.pedido_folio IS NULL");
     }
     const valores = [];
     const estadoActivo = vista === "activos" ? url.searchParams.get("estado") : null;
@@ -275,7 +348,7 @@ export async function administrarPedidos(request, db, url, json, cocina = false)
     const limite = 50;
     const { results } = await db.prepare(
       "SELECT folio, creado, actualizado, estado, detalle_json, total_centavos" +
-      (cocina ? " " : columnasCobro + ", c.metodo AS cobro_metodo ") +
+      (cocina ? " " : columnasCobro + ", c.metodo AS cobro_metodo, transferencia_reportada, transferencia_no_localizada ") +
       "FROM pedidos_demo " + (cocina ? "" : unionCobro) +
       "WHERE " + condiciones.join(" AND ") + " ORDER BY folio " + (historial ? "DESC" : "ASC") + " LIMIT ?"
     ).bind(...valores, paginado ? limite + 1 : limite).all();
@@ -285,7 +358,11 @@ export async function administrarPedidos(request, db, url, json, cocina = false)
         ...estadoPublico(fila), creado: fila.creado,
         acciones: accionesPara(fila.estado, detalle.servicio, cocina)
       };
-      if (!cocina) return { ...pedido, detalle, totalCentavos: fila.total_centavos, cobro: cobroRegistrado(fila, true) };
+      if (!cocina) return {
+        ...pedido, detalle, totalCentavos: fila.total_centavos,
+        cobro: cobroRegistrado(fila, true), transferenciaReportada: fila.transferencia_reportada,
+        transferenciaNoLocalizada: fila.transferencia_no_localizada
+      };
       const { servicio, mesa, notas, lineas } = detalle;
       return { ...pedido, detalle: {
         servicio, mesa, notas,
@@ -328,6 +405,37 @@ export async function administrarCobro(request, db, json) {
   const datos = await leerJson(request);
   if (!Number.isSafeInteger(datos?.folio) || datos.folio < 1) {
     return json({ error: "Indica un folio válido." }, 400);
+  }
+  if (datos.accion === "no-localizada" && Number.isSafeInteger(datos.reportada)) {
+    const fila = await db.prepare(`
+      UPDATE pedidos_demo SET transferencia_no_localizada = MAX(?, transferencia_reportada), transferencia_reportada = NULL
+      WHERE folio = ? AND estado <> 'cancelado' AND transferencia_reportada = ?
+        AND NOT EXISTS (SELECT 1 FROM cobros_pedido WHERE pedido_folio = pedidos_demo.folio AND anulado IS NULL)
+      RETURNING transferencia_no_localizada
+    `).bind(Date.now(), datos.folio, datos.reportada).first();
+    return fila ? json({ transferenciaNoLocalizada: fila.transferencia_no_localizada }) :
+      json({ error: "El aviso ya cambió. Actualiza el pedido." }, 409);
+  }
+  if (datos.accion === "cotizar-envio") {
+    const costo = datos.envioCentavos;
+    const anterior = datos.envioAnterior;
+    const valido = valor => Number.isSafeInteger(valor) && valor >= 0 && valor <= 100000000;
+    if (!valido(costo) || (anterior !== null && !valido(anterior))) {
+      return json({ error: "Indica un costo de envío válido." }, 400);
+    }
+    const fila = await db.prepare(`
+      UPDATE pedidos_demo SET detalle_json = json_set(detalle_json, '$.entrega',
+        json_object('envioCentavos', ?, 'origen', 'manual',
+          'colonia', COALESCE(json_extract(detalle_json, '$.direccionEntrega.colonia'), '')))
+      WHERE folio = ? AND estado <> 'cancelado' AND json_extract(detalle_json, '$.servicio') = 'domicilio'
+        AND json_extract(detalle_json, '$.entrega.envioCentavos') IS ?
+        AND (json_extract(detalle_json, '$.entrega') IS NULL OR
+          (json_extract(detalle_json, '$.entrega.origen') = 'manual' AND transferencia_reportada IS NULL))
+        AND NOT EXISTS (SELECT 1 FROM cobros_pedido WHERE pedido_folio = pedidos_demo.folio AND anulado IS NULL)
+      RETURNING folio
+    `).bind(costo, datos.folio, anterior).first();
+    return fila ? json({ envioCentavos: costo }) :
+      json({ error: "El costo de envío ya cambió o el pedido ya tiene un pago reportado o registrado. Actualiza la lista." }, 409);
   }
   if (datos.accion === "corregir" && Number.isSafeInteger(datos.registrado)) {
     const fila = await db.prepare(
@@ -373,13 +481,13 @@ export async function administrarCobro(request, db, json) {
 
   const fila = await db.prepare(
     "INSERT INTO cobros_pedido (pedido_folio, importe_centavos, registrado, metodo) " +
-    "SELECT folio, ?, ?, ? FROM pedidos_demo WHERE folio = ? AND estado <> 'cancelado' " +
+    "SELECT folio, ?, ?, ? FROM pedidos_demo WHERE folio = ? AND estado <> 'cancelado' AND detalle_json = ? " +
     "ON CONFLICT (pedido_folio) DO UPDATE SET importe_centavos = excluded.importe_centavos, " +
     "registrado = MAX(excluded.registrado, cobros_pedido.registrado + 1), anulado = NULL, metodo = excluded.metodo " +
     "WHERE cobros_pedido.anulado IS NOT NULL " + devolverCobro
-  ).bind(datos.importeCentavos, Date.now(), datos.metodo ?? null, datos.folio).first();
+  ).bind(datos.importeCentavos, Date.now(), datos.metodo ?? null, datos.folio, pedido.detalle_json).first();
   return fila ? json({ cobro: cobroRegistrado(fila, true) }) :
-    json({ error: "El pedido ya tiene un cobro registrado o fue cancelado. Actualiza la lista." }, 409);
+    json({ error: "El pedido o el cobro cambió. Actualiza la lista." }, 409);
 }
 
 const msPorDia = 24 * 60 * 60 * 1000;

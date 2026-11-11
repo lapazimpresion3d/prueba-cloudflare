@@ -13,5 +13,6 @@
 #productos-seguimiento small { display: block; }
 #productos-seguimiento p { margin: 6px 0 0; font-size: .9rem; }
 #notas-seguimiento { white-space: pre-wrap; }
+#datos-transferencia { white-space: pre-wrap; overflow-wrap: anywhere; }
 #importes-seguimiento > div { display: flex; justify-content: space-between; gap: 12px; margin: 8px 0; }
 #importes-seguimiento dd { margin: 0; text-align: right; font-weight: bold; }

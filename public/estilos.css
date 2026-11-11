@@ -978,6 +978,8 @@ footer {
   background: white;
 }
 .acceso-seguimiento a { color: var(--rojo); font-weight: bold; }
+#aviso-mesa-texto { margin: 0 0 8px; }
+.salir-mesa { color: var(--rojo); font-weight: bold; }
 #contacto-negocio {
   max-width: 720px;
   margin: 24px auto 0;

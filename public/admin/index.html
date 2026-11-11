@@ -68,6 +68,7 @@
           <option value="activos">Pedidos activos</option>
           <option value="historial">Entregados y cancelados</option>
           <option value="sin-cobro">Entregados sin cobro registrado</option>
+          <option value="transferencias-reportadas">Transferencias por verificar</option>
         </select>
         <button id="actualizar-pedidos" type="button">Actualizar</button>
         <div id="filtro-estado-activos">
@@ -145,7 +146,7 @@
             <legend>Reglas de entrega</legend>
             <label for="modo-entrega">Cómo se calcula el envío</label>
             <select id="modo-entrega">
-              <option value="confirmar">Confirmar por WhatsApp</option>
+              <option value="confirmar">Cotizar cada envío</option>
               <option value="colonias">Calcular por colonia</option>
             </select>
             <label for="minimo-entrega">Pedido mínimo de productos (MXN)</label>
@@ -179,6 +180,14 @@
           </fieldset>
         </form>
         <p id="negocio-estado" role="status"></p>
+        <h2>Transferencias</h2>
+        <form id="formulario-pagos" hidden>
+          <label for="datos-transferencia-negocio">Instrucciones de transferencia</label>
+          <p>El cliente verá este texto en el seguimiento junto con el total y el folio. En la demo usa datos ficticios. Deja el campo vacío para ocultar las instrucciones.</p>
+          <textarea id="datos-transferencia-negocio" rows="4" maxlength="600"></textarea>
+          <button type="submit">Guardar instrucciones de pago</button>
+        </form>
+        <p id="pagos-estado" role="status"></p>
       </details>
       <details id="panel-estadisticas">
         <summary>Estadísticas de pedidos de prueba</summary>

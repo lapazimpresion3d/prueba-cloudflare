@@ -819,6 +819,7 @@ agregar.addEventListener("click", () => {
   }
 }
 
+configurarSalidaMesa();
 cargarMenu();
 
 
@@ -1062,7 +1063,7 @@ function configurarEntrega(reglas = { modo: "confirmar" }) {
 
 function revisarEntrega() {
   if (reglasEntrega.modo !== "colonias") {
-    return { aviso: "El negocio confirmará el costo de envío y el tiempo de entrega por WhatsApp." };
+    return { aviso: "El negocio cotizará el envío. Si registras el pedido, consulta el total en Seguimiento." };
   }
   const colonia = reglasEntrega.colonias.find(item => item.id === zonaEntrega.value);
   if (!colonia) return {
@@ -1075,7 +1076,7 @@ function revisarEntrega() {
     colonia,
     ...(faltante > 0
       ? { error: "Te faltan " + importeEntrega(faltante) + " en productos para alcanzar el mínimo de entrega." }
-      : { aviso: "El negocio confirmará el tiempo de entrega por WhatsApp." })
+      : { aviso: "Tiempo de entrega por confirmar." })
   };
 }
 
@@ -1097,6 +1098,19 @@ function mesaDelMenu(menu) {
   return menu.reservaciones?.mesas?.find(mesa => mesa.codigo === codigoMesa);
 }
 
+function configurarSalidaMesa() {
+  if (codigoMesa === null) return;
+
+  const destino = new URL(window.location.href);
+  destino.searchParams.delete("mesa");
+  destino.hash = "menu";
+  document.querySelectorAll("[data-salir-mesa]").forEach(enlace => {
+    enlace.href = destino.href;
+  });
+  document.getElementById("aviso-mesa").hidden = false;
+  document.getElementById("salida-mesa-carrito").hidden = false;
+}
+
 function configurarPedidoEnMesa(menu) {
   if (codigoMesa === null) return;
 
@@ -1104,14 +1118,13 @@ function configurarPedidoEnMesa(menu) {
   claveCarrito = mesaPedido ? claveCarritoGeneral + ":mesa:" + codigoMesa : claveCarritoGeneral;
   recuperarCarrito();
 
-  const avisoMesa = document.getElementById("aviso-mesa");
-  avisoMesa.hidden = false;
+  const avisoMesa = document.getElementById("aviso-mesa-texto");
   if (!mesaPedido) {
     avisoMesa.textContent = "El enlace no identifica una mesa del menú. Puedes pedir para recoger o a domicilio.";
     return;
   }
 
-  avisoMesa.textContent = "Estás en " + mesaPedido.id + ". Tu pedido de prueba llevará esa mesa en WhatsApp.";
+  avisoMesa.textContent = "Pedido en " + mesaPedido.id + ". Si estás fuera del local, cambia el tipo de servicio.";
   const mesaCarrito = document.getElementById("mesa-carrito");
   mesaCarrito.textContent = "Pedido en " + mesaPedido.id;
   mesaCarrito.hidden = false;
@@ -1215,6 +1228,7 @@ document.getElementById("enviar-pedido")
 
     const esEntrega = !mesaPedido && tipoServicio.value === "domicilio";
     let entrega;
+    let direccionEntrega;
 
     if (esEntrega) {
       const calle = document.getElementById("calle-entrega");
@@ -1244,6 +1258,7 @@ document.getElementById("enviar-pedido")
         telefonoEntrega.focus();
         return;
       }
+      direccionEntrega = { calle: calle.value.trim(), colonia, referencias, telefono: contacto };
 
       detalleServicio +=
         "Dirección: " + calle.value.trim() + "\n" +
@@ -1330,19 +1345,20 @@ document.getElementById("enviar-pedido")
       "Me interesa conocer las funciones de este sistema.";
 
 
-    prepararRegistroPedido(notas, entrega);
+    prepararRegistroPedido(notas, entrega, direccionEntrega);
     resumenPedido.textContent = mensaje;
     resumenPedido.scrollTop = 0;
     revisionFueraHorario.hidden = consultarHorario() !== false;
     revisionPedido.showModal();
   });
 
-function prepararRegistroPedido(notas, entrega) {
+function prepararRegistroPedido(notas, entrega, direccionEntrega) {
   const datos = {
     servicio: mesaPedido ? "mesa" : tipoServicio.value,
     codigoMesa: mesaPedido ? codigoMesa : null,
     notas,
     ...(entrega ? { entrega } : {}),
+    ...(direccionEntrega ? { direccionEntrega } : {}),
     lineas: carrito.map(item => ({
       productoId: item.productoId,
       cantidad: item.cantidad,

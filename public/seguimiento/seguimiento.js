@@ -4,15 +4,24 @@ const estado = document.getElementById("estado-seguimiento");
 const fecha = document.getElementById("fecha-seguimiento");
 const actualizar = document.getElementById("actualizar-seguimiento");
 const cobroSeguimiento = document.getElementById("cobro-seguimiento");
+const botonAviso = document.getElementById("avisar-transferencia");
+const estadoAviso = document.getElementById("estado-aviso-transferencia");
+const instruccionesPago = document.getElementById("instrucciones-pago");
+const totalPago = document.getElementById("total-pago");
+const referenciaPago = document.getElementById("referencia-pago");
+const datosTransferencia = document.getElementById("datos-transferencia");
 const detalleSeguimiento = document.getElementById("detalle-seguimiento");
 const servicioSeguimiento = document.getElementById("servicio-seguimiento");
 const productosSeguimiento = document.getElementById("productos-seguimiento");
 const notasSeguimiento = document.getElementById("notas-seguimiento");
 const importesSeguimiento = document.getElementById("importes-seguimiento");
 let consultando = false;
+let avisando = false;
 let terminado = false;
 let referenciaInvalida = false;
 let detalleMostrado = false;
+let envioMostrado;
+let totalReportable;
 
 function mostrarDetallePedido(pedido) {
   const { detalle, subtotalCentavos } = pedido;
@@ -21,7 +30,7 @@ function mostrarDetallePedido(pedido) {
   servicioSeguimiento.textContent = {
     mesa: "Pedido en " + detalle.mesa,
     recoger: "Para recoger en el establecimiento",
-    domicilio: detalle.entrega ? "Entrega a domicilio · " + detalle.entrega.colonia : "Entrega a domicilio"
+    domicilio: detalle.entrega?.colonia ? "Entrega a domicilio · " + detalle.entrega.colonia : "Entrega a domicilio"
   }[detalle.servicio];
 
   const productos = detalle.lineas.map(linea => {
@@ -62,12 +71,13 @@ function mostrarDetallePedido(pedido) {
   }));
   detalleSeguimiento.hidden = false;
   detalleMostrado = true;
+  envioMostrado = detalle.entrega?.envioCentavos;
 }
 
 async function cargarSeguimiento() {
-  if (consultando || referenciaInvalida) return;
+  if (consultando || avisando || referenciaInvalida) return;
   consultando = true;
-  actualizar.disabled = true;
+  actualizar.disabled = botonAviso.disabled = true;
   try {
     const respuesta = await fetch("/api/pedidos/seguimiento", {
       method: "POST",
@@ -81,6 +91,8 @@ async function cargarSeguimiento() {
       if (respuesta.status === 404 || respuesta.status === 400) {
         referenciaInvalida = true;
         detalleSeguimiento.hidden = cobroSeguimiento.hidden = true;
+        botonAviso.hidden = estadoAviso.hidden = true;
+        instruccionesPago.hidden = true;
       }
       return;
     }
@@ -96,23 +108,76 @@ async function cargarSeguimiento() {
     const dinero = new Intl.NumberFormat("es-MX", { style: "currency", currency: pedido.detalle?.moneda ?? "MXN" });
     const sinCosto = pedido.subtotalCentavos === 0 &&
       (pedido.detalle?.servicio !== "domicilio" || pedido.detalle.entrega?.envioCentavos === 0);
+    const cancelado = pedido.estado === "cancelado";
+    const envioPendiente = pedido.detalle?.servicio === "domicilio" && !pedido.detalle.entrega;
+    const puedeAvisar = !pedido.cobro && !sinCosto && !cancelado && !envioPendiente;
+    totalReportable = pedido.totalAPagarCentavos;
+    const mostrarDatosPago = puedeAvisar && pedido.totalAPagarCentavos > 0 && !pedido.transferenciaReportada;
+    instruccionesPago.hidden = !mostrarDatosPago;
+    if (mostrarDatosPago) {
+      totalPago.textContent = "Total a pagar · " + dinero.format(pedido.totalAPagarCentavos / 100);
+      referenciaPago.hidden = datosTransferencia.hidden = !pedido.instruccionesTransferencia;
+      referenciaPago.textContent = "Referencia para la transferencia · Pedido " + pedido.folio;
+      datosTransferencia.textContent = pedido.instruccionesTransferencia;
+    }
     const estadoCobro = pedido.cobro ? "Pagado · " + dinero.format(pedido.cobro.importeCentavos / 100) :
-      sinCosto ? "Pedido sin costo" : "Pago pendiente de confirmar";
+      cancelado ? "Pedido cancelado" :
+      sinCosto ? "Pedido sin costo" :
+      pedido.transferenciaReportada ? "Transferencia reportada. El negocio está por verificar el pago." :
+      envioPendiente ? "Envío por cotizar. Aquí aparecerá el total cuando el negocio confirme el costo." :
+      pedido.transferenciaNoLocalizada ? "El negocio aún no localiza la transferencia. Revisa los datos y vuelve a avisar si ya la hiciste." :
+      "Pago pendiente de confirmar";
     if (cobroSeguimiento.textContent !== estadoCobro) cobroSeguimiento.textContent = estadoCobro;
     cobroSeguimiento.hidden = false;
-    if (!detalleMostrado && pedido.detalle) mostrarDetallePedido(pedido);
-    terminado = ["entregado", "cancelado"].includes(pedido.estado);
+    botonAviso.hidden = !puedeAvisar || Boolean(pedido.transferenciaReportada);
+    if (botonAviso.hidden) estadoAviso.hidden = true;
+    if (pedido.detalle && (!detalleMostrado || envioMostrado !== pedido.detalle.entrega?.envioCentavos)) {
+      mostrarDetallePedido(pedido);
+    }
+    terminado = cancelado || (pedido.estado === "entregado" && (pedido.cobro || sinCosto));
   } catch {
     estado.textContent = "No pudimos consultar el estado. Intenta actualizar.";
   } finally {
     consultando = false;
     actualizar.hidden = referenciaInvalida;
-    actualizar.disabled = false;
+    actualizar.disabled = botonAviso.disabled = false;
+  }
+}
+
+async function avisarTransferencia() {
+  if (consultando || avisando || botonAviso.hidden) return;
+  avisando = true;
+  botonAviso.disabled = actualizar.disabled = true;
+  estadoAviso.hidden = false;
+  estadoAviso.textContent = "Enviando aviso…";
+  let actualizarDespues = false;
+  try {
+    const respuesta = await fetch("/api/pedidos/avisar-transferencia", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, totalCentavos: totalReportable }),
+      cache: "no-store"
+    });
+    const resultado = await respuesta.json();
+    if (!respuesta.ok) {
+      estadoAviso.textContent = resultado.error ?? "No pudimos enviar el aviso.";
+      actualizarDespues = respuesta.status === 409 || respuesta.status === 404;
+      return;
+    }
+    cobroSeguimiento.textContent = "Transferencia reportada. El negocio está por verificar el pago.";
+    botonAviso.hidden = estadoAviso.hidden = instruccionesPago.hidden = true;
+  } catch {
+    estadoAviso.textContent = "No pudimos confirmar el envío del aviso. Intenta nuevamente.";
+  } finally {
+    avisando = false;
+    botonAviso.disabled = actualizar.disabled = false;
+    if (actualizarDespues) cargarSeguimiento();
   }
 }
 
 if (/^[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/.test(token)) {
   actualizar.addEventListener("click", cargarSeguimiento);
+  botonAviso.addEventListener("click", avisarTransferencia);
   cargarSeguimiento();
   window.setInterval(() => {
     if (!document.hidden && !terminado) cargarSeguimiento();
