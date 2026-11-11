@@ -134,7 +134,10 @@ function estadoPublico(fila) {
 
 const columnasCobro = ", c.importe_centavos AS cobro_centavos, c.registrado AS cobro_registrado ";
 const unionCobro = "LEFT JOIN cobros_pedido c ON c.pedido_folio = folio AND c.anulado IS NULL ";
-const metodosCobro = ["efectivo", "tarjeta", "transferencia", "otro"];
+const metodosCobro = new Map([
+  ["efectivo", "Efectivo"], ["tarjeta", "Tarjeta"],
+  ["transferencia", "Transferencia"], ["otro", "Otro"]
+]);
 
 function cobroRegistrado(fila, incluirMetodo = false) {
   return fila.cobro_registrado == null ? null :
@@ -240,11 +243,19 @@ export async function administrarPedidos(request, db, url, json, cocina = false)
       )`);
     }
     const valores = [];
+    const estadoActivo = vista === "activos" ? url.searchParams.get("estado") : null;
+    if (estadoActivo) {
+      if (!Object.hasOwn(estados, estadoActivo) || estadoActivo === "entregado" || estadoActivo === "cancelado") {
+        return json({ error: "Selecciona un estado válido para los pedidos activos." }, 400);
+      }
+      condiciones.push("estado = ?");
+      valores.push(estadoActivo);
+    }
     const metodo = vista === "historial" ? url.searchParams.get("metodo") : null;
     if (metodo === "sin-especificar") {
       condiciones.push("c.pedido_folio IS NOT NULL", "c.metodo IS NULL");
     } else if (metodo) {
-      if (!metodosCobro.includes(metodo)) {
+      if (!metodosCobro.has(metodo)) {
         return json({ error: "Selecciona un método de pago válido." }, 400);
       }
       condiciones.push("c.metodo = ?");
@@ -328,8 +339,8 @@ export async function administrarCobro(request, db, json) {
   const devolverCobro = "RETURNING importe_centavos AS cobro_centavos, registrado AS cobro_registrado, metodo AS cobro_metodo";
   if (datos.accion === "editar-metodo") {
     if (!Number.isSafeInteger(datos.registrado) || datos.registrado < 1 ||
-        (datos.metodoAnterior !== null && !metodosCobro.includes(datos.metodoAnterior)) ||
-        !metodosCobro.includes(datos.metodo)) {
+        (datos.metodoAnterior !== null && !metodosCobro.has(datos.metodoAnterior)) ||
+        !metodosCobro.has(datos.metodo)) {
       return json({ error: "Selecciona un método de pago válido y vuelve a intentar." }, 400);
     }
     const fila = await db.prepare(
@@ -342,7 +353,7 @@ export async function administrarCobro(request, db, json) {
   if (datos.accion !== "registrar" || !Number.isSafeInteger(datos.importeCentavos) || datos.importeCentavos < 1) {
     return json({ error: "Indica el importe que recibiste." }, 400);
   }
-  if (datos.metodo !== undefined && !metodosCobro.includes(datos.metodo)) {
+  if (datos.metodo !== undefined && !metodosCobro.has(datos.metodo)) {
     return json({ error: "Selecciona un método de pago válido." }, 400);
   }
 
@@ -399,7 +410,7 @@ function inicioLocal(formato, fecha, utc) {
   return minimo;
 }
 
-export async function consultarEstadisticas(db, url, menu, json) {
+function periodoEstadisticas(url, menu) {
   const timeZone = menu.horario?.zonaHoraria || "America/Mazatlan";
   const formatoFecha = new Intl.DateTimeFormat("en-CA", {
     timeZone,
@@ -409,7 +420,7 @@ export async function consultarEstadisticas(db, url, menu, json) {
   const diasSolicitados = url.searchParams.get("dias");
   if (diasSolicitados !== null && (!["1", "7", "30"].includes(diasSolicitados) ||
       url.searchParams.has("desde") || url.searchParams.has("hasta"))) {
-    return json({ error: "Selecciona un período rápido válido o elige fechas específicas." }, 400);
+    return { error: "Selecciona un período rápido válido o elige fechas específicas." };
   }
   const dias = Number(diasSolicitados ?? 7);
   const desdePredeterminado = new Date(fechaEnUtc(hoy) - (dias - 1) * msPorDia).toISOString().slice(0, 10);
@@ -420,8 +431,51 @@ export async function consultarEstadisticas(db, url, menu, json) {
 
   if (!Number.isFinite(inicioUtc) || !Number.isFinite(ultimoUtc) ||
       inicioUtc > ultimoUtc || hasta > hoy || ultimoUtc - inicioUtc >= 31 * msPorDia) {
-    return json({ error: "Elige un período de hasta 31 días, con fechas de hoy o anteriores." }, 400);
+    return { error: "Elige un período de hasta 31 días, con fechas de hoy o anteriores." };
   }
+  return { timeZone, formatoFecha, hoy, desde, hasta, inicioUtc, ultimoUtc };
+}
+
+export async function exportarCobros(db, url, menu, json) {
+  const periodo = periodoEstadisticas(url, menu);
+  if (periodo.error) return json({ error: periodo.error }, 400);
+
+  const { timeZone, formatoFecha, desde, hasta, inicioUtc, ultimoUtc } = periodo;
+  const inicio = inicioLocal(formatoFecha, desde, inicioUtc);
+  const finUtc = ultimoUtc + msPorDia;
+  const fin = inicioLocal(formatoFecha, new Date(finUtc).toISOString().slice(0, 10), finUtc);
+  const { results } = await db.prepare(`
+    SELECT pedido_folio, registrado, metodo, importe_centavos
+    FROM cobros_pedido
+    WHERE anulado IS NULL AND registrado >= ? AND registrado < ?
+    ORDER BY registrado, pedido_folio
+  `).bind(inicio, fin).all();
+
+  const formatoHora = new Intl.DateTimeFormat("en-GB", {
+    timeZone, hourCycle: "h23", hour: "2-digit", minute: "2-digit", second: "2-digit"
+  });
+  const filas = [["Folio", "Fecha de cobro", "Hora local", "Método de pago", "Importe", "Moneda"]];
+  const moneda = /^[A-Z]{3}$/.test(menu.moneda) ? menu.moneda : "";
+  for (const fila of results) {
+    filas.push([
+      fila.pedido_folio, fechaCalendario(formatoFecha, fila.registrado), formatoHora.format(fila.registrado),
+      metodosCobro.get(fila.metodo) ?? "Sin especificar", (fila.importe_centavos / 100).toFixed(2), moneda
+    ]);
+  }
+  const csv = filas.map(fila => fila.join(",")).join("\r\n");
+  return new Response("\uFEFF" + csv + "\r\n", {
+    headers: {
+      "Cache-Control": "no-store",
+      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Disposition": `attachment; filename="el-comal-cobros-${desde}-a-${hasta}.csv"`
+    }
+  });
+}
+
+export async function consultarEstadisticas(db, url, menu, json) {
+  const periodo = periodoEstadisticas(url, menu);
+  if (periodo.error) return json({ error: periodo.error }, 400);
+  const { timeZone, formatoFecha, hoy, desde, hasta, inicioUtc, ultimoUtc } = periodo;
 
   const fechas = [];
   const limites = [];
@@ -480,7 +534,7 @@ export async function consultarEstadisticas(db, url, menu, json) {
   const cobros = { cantidad: 0, importeCentavos: 0 };
   const pedidosAnteriores = pedidosPorDia.results.find(fila => fila.dia === -1);
   const cobrosAnteriores = { cantidad: 0, importeCentavos: 0 };
-  const cobrosPorMetodo = new Map([...metodosCobro, null].map(metodo => [
+  const cobrosPorMetodo = new Map([...metodosCobro.keys(), null].map(metodo => [
     metodo, { metodo, cantidad: 0, importeCentavos: 0 }
   ]));
   const periodoAnterior = comparar ? {

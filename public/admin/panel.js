@@ -49,6 +49,8 @@ let solicitudAgenda = null;
 let versionAgenda = 0;
 const panelPedidos = document.getElementById("panel-pedidos");
 const vistaPedidos = document.getElementById("vista-pedidos");
+const filtroEstadoActivos = document.getElementById("filtro-estado-activos");
+const estadoActivos = document.getElementById("estado-activos");
 const actualizarPedidos = document.getElementById("actualizar-pedidos");
 const estadoPedidos = document.getElementById("pedidos-estado");
 const listaPedidos = document.getElementById("lista-pedidos");
@@ -143,6 +145,8 @@ function mostrarAcceso() {
   agenda.open = false;
   panelPedidos.open = false;
   vistaPedidos.value = "activos";
+  estadoActivos.value = "";
+  filtroEstadoActivos.hidden = false;
   buscarHistorial.reset();
   buscarHistorial.hidden = paginasHistorial.hidden = true;
   historialActual = { cursores: [null], folio: "", metodo: "", siguiente: null };
@@ -1270,9 +1274,12 @@ async function cargarPedidos(pagina = historialActual) {
   const version = ++versionPedidos;
   const vista = vistaPedidos.value;
   const historial = vista === "historial" || vista === "sin-cobro";
+  filtroEstadoActivos.hidden = vista !== "activos";
   buscarHistorial.hidden = !historial;
   filtroMetodoHistorial.hidden = vista !== "historial";
   const parametros = new URLSearchParams({ vista });
+  const estado = vista === "activos" ? estadoActivos.value : "";
+  if (estado) parametros.set("estado", estado);
   if (historial) {
     parametros.set("pagina", "1");
     const antes = pagina.cursores.at(-1);
@@ -1298,6 +1305,8 @@ async function cargarPedidos(pagina = historialActual) {
           : "No hay pedidos entregados sin cobro registrado en esta página.";
       } else if (vista === "historial" && pagina.metodo) {
         estadoPedidos.textContent = "No hay pedidos que coincidan con los filtros.";
+      } else if (estado) {
+        estadoPedidos.textContent = "No hay pedidos activos en el estado seleccionado.";
       } else {
         estadoPedidos.textContent = historial && pagina.folio
           ? "No hay un pedido entregado o cancelado con ese folio."
@@ -1329,6 +1338,9 @@ vistaPedidos.addEventListener("change", () => {
   consultarPrimeraPagina();
 });
 actualizarPedidos.addEventListener("click", () => cargarPedidos());
+estadoActivos.addEventListener("change", () => {
+  if (vistaPedidos.value === "activos") consultarPrimeraPagina();
+});
 metodoHistorial.addEventListener("change", () => {
   if (vistaPedidos.value === "historial") buscarHistorial.requestSubmit();
 });

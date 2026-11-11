@@ -70,6 +70,17 @@
           <option value="sin-cobro">Entregados sin cobro registrado</option>
         </select>
         <button id="actualizar-pedidos" type="button">Actualizar</button>
+        <div id="filtro-estado-activos">
+          <label for="estado-activos">Estado del pedido</label>
+          <select id="estado-activos">
+            <option value="">Todos los estados</option>
+            <option value="recibido">Recibido</option>
+            <option value="confirmado">Confirmado</option>
+            <option value="preparacion">En preparación</option>
+            <option value="listo">Listo</option>
+            <option value="en_reparto">En reparto</option>
+          </select>
+        </div>
         <form id="buscar-historial" hidden>
           <div id="filtro-metodo-historial" hidden>
             <label for="metodo-historial">Método de pago</label>
