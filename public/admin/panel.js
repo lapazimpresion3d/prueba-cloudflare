@@ -71,11 +71,24 @@ let cambiandoPedido = false;
 let historialActual = { cursores: [null], folio: "", siguiente: null };
 const panelEstadisticas = document.getElementById("panel-estadisticas");
 const formularioEstadisticas = document.getElementById("formulario-estadisticas");
+const controlesEstadisticas = formularioEstadisticas.querySelectorAll("button, input");
 const desdeEstadisticas = document.getElementById("estadisticas-desde");
 const hastaEstadisticas = document.getElementById("estadisticas-hasta");
 const estadoEstadisticas = document.getElementById("estadisticas-estado");
 const resultadoEstadisticas = document.getElementById("resultado-estadisticas");
+const descargarEstadisticas = document.getElementById("descargar-estadisticas");
 let versionEstadisticas = 0;
+let estadisticasConsultadas = null;
+const nombresMetodosCobro = new Map([
+  ["efectivo", "Efectivo"],
+  ["tarjeta", "Tarjeta"],
+  ["transferencia", "Transferencia"],
+  ["otro", "Otro"]
+]);
+
+function nombreMetodoCobro(metodo) {
+  return nombresMetodosCobro.get(metodo) ?? "Sin especificar";
+}
 
 async function solicitar(ruta, method = "GET", datos) {
   const respuesta = await fetch("/api/admin/" + ruta, {
@@ -139,9 +152,14 @@ function mostrarAcceso() {
   versionPedidos++;
   panelEstadisticas.open = false;
   versionEstadisticas++;
+  estadisticasConsultadas = null;
+  descargarEstadisticas.disabled = true;
   formularioEstadisticas.reset();
-  formularioEstadisticas.querySelector("button").disabled = false;
+  controlesEstadisticas.forEach(control => { control.disabled = false; });
   resultadoEstadisticas.hidden = true;
+  document.getElementById("estadisticas-dias").replaceChildren();
+  document.getElementById("estadisticas-comparacion").replaceChildren();
+  document.getElementById("comparacion-estadisticas").open = false;
   estadoEstadisticas.textContent = "";
   solicitudAgenda = null;
   versionAgenda++;
@@ -1111,7 +1129,8 @@ function controlCobro(pedido, importe) {
   const total = pedido.totalCentavos + (pedido.detalle.entrega?.envioCentavos ?? 0);
   const sinCosto = !envioPendiente && total === 0;
   const estado = document.createElement("p");
-  estado.textContent = pedido.cobro ? "Pagado · " + importe(pedido.cobro.importeCentavos) :
+  estado.textContent = pedido.cobro
+    ? `Pagado · ${importe(pedido.cobro.importeCentavos)} · ${nombreMetodoCobro(pedido.cobro.metodo)}` :
     sinCosto ? "Pedido sin costo" : "Pago pendiente de confirmar";
   bloque.appendChild(estado);
   if (pedido.cobro) {
@@ -1135,14 +1154,19 @@ function controlCobro(pedido, importe) {
   const monto = campoCatalogo(formulario, "Importe recibido", "number", envioPendiente ? "" : total / 100, {
     required: true, min: String(Math.max(1, total) / 100), step: "0.01", readOnly: !envioPendiente
   });
+  const metodo = campoCatalogo(formulario, "Método de pago", "select", "", { required: true });
+  metodo.append(new Option("Selecciona un método", "", true, true));
+  for (const [valor, etiqueta] of nombresMetodosCobro) {
+    metodo.append(new Option(etiqueta, valor));
+  }
   const guardar = document.createElement("button");
   guardar.type = "submit";
   guardar.textContent = "Marcar pagado";
   formulario.addEventListener("submit", evento => {
     evento.preventDefault();
     const importeCentavos = Math.round(monto.valueAsNumber * 100);
-    if (window.confirm("¿Confirmas que recibiste " + importe(importeCentavos) + " para este pedido?")) {
-      guardarCobro(pedido, { accion: "registrar", importeCentavos }, guardar);
+    if (window.confirm(`¿Confirmas este cobro de ${importe(importeCentavos)}? Método de pago: ${nombreMetodoCobro(metodo.value)}.`)) {
+      guardarCobro(pedido, { accion: "registrar", importeCentavos, metodo: metodo.value }, guardar);
     }
   });
   formulario.appendChild(guardar);
@@ -1192,7 +1216,7 @@ function actualizarPaginasHistorial() {
   const pagina = historialActual.cursores.length;
   const hayAnterior = pagina > 1;
   const haySiguiente = historialActual.siguiente !== null;
-  paginasHistorial.hidden = vistaPedidos.value !== "historial" || (!hayAnterior && !haySiguiente);
+  paginasHistorial.hidden = vistaPedidos.value === "activos" || (!hayAnterior && !haySiguiente);
   anteriorHistorial.disabled = !hayAnterior;
   siguienteHistorial.disabled = !haySiguiente;
   paginaHistorial.textContent = "Página " + pagina;
@@ -1200,9 +1224,10 @@ function actualizarPaginasHistorial() {
 
 async function cargarPedidos(pagina = historialActual) {
   const version = ++versionPedidos;
-  const historial = vistaPedidos.value === "historial";
+  const vista = vistaPedidos.value;
+  const historial = vista === "historial" || vista === "sin-cobro";
   buscarHistorial.hidden = !historial;
-  const parametros = new URLSearchParams({ vista: vistaPedidos.value });
+  const parametros = new URLSearchParams({ vista });
   if (historial) {
     parametros.set("pagina", "1");
     const antes = pagina.cursores.at(-1);
@@ -1221,9 +1246,15 @@ async function cargarPedidos(pagina = historialActual) {
       firmaListaPedidos = firma;
     }
     if (!pedidos.length) {
-      estadoPedidos.textContent = historial && pagina.folio
-        ? "No hay un pedido entregado o cancelado con ese folio."
-        : "No hay pedidos en esta vista.";
+      if (vista === "sin-cobro") {
+        estadoPedidos.textContent = pagina.folio
+          ? "No hay un pedido entregado sin cobro registrado con ese folio."
+          : "No hay pedidos entregados sin cobro registrado en esta página.";
+      } else {
+        estadoPedidos.textContent = historial && pagina.folio
+          ? "No hay un pedido entregado o cancelado con ese folio."
+          : "No hay pedidos en esta vista.";
+      }
     }
     else if (!["Estado guardado.", "Cobro actualizado."].includes(estadoPedidos.textContent)) estadoPedidos.textContent = "";
   } catch (error) {
@@ -1291,22 +1322,8 @@ window.setInterval(() => {
   }
 }, 15000);
 
-function mostrarEstadisticas(datos) {
-  const dinero = new Intl.NumberFormat("es-MX", {
-    style: "currency", currency: datos.moneda
-  });
-  const moneda = centavos => dinero.format(centavos / 100);
-  const cantidad = new Intl.NumberFormat("es-MX");
-  const indicadores = [
-    ["Pedidos recibidos", cantidad.format(datos.recibidos)],
-    ["En curso", cantidad.format(datos.enCurso)],
-    ["Entregados", cantidad.format(datos.entregados)],
-    ["Cancelados", cantidad.format(datos.cancelados)],
-    ["Importe de productos entregados", moneda(datos.importeCentavos)],
-    ["Promedio por pedido entregado", datos.promedioCentavos === null ? "—" : moneda(datos.promedioCentavos)]
-  ];
-  const resumen = document.getElementById("estadisticas-resumen");
-  resumen.replaceChildren(...indicadores.map(([nombre, valor]) => {
+function mostrarIndicadores(id, indicadores) {
+  document.getElementById(id).replaceChildren(...indicadores.map(([nombre, valor]) => {
     const fila = document.createElement("div");
     const etiqueta = document.createElement("dt");
     const dato = document.createElement("dd");
@@ -1315,31 +1332,216 @@ function mostrarEstadisticas(datos) {
     fila.append(etiqueta, dato);
     return fila;
   }));
+}
+
+function franjaHoraria(hora) {
+  const inicio = String(hora).padStart(2, "0");
+  return inicio + ":00–" + inicio + ":59";
+}
+
+function fechaEstadisticas(fecha) {
+  return fecha.split("-").reverse().join("/");
+}
+
+function filaEstadisticas(encabezado, valores) {
+  const fila = document.createElement("tr");
+  const celdaEncabezado = document.createElement("th");
+  celdaEncabezado.scope = "row";
+  celdaEncabezado.append(encabezado);
+  fila.append(celdaEncabezado);
+  for (const valor of valores) {
+    const celda = document.createElement("td");
+    celda.textContent = valor;
+    fila.append(celda);
+  }
+  return fila;
+}
+
+function indicadoresComparables(periodo, moneda) {
+  return [
+    ["Pedidos recibidos", periodo.recibidos, "pedidos"],
+    ["Cobros registrados", periodo.cobros.cantidad, "cobros"],
+    ["Importe total recibido", periodo.cobros.importeCentavos, moneda]
+  ];
+}
+
+function mostrarComparacion(datos, cantidad, dinero) {
+  const detalle = document.getElementById("comparacion-estadisticas");
+  const cuerpo = document.getElementById("estadisticas-comparacion");
+  const anterior = datos.periodoAnterior;
+  detalle.hidden = !anterior;
+  if (!anterior) {
+    cuerpo.replaceChildren();
+    return;
+  }
+
+  document.getElementById("estadisticas-periodo-anterior").textContent =
+    `Período anterior del ${fechaEstadisticas(anterior.desde)} al ${fechaEstadisticas(anterior.hasta)}.`;
+  document.getElementById("estadisticas-comparacion-hoy").hidden = datos.hasta !== datos.hoy;
+  const diferenciaCantidad = new Intl.NumberFormat("es-MX", { signDisplay: "exceptZero" });
+  const diferenciaDinero = new Intl.NumberFormat("es-MX", {
+    style: "currency", currency: datos.moneda, signDisplay: "exceptZero"
+  });
+  const indicadoresAnteriores = indicadoresComparables(anterior, datos.moneda);
+  const filas = indicadoresComparables(datos, datos.moneda).map(([indicador, valor, unidad], indice) => {
+    const valorAnterior = indicadoresAnteriores[indice][1];
+    const diferencia = valor - valorAnterior;
+    const valores = unidad === datos.moneda
+      ? [dinero.format(valor / 100), dinero.format(valorAnterior / 100), diferenciaDinero.format(diferencia / 100)]
+      : [cantidad.format(valor), cantidad.format(valorAnterior), diferenciaCantidad.format(diferencia)];
+    return filaEstadisticas(indicador, valores);
+  });
+  cuerpo.replaceChildren(...filas);
+}
+
+function mostrarEstadisticas(datos) {
+  const dinero = new Intl.NumberFormat("es-MX", {
+    style: "currency", currency: datos.moneda
+  });
+  const moneda = centavos => dinero.format(centavos / 100);
+  const cantidad = new Intl.NumberFormat("es-MX");
+  mostrarIndicadores("estadisticas-resumen", [
+    ["Pedidos recibidos", cantidad.format(datos.recibidos)],
+    ["En curso", cantidad.format(datos.enCurso)],
+    ["Entregados", cantidad.format(datos.entregados)],
+    ["Cancelados", cantidad.format(datos.cancelados)],
+    ["Importe de productos entregados", moneda(datos.importeCentavos)],
+    ["Promedio por pedido entregado", datos.promedioCentavos === null ? "—" : moneda(datos.promedioCentavos)]
+  ]);
+  mostrarIndicadores("estadisticas-cobros", [
+    ["Cobros registrados", cantidad.format(datos.cobros.cantidad)],
+    ["Importe total recibido", moneda(datos.cobros.importeCentavos)]
+  ]);
+  mostrarComparacion(datos, cantidad, dinero);
+  const dias = datos.actividadDiaria ?? [];
+  document.getElementById("estadisticas-dias").replaceChildren(...dias.map(dia => {
+    const fecha = document.createElement("time");
+    fecha.dateTime = dia.fecha;
+    fecha.textContent = fechaEstadisticas(dia.fecha);
+    return filaEstadisticas(fecha, [cantidad.format(dia.recibidos), cantidad.format(dia.cancelados),
+      cantidad.format(dia.cobros), moneda(dia.cobradoCentavos)]);
+  }));
+  document.getElementById("actividad-diaria").hidden = dias.length === 0;
 
   const listar = textos => textos.map(texto => {
     const fila = document.createElement("li");
     fila.textContent = texto;
     return fila;
   });
+  const metodos = datos.cobrosPorMetodo ?? [];
+  document.getElementById("estadisticas-metodos-cobro").replaceChildren(...listar(
+    metodos.map(fila => {
+      const cobros = cantidad.format(fila.cantidad) + (fila.cantidad === 1 ? " cobro" : " cobros");
+      return `${nombreMetodoCobro(fila.metodo)} · ${cobros} · ${moneda(fila.importeCentavos)}`;
+    })
+  ));
+  document.getElementById("estadisticas-sin-metodos").hidden = metodos.length > 0;
   document.getElementById("estadisticas-servicios").replaceChildren(...listar([
     "En la mesa: " + cantidad.format(datos.mesa),
     "Para recoger: " + cantidad.format(datos.recoger),
     "A domicilio: " + cantidad.format(datos.domicilio)
   ]));
+  document.getElementById("estadisticas-horas").replaceChildren(...listar(
+    datos.horasDemanda.map(({ hora, cantidad: pedidos }) => {
+      return franjaHoraria(hora) + " · " + cantidad.format(pedidos) +
+        (pedidos === 1 ? " pedido" : " pedidos");
+    })
+  ));
+  document.getElementById("estadisticas-sin-horas").hidden = datos.horasDemanda.length > 0;
   document.getElementById("estadisticas-productos").replaceChildren(...listar(
     datos.productos.map(producto => producto.nombre + " · " + cantidad.format(producto.unidades))
   ));
   document.getElementById("estadisticas-sin-productos").hidden = datos.productos.length > 0;
 }
 
-async function cargarEstadisticas() {
-  const version = ++versionEstadisticas;
-  const boton = formularioEstadisticas.querySelector("button");
-  const parametros = new URLSearchParams();
-  if (desdeEstadisticas.value) parametros.set("desde", desdeEstadisticas.value);
-  if (hastaEstadisticas.value) parametros.set("hasta", hastaEstadisticas.value);
+function reporteEstadisticasCsv(datos) {
+  const { moneda } = datos;
+  const importe = centavos => centavos === null ? "" : (centavos / 100).toFixed(2);
+  const indicadores = [
+    ["Pedidos", "Pedidos recibidos", datos.recibidos, "pedidos"],
+    ["Pedidos", "En curso", datos.enCurso, "pedidos"],
+    ["Pedidos", "Entregados", datos.entregados, "pedidos"],
+    ["Pedidos", "Cancelados", datos.cancelados, "pedidos"],
+    ["Pedidos", "Importe de productos entregados", importe(datos.importeCentavos), moneda],
+    ["Pedidos", "Promedio por pedido entregado", importe(datos.promedioCentavos), moneda],
+    ["Cobros", "Cobros registrados", datos.cobros.cantidad, "cobros"],
+    ["Cobros", "Importe total recibido", importe(datos.cobros.importeCentavos), moneda],
+    ...(datos.cobrosPorMetodo ?? []).flatMap(fila => [
+      ["Cobros por método", nombreMetodoCobro(fila.metodo) + " · Cobros", fila.cantidad, "cobros"],
+      ["Cobros por método", nombreMetodoCobro(fila.metodo) + " · Importe", importe(fila.importeCentavos), moneda]
+    ]),
+    ["Pedidos por servicio", "En la mesa", datos.mesa, "pedidos"],
+    ["Pedidos por servicio", "Para recoger", datos.recoger, "pedidos"],
+    ["Pedidos por servicio", "A domicilio", datos.domicilio, "pedidos"],
+    ...datos.horasDemanda.map(({ hora, cantidad }) =>
+      ["Horas con más pedidos", franjaHoraria(hora), cantidad, "pedidos"]),
+    ...datos.productos.map(({ nombre, unidades }) =>
+      ["Productos y variantes más solicitados", nombre, unidades, "unidades"]),
+    ...(datos.actividadDiaria ?? []).flatMap(dia => [
+      ["Actividad por día", "Pedidos recibidos", dia.recibidos, "pedidos", dia.fecha],
+      ["Actividad por día", "Cancelados", dia.cancelados, "pedidos", dia.fecha],
+      ["Actividad por día", "Cobros registrados", dia.cobros, "cobros", dia.fecha],
+      ["Actividad por día", "Importe total recibido", importe(dia.cobradoCentavos), moneda, dia.fecha]
+    ])
+  ];
 
-  boton.disabled = true;
+  const escapar = valor => {
+    const texto = String(valor);
+    // Evitar que la hoja de cálculo ejecute nombres de productos como fórmulas.
+    const seguro = /^[\s\uFEFF]*[=+\-@]|^[\t\r\n]/u.test(texto) ? "'" + texto : texto;
+    return '"' + seguro.replaceAll('"', '""') + '"';
+  };
+  const filas = [
+    ["Desde", "Hasta", "Sección", "Indicador", "Valor", "Unidad", "Fecha"],
+    ...indicadores.map(([seccion, indicador, valor, unidad, fecha = ""]) =>
+      [datos.desde, datos.hasta, seccion, indicador, valor, unidad, fecha])
+  ];
+  const anterior = datos.periodoAnterior;
+  if (anterior) {
+    for (const [indicador, valor, unidad] of indicadoresComparables(anterior, moneda)) {
+      filas.push([anterior.desde, anterior.hasta, "Período anterior", indicador,
+        unidad === moneda ? importe(valor) : valor, unidad, ""]);
+    }
+  }
+  return filas.map(fila => fila.map(escapar).join(",")).join("\r\n") + "\r\n";
+}
+
+function actualizarBotonDescarga() {
+  descargarEstadisticas.disabled = !estadisticasConsultadas ||
+    desdeEstadisticas.value !== estadisticasConsultadas.desde ||
+    hastaEstadisticas.value !== estadisticasConsultadas.hasta;
+}
+
+descargarEstadisticas.addEventListener("click", () => {
+  if (panel.hidden || descargarEstadisticas.disabled || !estadisticasConsultadas) return;
+
+  const datos = estadisticasConsultadas;
+  const archivo = new Blob(["\uFEFF", reporteEstadisticasCsv(datos)], {
+    type: "text/csv;charset=utf-8"
+  });
+  const url = URL.createObjectURL(archivo);
+  const enlace = document.createElement("a");
+  enlace.href = url;
+  enlace.download = `el-comal-estadisticas-${datos.desde}-a-${datos.hasta}.csv`;
+  document.body.append(enlace);
+  enlace.click();
+  enlace.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 30000);
+});
+
+async function cargarEstadisticas(dias) {
+  const version = ++versionEstadisticas;
+  const parametros = new URLSearchParams();
+  if (dias) {
+    parametros.set("dias", dias);
+  } else {
+    if (desdeEstadisticas.value) parametros.set("desde", desdeEstadisticas.value);
+    if (hastaEstadisticas.value) parametros.set("hasta", hastaEstadisticas.value);
+  }
+
+  controlesEstadisticas.forEach(control => { control.disabled = true; });
+  estadisticasConsultadas = null;
+  actualizarBotonDescarga();
   resultadoEstadisticas.hidden = true;
   estadoEstadisticas.textContent = "Consultando estadísticas…";
   try {
@@ -1349,6 +1551,8 @@ async function cargarEstadisticas() {
     desdeEstadisticas.value = datos.desde;
     hastaEstadisticas.value = datos.hasta;
     mostrarEstadisticas(datos);
+    estadisticasConsultadas = datos;
+    actualizarBotonDescarga();
     resultadoEstadisticas.hidden = false;
     estadoEstadisticas.textContent = "Período consultado.";
   } catch (error) {
@@ -1356,13 +1560,19 @@ async function cargarEstadisticas() {
     if (error.status === 401) mostrarError(error);
     else estadoEstadisticas.textContent = error.status ? error.message : "No se pudo consultar el período.";
   } finally {
-    if (version === versionEstadisticas) boton.disabled = false;
+    if (version === versionEstadisticas) {
+      controlesEstadisticas.forEach(control => { control.disabled = false; });
+    }
   }
 }
 
 panelEstadisticas.addEventListener("toggle", () => {
   if (panelEstadisticas.open && !panel.hidden) cargarEstadisticas();
 });
+formularioEstadisticas.querySelectorAll("button[data-dias]").forEach(boton => {
+  boton.addEventListener("click", () => cargarEstadisticas(boton.dataset.dias));
+});
+formularioEstadisticas.addEventListener("input", actualizarBotonDescarga);
 formularioEstadisticas.addEventListener("submit", evento => {
   evento.preventDefault();
   cargarEstadisticas();

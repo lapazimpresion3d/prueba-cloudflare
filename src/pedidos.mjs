@@ -134,10 +134,15 @@ function estadoPublico(fila) {
 
 const columnasCobro = ", c.importe_centavos AS cobro_centavos, c.registrado AS cobro_registrado ";
 const unionCobro = "LEFT JOIN cobros_pedido c ON c.pedido_folio = folio AND c.anulado IS NULL ";
+const metodosCobro = ["efectivo", "tarjeta", "transferencia", "otro"];
 
-function cobroRegistrado(fila) {
+function cobroRegistrado(fila, incluirMetodo = false) {
   return fila.cobro_registrado == null ? null :
-    { importeCentavos: fila.cobro_centavos, registrado: fila.cobro_registrado };
+    {
+      importeCentavos: fila.cobro_centavos,
+      registrado: fila.cobro_registrado,
+      ...(incluirMetodo && fila.cobro_metodo ? { metodo: fila.cobro_metodo } : {})
+    };
 }
 
 async function pedidoPorToken(db, seguimientoHash) {
@@ -219,11 +224,21 @@ export async function pedidosPublicos(request, env, url, obtenerMenu, json) {
 
 export async function administrarPedidos(request, db, url, json, cocina = false) {
   if (request.method === "GET") {
-    const historial = !cocina && url.searchParams.get("vista") === "historial";
+    const vista = cocina ? null : url.searchParams.get("vista");
+    const sinCobro = vista === "sin-cobro";
+    const historial = vista === "historial" || sinCobro;
     const paginado = historial && url.searchParams.get("pagina") === "1";
     const condiciones = [cocina ? "estado IN ('confirmado', 'preparacion')" :
       historial ? "estado IN ('entregado', 'cancelado')" :
       "estado NOT IN ('entregado', 'cancelado')"];
+    if (sinCobro) {
+      condiciones[0] = "estado = 'entregado'";
+      condiciones.push("c.pedido_folio IS NULL", `(
+        total_centavos + COALESCE(json_extract(detalle_json, '$.entrega.envioCentavos'), 0) > 0
+        OR (json_extract(detalle_json, '$.servicio') = 'domicilio'
+          AND json_extract(detalle_json, '$.entrega') IS NULL)
+      )`);
+    }
     const valores = [];
     if (paginado) {
       for (const [parametro, condicion] of [["antes", "folio < ?"], ["folio", "folio = ?"]]) {
@@ -239,7 +254,8 @@ export async function administrarPedidos(request, db, url, json, cocina = false)
     const limite = 50;
     const { results } = await db.prepare(
       "SELECT folio, creado, actualizado, estado, detalle_json, total_centavos" +
-      (cocina ? " " : columnasCobro) + "FROM pedidos_demo " + (cocina ? "" : unionCobro) +
+      (cocina ? " " : columnasCobro + ", c.metodo AS cobro_metodo ") +
+      "FROM pedidos_demo " + (cocina ? "" : unionCobro) +
       "WHERE " + condiciones.join(" AND ") + " ORDER BY folio " + (historial ? "DESC" : "ASC") + " LIMIT ?"
     ).bind(...valores, paginado ? limite + 1 : limite).all();
     const pedidos = results.slice(0, limite).map(fila => {
@@ -248,7 +264,7 @@ export async function administrarPedidos(request, db, url, json, cocina = false)
         ...estadoPublico(fila), creado: fila.creado,
         acciones: accionesPara(fila.estado, detalle.servicio, cocina)
       };
-      if (!cocina) return { ...pedido, detalle, totalCentavos: fila.total_centavos, cobro: cobroRegistrado(fila) };
+      if (!cocina) return { ...pedido, detalle, totalCentavos: fila.total_centavos, cobro: cobroRegistrado(fila, true) };
       const { servicio, mesa, notas, lineas } = detalle;
       return { ...pedido, detalle: {
         servicio, mesa, notas,
@@ -302,6 +318,9 @@ export async function administrarCobro(request, db, json) {
   if (datos.accion !== "registrar" || !Number.isSafeInteger(datos.importeCentavos) || datos.importeCentavos < 1) {
     return json({ error: "Indica el importe que recibiste." }, 400);
   }
+  if (datos.metodo !== undefined && !metodosCobro.includes(datos.metodo)) {
+    return json({ error: "Selecciona un método de pago válido." }, 400);
+  }
 
   const pedido = await db.prepare(
     "SELECT detalle_json, total_centavos FROM pedidos_demo WHERE folio = ?"
@@ -318,14 +337,14 @@ export async function administrarCobro(request, db, json) {
   }
 
   const fila = await db.prepare(
-    "INSERT INTO cobros_pedido (pedido_folio, importe_centavos, registrado) " +
-    "SELECT folio, ?, ? FROM pedidos_demo WHERE folio = ? AND estado <> 'cancelado' " +
+    "INSERT INTO cobros_pedido (pedido_folio, importe_centavos, registrado, metodo) " +
+    "SELECT folio, ?, ?, ? FROM pedidos_demo WHERE folio = ? AND estado <> 'cancelado' " +
     "ON CONFLICT (pedido_folio) DO UPDATE SET importe_centavos = excluded.importe_centavos, " +
-    "registrado = MAX(excluded.registrado, cobros_pedido.registrado + 1), anulado = NULL " +
+    "registrado = MAX(excluded.registrado, cobros_pedido.registrado + 1), anulado = NULL, metodo = excluded.metodo " +
     "WHERE cobros_pedido.anulado IS NOT NULL " +
-    "RETURNING importe_centavos AS cobro_centavos, registrado AS cobro_registrado"
-  ).bind(datos.importeCentavos, Date.now(), datos.folio).first();
-  return fila ? json({ cobro: cobroRegistrado(fila) }) :
+    "RETURNING importe_centavos AS cobro_centavos, registrado AS cobro_registrado, metodo AS cobro_metodo"
+  ).bind(datos.importeCentavos, Date.now(), datos.metodo ?? null, datos.folio).first();
+  return fila ? json({ cobro: cobroRegistrado(fila, true) }) :
     json({ error: "El pedido ya tiene un cobro registrado o fue cancelado. Actualiza la lista." }, 409);
 }
 
@@ -358,12 +377,19 @@ function inicioLocal(formato, fecha, utc) {
 }
 
 export async function consultarEstadisticas(db, url, menu, json) {
+  const timeZone = menu.horario?.zonaHoraria || "America/Mazatlan";
   const formatoFecha = new Intl.DateTimeFormat("en-CA", {
-    timeZone: menu.horario?.zonaHoraria || "America/Mazatlan",
+    timeZone,
     year: "numeric", month: "2-digit", day: "2-digit"
   });
   const hoy = fechaCalendario(formatoFecha, Date.now());
-  const desdePredeterminado = new Date(fechaEnUtc(hoy) - 6 * msPorDia).toISOString().slice(0, 10);
+  const diasSolicitados = url.searchParams.get("dias");
+  if (diasSolicitados !== null && (!["1", "7", "30"].includes(diasSolicitados) ||
+      url.searchParams.has("desde") || url.searchParams.has("hasta"))) {
+    return json({ error: "Selecciona un período rápido válido o elige fechas específicas." }, 400);
+  }
+  const dias = Number(diasSolicitados ?? 7);
+  const desdePredeterminado = new Date(fechaEnUtc(hoy) - (dias - 1) * msPorDia).toISOString().slice(0, 10);
   const desde = url.searchParams.get("desde") ?? desdePredeterminado;
   const hasta = url.searchParams.get("hasta") ?? hoy;
   const inicioUtc = fechaEnUtc(desde);
@@ -374,14 +400,28 @@ export async function consultarEstadisticas(db, url, menu, json) {
     return json({ error: "Elige un período de hasta 31 días, con fechas de hoy o anteriores." }, 400);
   }
 
-  const siguienteUtc = ultimoUtc + msPorDia;
-  const siguiente = new Date(siguienteUtc).toISOString().slice(0, 10);
-  const inicio = inicioLocal(formatoFecha, desde, inicioUtc);
-  const fin = inicioLocal(formatoFecha, siguiente, siguienteUtc);
+  const fechas = [];
+  const limites = [];
+  for (let utc = inicioUtc; utc <= ultimoUtc + msPorDia; utc += msPorDia) {
+    const fecha = new Date(utc).toISOString().slice(0, 10);
+    if (utc <= ultimoUtc) fechas.push(fecha);
+    limites.push(inicioLocal(formatoFecha, fecha, utc));
+  }
+  const inicio = limites[0];
+  const fin = limites.at(-1);
+  const diasConsultados = fechas.length;
+  const utcAnterior = inicioUtc - diasConsultados * msPorDia;
+  const desdeAnterior = new Date(utcAnterior).toISOString().slice(0, 10);
+  const hastaAnterior = new Date(inicioUtc - msPorDia).toISOString().slice(0, 10);
+  const comparar = desdeAnterior >= "0001-01-01" && Number.isFinite(fechaEnUtc(desdeAnterior));
+  const inicioAnterior = comparar ? inicioLocal(formatoFecha, desdeAnterior, utcAnterior) : inicio;
+  // Agrupar en SQLite con los límites de cada día local, incluso cuando dura 23 o 25 horas.
+  const agruparPorDia = columna => "CASE " +
+    limites.map((_, indice) => `WHEN ${columna} < ? THEN ${indice - 1}`).join(" ") + " END";
 
-  const [resumen, productos] = await Promise.all([
+  const [pedidosPorDia, productos, cobrosPorDia, minutos] = await Promise.all([
     db.prepare(`
-      SELECT COUNT(*) AS recibidos,
+      SELECT ${agruparPorDia("creado")} AS dia, COUNT(*) AS recibidos,
         COUNT(CASE WHEN estado = 'entregado' THEN 1 END) AS entregados,
         COUNT(CASE WHEN estado = 'cancelado' THEN 1 END) AS cancelados,
         COUNT(CASE WHEN json_extract(detalle_json, '$.servicio') = 'mesa' THEN 1 END) AS mesa,
@@ -389,15 +429,77 @@ export async function consultarEstadisticas(db, url, menu, json) {
         COUNT(CASE WHEN json_extract(detalle_json, '$.servicio') = 'domicilio' THEN 1 END) AS domicilio,
         COALESCE(SUM(CASE WHEN estado = 'entregado' THEN total_centavos END), 0) AS importeCentavos
       FROM pedidos_demo WHERE creado >= ? AND creado < ?
-    `).bind(inicio, fin).first(),
+      GROUP BY dia
+    `).bind(...limites, inicioAnterior, fin).all(),
     db.prepare(`
       SELECT json_extract(linea.value, '$.nombre') AS nombre,
         SUM(json_extract(linea.value, '$.cantidad')) AS unidades
       FROM pedidos_demo AS pedido, json_each(pedido.detalle_json, '$.lineas') AS linea
       WHERE pedido.creado >= ? AND pedido.creado < ? AND pedido.estado <> 'cancelado'
       GROUP BY nombre ORDER BY unidades DESC, nombre ASC LIMIT 5
+    `).bind(inicio, fin).all(),
+    db.prepare(`
+      SELECT ${agruparPorDia("registrado")} AS dia, metodo,
+        COUNT(*) AS cantidad, SUM(importe_centavos) AS importeCentavos
+      FROM cobros_pedido
+      WHERE anulado IS NULL AND registrado >= ? AND registrado < ?
+      GROUP BY dia, metodo
+    `).bind(...limites, inicioAnterior, fin).all(),
+    db.prepare(`
+      SELECT creado / 60000 AS minuto, COUNT(*) AS cantidad
+      FROM pedidos_demo
+      WHERE creado >= ? AND creado < ? AND estado <> 'cancelado'
+      GROUP BY minuto
     `).bind(inicio, fin).all()
   ]);
+  const resumen = { recibidos: 0, entregados: 0, cancelados: 0, mesa: 0, recoger: 0,
+    domicilio: 0, importeCentavos: 0 };
+  const cobros = { cantidad: 0, importeCentavos: 0 };
+  const pedidosAnteriores = pedidosPorDia.results.find(fila => fila.dia === -1);
+  const cobrosAnteriores = { cantidad: 0, importeCentavos: 0 };
+  const cobrosPorMetodo = new Map([...metodosCobro, null].map(metodo => [
+    metodo, { metodo, cantidad: 0, importeCentavos: 0 }
+  ]));
+  const periodoAnterior = comparar ? {
+    desde: desdeAnterior,
+    hasta: hastaAnterior,
+    recibidos: pedidosAnteriores?.recibidos ?? 0,
+    cobros: cobrosAnteriores
+  } : null;
+  const actividadDiaria = fechas.map(fecha => ({
+    fecha, recibidos: 0, cancelados: 0, cobros: 0, cobradoCentavos: 0
+  }));
+  for (const fila of pedidosPorDia.results) {
+    if (fila.dia === -1) continue;
+    for (const campo of Object.keys(resumen)) resumen[campo] += fila[campo];
+    actividadDiaria[fila.dia].recibidos = fila.recibidos;
+    actividadDiaria[fila.dia].cancelados = fila.cancelados;
+  }
+  for (const fila of cobrosPorDia.results) {
+    if (fila.dia === -1) {
+      cobrosAnteriores.cantidad += fila.cantidad;
+      cobrosAnteriores.importeCentavos += fila.importeCentavos;
+      continue;
+    }
+    cobros.cantidad += fila.cantidad;
+    cobros.importeCentavos += fila.importeCentavos;
+    actividadDiaria[fila.dia].cobros += fila.cantidad;
+    actividadDiaria[fila.dia].cobradoCentavos += fila.importeCentavos;
+    const metodo = cobrosPorMetodo.get(fila.metodo);
+    metodo.cantidad += fila.cantidad;
+    metodo.importeCentavos += fila.importeCentavos;
+  }
+  const formatoHora = new Intl.DateTimeFormat("en-GB", { timeZone, hour: "2-digit", hourCycle: "h23" });
+  const cantidadesPorHora = Array(24).fill(0);
+  for (const { minuto, cantidad } of minutos.results) {
+    const hora = Number(formatoHora.format(minuto * 60000));
+    cantidadesPorHora[hora] += cantidad;
+  }
+  const horasDemanda = cantidadesPorHora
+    .map((cantidad, hora) => ({ hora, cantidad }))
+    .filter(({ cantidad }) => cantidad > 0)
+    .sort((a, b) => b.cantidad - a.cantidad || a.hora - b.hora)
+    .slice(0, 5);
 
   return json({
     desde, hasta, hoy, moneda: menu.moneda, ...resumen,
@@ -405,6 +507,11 @@ export async function consultarEstadisticas(db, url, menu, json) {
     promedioCentavos: resumen.entregados
       ? Math.round(resumen.importeCentavos / resumen.entregados)
       : null,
-    productos: productos.results
+    productos: productos.results,
+    cobros,
+    cobrosPorMetodo: [...cobrosPorMetodo.values()].filter(metodo => metodo.cantidad > 0),
+    horasDemanda,
+    actividadDiaria,
+    periodoAnterior
   });
 }

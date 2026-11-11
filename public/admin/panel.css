@@ -49,7 +49,7 @@ button:disabled { opacity: .65; cursor: wait; }
 #formulario-horario > button { margin: 4px 4px 4px 0; }
 #horario-estado:empty { display: none; }
 
-#vista-pedidos { font: inherit; padding: 8px; margin-bottom: 8px; }
+#vista-pedidos { max-width: 100%; font: inherit; padding: 8px; margin-bottom: 8px; }
 #pedidos-estado:empty { display: none; }
 .pedido-cocina { margin: 12px 0; padding: 12px; border: 1px solid #c9c2bb; border-radius: 8px; }
 .pedido-cocina h2, .pedido-cocina p { margin: 0 0 8px; }
@@ -60,11 +60,27 @@ button:disabled { opacity: .65; cursor: wait; }
 #formulario-estadisticas { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; }
 #formulario-estadisticas label { flex: 1 1 135px; margin: 0; }
 #formulario-estadisticas input { display: block; width: 100%; }
+.periodos-estadisticas { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.periodos-estadisticas button { background: white; color: #a02f1c; }
+.periodos-estadisticas button:hover:not(:disabled) { background: #fff6e7; }
 #estadisticas-estado:empty { display: none; }
-#estadisticas-resumen { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); }
-#estadisticas-resumen > div { background: #fff6e7; border-radius: 8px; padding: 10px; }
-#estadisticas-resumen dt { color: #5d493c; font-size: .9rem; }
-#estadisticas-resumen dd { margin: 0; font-size: 1.2rem; font-weight: bold; }
+#estadisticas-resumen, #estadisticas-cobros { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); }
+#estadisticas-resumen > div, #estadisticas-cobros > div { background: #fff6e7; border-radius: 8px; padding: 10px; }
+#estadisticas-resumen dt, #estadisticas-cobros dt { color: #5d493c; font-size: .9rem; }
+#estadisticas-resumen dd, #estadisticas-cobros dd { margin: 0; font-size: 1.2rem; font-weight: bold; }
+.detalle-estadisticas { margin: 16px 0; }
+.detalle-estadisticas > summary { font-weight: bold; cursor: pointer; }
+.tabla-estadisticas { overflow-x: auto; border: 1px solid #e5ddd3; border-radius: 8px; }
+.detalle-estadisticas table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.detalle-estadisticas th, .detalle-estadisticas td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #e5ddd3;
+  text-align: right;
+  white-space: nowrap;
+}
+.detalle-estadisticas th:first-child { text-align: left; }
+.detalle-estadisticas thead, .detalle-estadisticas tbody tr:nth-child(even) { background: #fff6e7; }
+.detalle-estadisticas tbody tr:last-child > * { border-bottom: 0; }
 
 #catalogo-estado:empty { display: none; }
 .formulario-catalogo fieldset { min-width: 0; margin: 0 0 12px; padding: 8px; border: 1px solid #c9c2bb; border-radius: 8px; }
@@ -133,4 +149,5 @@ button:disabled { opacity: .65; cursor: wait; }
 .control-cobro p { font-weight: bold; }
 .control-cobro summary { cursor: pointer; }
 .control-cobro label { margin-top: 8px; }
-.control-cobro input { display: block; width: 100%; margin: 4px 0 8px; }
+.control-cobro input, .control-cobro select { display: block; width: 100%; margin: 4px 0 8px; }
+.control-cobro select { padding: 10px 12px; font: inherit; }

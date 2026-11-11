@@ -62,10 +62,12 @@
         <p>Cuando verifiques un pago en tu cuenta de cobro, regístralo en el pedido correspondiente.</p>
         <p>Los pedidos de días anteriores se conservan. Los pendientes siguen en Pedidos activos. Los entregados y cancelados pasan al historial.</p>
         <p>En el historial puedes avanzar por los pedidos anteriores o buscar uno por su folio.</p>
+        <p>Usa <strong>Entregados sin cobro registrado</strong> para revisar qué pagos falta verificar o registrar.</p>
         <label for="vista-pedidos">Mostrar</label>
         <select id="vista-pedidos">
           <option value="activos">Pedidos activos</option>
           <option value="historial">Entregados y cancelados</option>
+          <option value="sin-cobro">Entregados sin cobro registrado</option>
         </select>
         <button id="actualizar-pedidos" type="button">Actualizar</button>
         <form id="buscar-historial" hidden>
@@ -158,9 +160,13 @@
       </details>
       <details id="panel-estadisticas">
         <summary>Estadísticas de pedidos de prueba</summary>
-        <p>El período usa la fecha en que se registró cada pedido. Los importes corresponden a los productos de los pedidos entregados.</p>
         <h2>Consultar un período</h2>
         <form id="formulario-estadisticas">
+          <div class="periodos-estadisticas" role="group" aria-label="Períodos rápidos">
+            <button type="button" data-dias="1">Hoy</button>
+            <button type="button" data-dias="7">Últimos 7 días</button>
+            <button type="button" data-dias="30">Últimos 30 días</button>
+          </div>
           <label for="estadisticas-desde">Desde
             <input id="estadisticas-desde" type="date" required>
           </label>
@@ -171,10 +177,47 @@
         </form>
         <p id="estadisticas-estado" role="status"></p>
         <div id="resultado-estadisticas" hidden>
-          <h2>Resumen del período</h2>
+          <button id="descargar-estadisticas" type="button" disabled>Descargar reporte (CSV)</button>
+          <h2>Pedidos del período</h2>
+          <p>Según la fecha en que se registró cada pedido.</p>
           <dl id="estadisticas-resumen"></dl>
+          <h2>Cobros del período</h2>
+          <p>Según la fecha en que el encargado registró cada cobro.</p>
+          <dl id="estadisticas-cobros"></dl>
+          <h2>Cobros por método</h2>
+          <ul id="estadisticas-metodos-cobro"></ul>
+          <p id="estadisticas-sin-metodos" hidden>No se registraron cobros en este período.</p>
+          <details class="detalle-estadisticas" id="comparacion-estadisticas" hidden>
+            <summary>Comparar con el período anterior</summary>
+            <p id="estadisticas-periodo-anterior"></p>
+            <p id="estadisticas-comparacion-hoy" hidden>El período consultado incluye hoy y sus cifras pueden seguir cambiando.</p>
+            <div class="tabla-estadisticas" role="region" aria-label="Comparación de períodos" tabindex="0">
+              <table aria-label="Comparación de períodos">
+                <thead>
+                  <tr><th scope="col">Indicador</th><th scope="col">Consultado</th><th scope="col">Anterior</th><th scope="col">Diferencia</th></tr>
+                </thead>
+                <tbody id="estadisticas-comparacion"></tbody>
+              </table>
+            </div>
+          </details>
+          <details class="detalle-estadisticas" id="actividad-diaria" hidden>
+            <summary>Actividad por día</summary>
+            <p>Los pedidos se cuentan en la fecha en que entraron y los cobros en la fecha en que se registraron, según la hora local del negocio.</p>
+            <div class="tabla-estadisticas" role="region" aria-label="Tabla de actividad por día" tabindex="0">
+              <table aria-label="Actividad por día">
+                <thead>
+                  <tr><th scope="col">Fecha</th><th scope="col">Pedidos</th><th scope="col">Cancelados</th><th scope="col">Cobros</th><th scope="col">Importe cobrado</th></tr>
+                </thead>
+                <tbody id="estadisticas-dias"></tbody>
+              </table>
+            </div>
+          </details>
           <h2>Pedidos por servicio</h2>
           <ul id="estadisticas-servicios"></ul>
+          <h2>Horas con más pedidos</h2>
+          <p>Se cuentan los pedidos activos y entregados según la hora local en que se registraron.</p>
+          <ol id="estadisticas-horas"></ol>
+          <p id="estadisticas-sin-horas" hidden>El período todavía no tiene pedidos activos o entregados.</p>
           <h2>Productos y variantes más solicitados</h2>
           <p>Se cuentan las unidades de pedidos activos y entregados.</p>
           <ol id="estadisticas-productos"></ol>

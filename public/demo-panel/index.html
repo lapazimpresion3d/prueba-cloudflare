@@ -61,11 +61,13 @@
       <h2>Pedidos activos e historial</h2>
       <p>Consulta los pedidos activos o el historial, prepara comandas y actualiza el estado del pedido.</p>
       <p>Los pedidos se conservan de un día a otro. En el historial puedes consultar páginas anteriores o buscar por folio.</p>
+      <p>El encargado puede filtrar los pedidos entregados cuyo cobro aún no se registró.</p>
       <p><a href="/demo-cocina/">Ver la cocina de ejemplo</a></p>
       <label for="vista-pedidos">Mostrar</label>
       <select id="vista-pedidos" disabled>
         <option>Pedidos activos</option>
         <option>Entregados y cancelados</option>
+        <option>Entregados sin cobro registrado</option>
       </select>
       <article class="pedido-cocina">
         <h2>Pedido #12 · En preparación</h2>
@@ -75,7 +77,7 @@
           <li>1 × Agua natural (Grande)</li>
         </ul>
         <p>Instrucciones de cocina · Salsa aparte</p>
-        <p><strong>Pagado</strong></p>
+        <p><strong>Pagado · Efectivo</strong></p>
         <div class="acciones-cocina">
           <button type="button" disabled>Imprimir comanda</button>
           <button type="button" disabled>Marcar listo</button>
@@ -239,12 +241,19 @@
     <details id="panel-estadisticas">
       <summary>Estadísticas de pedidos de prueba</summary>
       <h2>Consultar un período</h2>
-      <p>Ejemplo de una consulta por período. Los importes corresponden a productos de pedidos entregados.</p>
+      <div class="periodos-estadisticas" role="group" aria-label="Períodos rápidos">
+        <button type="button" disabled>Hoy</button>
+        <button type="button" disabled>Últimos 7 días</button>
+        <button type="button" disabled>Últimos 30 días</button>
+      </div>
       <div class="acciones-cocina">
         <label>Desde <input type="date" value="2026-10-05" disabled></label>
         <label>Hasta <input type="date" value="2026-10-11" disabled></label>
         <button type="button" disabled>Consultar</button>
       </div>
+      <button type="button" disabled>Descargar reporte (CSV)</button>
+      <h2>Pedidos del período</h2>
+      <p>Según la fecha en que se registró cada pedido.</p>
       <dl id="estadisticas-resumen">
         <div><dt>Pedidos recibidos</dt><dd>18</dd></div>
         <div><dt>En curso</dt><dd>4</dd></div>
@@ -253,12 +262,70 @@
         <div><dt>Importe de productos entregados</dt><dd>$1,560.00</dd></div>
         <div><dt>Promedio por pedido entregado</dt><dd>$130.00</dd></div>
       </dl>
+      <h2>Cobros del período</h2>
+      <p>Según la fecha en que el encargado registró cada cobro.</p>
+      <dl id="estadisticas-cobros">
+        <div><dt>Cobros registrados</dt><dd>11</dd></div>
+        <div><dt>Importe total recibido</dt><dd>$1,450.00</dd></div>
+      </dl>
+      <h2>Cobros por método</h2>
+      <ul>
+        <li>Efectivo · 5 cobros · $630.00</li>
+        <li>Tarjeta · 3 cobros · $450.00</li>
+        <li>Transferencia · 2 cobros · $280.00</li>
+        <li>Sin especificar · 1 cobro · $90.00</li>
+      </ul>
+      <details class="detalle-estadisticas">
+        <summary>Comparar con el período anterior</summary>
+        <p>Período anterior del 28/09/2026 al 04/10/2026.</p>
+        <div class="tabla-estadisticas" role="region" aria-label="Comparación de períodos" tabindex="0">
+          <table aria-label="Comparación de períodos">
+            <thead>
+              <tr><th scope="col">Indicador</th><th scope="col">Consultado</th><th scope="col">Anterior</th><th scope="col">Diferencia</th></tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row">Pedidos recibidos</th><td>18</td><td>15</td><td>+3</td></tr>
+              <tr><th scope="row">Cobros registrados</th><td>11</td><td>9</td><td>+2</td></tr>
+              <tr><th scope="row">Importe total recibido</th><td>$1,450.00</td><td>$1,190.00</td><td>+$260.00</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+      <details class="detalle-estadisticas">
+        <summary>Actividad por día</summary>
+        <p>Los pedidos se cuentan en la fecha en que entraron y los cobros en la fecha en que se registraron, según la hora local del negocio.</p>
+        <div class="tabla-estadisticas" role="region" aria-label="Tabla de actividad por día" tabindex="0">
+          <table aria-label="Actividad por día">
+            <thead>
+              <tr><th scope="col">Fecha</th><th scope="col">Pedidos</th><th scope="col">Cancelados</th><th scope="col">Cobros</th><th scope="col">Importe cobrado</th></tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row"><time datetime="2026-10-05">05/10/2026</time></th><td>2</td><td>0</td><td>1</td><td>$100.00</td></tr>
+              <tr><th scope="row"><time datetime="2026-10-06">06/10/2026</time></th><td>1</td><td>0</td><td>1</td><td>$120.00</td></tr>
+              <tr><th scope="row"><time datetime="2026-10-07">07/10/2026</time></th><td>2</td><td>1</td><td>1</td><td>$90.00</td></tr>
+              <tr><th scope="row"><time datetime="2026-10-08">08/10/2026</time></th><td>3</td><td>0</td><td>2</td><td>$260.00</td></tr>
+              <tr><th scope="row"><time datetime="2026-10-09">09/10/2026</time></th><td>4</td><td>0</td><td>2</td><td>$280.00</td></tr>
+              <tr><th scope="row"><time datetime="2026-10-10">10/10/2026</time></th><td>4</td><td>1</td><td>3</td><td>$430.00</td></tr>
+              <tr><th scope="row"><time datetime="2026-10-11">11/10/2026</time></th><td>2</td><td>0</td><td>1</td><td>$170.00</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
       <h2>Pedidos por servicio</h2>
       <ul>
         <li>Mesa · 9</li>
         <li>Para recoger · 6</li>
         <li>A domicilio · 3</li>
       </ul>
+      <h2>Horas con más pedidos</h2>
+      <p>Se cuentan los pedidos activos y entregados según la hora local en que se registraron.</p>
+      <ol>
+        <li>19:00–19:59 · 6 pedidos</li>
+        <li>20:00–20:59 · 4 pedidos</li>
+        <li>14:00–14:59 · 3 pedidos</li>
+        <li>13:00–13:59 · 2 pedidos</li>
+        <li>18:00–18:59 · 1 pedido</li>
+      </ol>
       <h2>Productos y variantes más solicitados</h2>
       <ol>
         <li>Taco al pastor · 25 unidades</li>
