@@ -132,9 +132,18 @@ function estadoPublico(fila) {
   return { folio: fila.folio, estado: fila.estado, etiqueta: estados[fila.estado], actualizado: fila.actualizado };
 }
 
+const columnasCobro = ", c.importe_centavos AS cobro_centavos, c.registrado AS cobro_registrado ";
+const unionCobro = "LEFT JOIN cobros_pedido c ON c.pedido_folio = folio AND c.anulado IS NULL ";
+
+function cobroRegistrado(fila) {
+  return fila.cobro_registrado == null ? null :
+    { importeCentavos: fila.cobro_centavos, registrado: fila.cobro_registrado };
+}
+
 async function pedidoPorToken(db, seguimientoHash) {
   return db.prepare(
-    "SELECT folio, estado, actualizado, detalle_json, total_centavos FROM pedidos_demo WHERE seguimiento_hash = ?"
+    "SELECT folio, estado, actualizado, detalle_json, total_centavos" + columnasCobro +
+    "FROM pedidos_demo " + unionCobro + "WHERE seguimiento_hash = ?"
   ).bind(seguimientoHash).first();
 }
 
@@ -157,6 +166,7 @@ export async function pedidosPublicos(request, env, url, obtenerMenu, json) {
     const { servicio, mesa, notas, moneda, lineas, entrega } = detalle;
     return json({
       ...estadoPublico(previo),
+      cobro: cobroRegistrado(previo),
       subtotalCentavos: previo.total_centavos,
       detalle: {
         servicio, mesa, notas, moneda,
@@ -209,21 +219,36 @@ export async function pedidosPublicos(request, env, url, obtenerMenu, json) {
 
 export async function administrarPedidos(request, db, url, json, cocina = false) {
   if (request.method === "GET") {
-    const historial = url.searchParams.get("vista") === "historial";
-    const filtro = cocina ? "WHERE estado IN ('confirmado', 'preparacion') ORDER BY folio ASC " :
-      historial ? "WHERE estado IN ('entregado', 'cancelado') ORDER BY folio DESC " :
-      "WHERE estado NOT IN ('entregado', 'cancelado') ORDER BY folio ASC ";
-    const consulta = await db.prepare(
-      "SELECT folio, creado, actualizado, estado, detalle_json, total_centavos FROM pedidos_demo " +
-      filtro + "LIMIT 50"
-    ).all();
-    return json(consulta.results.map(fila => {
+    const historial = !cocina && url.searchParams.get("vista") === "historial";
+    const paginado = historial && url.searchParams.get("pagina") === "1";
+    const condiciones = [cocina ? "estado IN ('confirmado', 'preparacion')" :
+      historial ? "estado IN ('entregado', 'cancelado')" :
+      "estado NOT IN ('entregado', 'cancelado')"];
+    const valores = [];
+    if (paginado) {
+      for (const [parametro, condicion] of [["antes", "folio < ?"], ["folio", "folio = ?"]]) {
+        const valor = url.searchParams.get(parametro);
+        if (valor === null) continue;
+        if (!/^[1-9]\d*$/.test(valor) || !Number.isSafeInteger(Number(valor))) {
+          return json({ error: "Indica un número de pedido válido." }, 400);
+        }
+        condiciones.push(condicion);
+        valores.push(Number(valor));
+      }
+    }
+    const limite = 50;
+    const { results } = await db.prepare(
+      "SELECT folio, creado, actualizado, estado, detalle_json, total_centavos" +
+      (cocina ? " " : columnasCobro) + "FROM pedidos_demo " + (cocina ? "" : unionCobro) +
+      "WHERE " + condiciones.join(" AND ") + " ORDER BY folio " + (historial ? "DESC" : "ASC") + " LIMIT ?"
+    ).bind(...valores, paginado ? limite + 1 : limite).all();
+    const pedidos = results.slice(0, limite).map(fila => {
       const detalle = JSON.parse(fila.detalle_json);
       const pedido = {
         ...estadoPublico(fila), creado: fila.creado,
         acciones: accionesPara(fila.estado, detalle.servicio, cocina)
       };
-      if (!cocina) return { ...pedido, detalle, totalCentavos: fila.total_centavos };
+      if (!cocina) return { ...pedido, detalle, totalCentavos: fila.total_centavos, cobro: cobroRegistrado(fila) };
       const { servicio, mesa, notas, lineas } = detalle;
       return { ...pedido, detalle: {
         servicio, mesa, notas,
@@ -231,7 +256,9 @@ export async function administrarPedidos(request, db, url, json, cocina = false)
           nombre, cantidad, incluye, omitidos, extras
         }))
       } };
-    }));
+    });
+    if (!paginado) return json(pedidos);
+    return json({ pedidos, siguiente: results.length > limite ? pedidos.at(-1).folio : null });
   }
 
   if (request.method !== "PUT") return json({ error: "Método no permitido." }, 405);
@@ -257,6 +284,49 @@ export async function administrarPedidos(request, db, url, json, cocina = false)
   ).bind(datos.nuevo, Date.now(), datos.folio, datos.actual).first();
   return actualizado ? json(estadoPublico(actualizado)) :
     json({ error: "El estado ya cambió. Actualiza la lista." }, 409);
+}
+
+export async function administrarCobro(request, db, json) {
+  if (request.method !== "PUT") return json({ error: "Método no permitido." }, 405);
+  const datos = await leerJson(request);
+  if (!Number.isSafeInteger(datos?.folio) || datos.folio < 1) {
+    return json({ error: "Indica un folio válido." }, 400);
+  }
+  if (datos.accion === "corregir" && Number.isSafeInteger(datos.registrado)) {
+    const fila = await db.prepare(
+      "UPDATE cobros_pedido SET anulado = ? WHERE pedido_folio = ? AND registrado = ? " +
+      "AND anulado IS NULL RETURNING pedido_folio"
+    ).bind(Date.now(), datos.folio, datos.registrado).first();
+    return fila ? json({ cobro: null }) : json({ error: "El registro de cobro cambió. Actualiza el pedido." }, 409);
+  }
+  if (datos.accion !== "registrar" || !Number.isSafeInteger(datos.importeCentavos) || datos.importeCentavos < 1) {
+    return json({ error: "Indica el importe que recibiste." }, 400);
+  }
+
+  const pedido = await db.prepare(
+    "SELECT detalle_json, total_centavos FROM pedidos_demo WHERE folio = ?"
+  ).bind(datos.folio).first();
+  if (!pedido) return json({ error: "No encontramos ese pedido." }, 404);
+  const detalle = JSON.parse(pedido.detalle_json);
+  const envioPendiente = detalle.servicio === "domicilio" && !detalle.entrega;
+  const total = pedido.total_centavos + (detalle.entrega?.envioCentavos ?? 0);
+  if (envioPendiente ? datos.importeCentavos < total : datos.importeCentavos !== total) {
+    return json({
+      error: envioPendiente ? "El cobro debe cubrir el subtotal de productos." :
+        "El cobro debe coincidir con el total del pedido."
+    }, 400);
+  }
+
+  const fila = await db.prepare(
+    "INSERT INTO cobros_pedido (pedido_folio, importe_centavos, registrado) " +
+    "SELECT folio, ?, ? FROM pedidos_demo WHERE folio = ? AND estado <> 'cancelado' " +
+    "ON CONFLICT (pedido_folio) DO UPDATE SET importe_centavos = excluded.importe_centavos, " +
+    "registrado = MAX(excluded.registrado, cobros_pedido.registrado + 1), anulado = NULL " +
+    "WHERE cobros_pedido.anulado IS NOT NULL " +
+    "RETURNING importe_centavos AS cobro_centavos, registrado AS cobro_registrado"
+  ).bind(datos.importeCentavos, Date.now(), datos.folio).first();
+  return fila ? json({ cobro: cobroRegistrado(fila) }) :
+    json({ error: "El pedido ya tiene un cobro registrado o fue cancelado. Actualiza la lista." }, 409);
 }
 
 const msPorDia = 24 * 60 * 60 * 1000;

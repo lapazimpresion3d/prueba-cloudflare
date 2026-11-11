@@ -52,6 +52,13 @@ const vistaPedidos = document.getElementById("vista-pedidos");
 const actualizarPedidos = document.getElementById("actualizar-pedidos");
 const estadoPedidos = document.getElementById("pedidos-estado");
 const listaPedidos = document.getElementById("lista-pedidos");
+const buscarHistorial = document.getElementById("buscar-historial");
+const folioHistorial = document.getElementById("folio-historial");
+const limpiarHistorial = document.getElementById("limpiar-historial");
+const paginasHistorial = document.getElementById("paginas-historial");
+const paginaHistorial = document.getElementById("pagina-historial");
+const anteriorHistorial = document.getElementById("historial-anterior");
+const siguienteHistorial = document.getElementById("historial-siguiente");
 const generarClaveCocina = document.getElementById("generar-clave-cocina");
 const estadoClaveCocina = document.getElementById("clave-cocina-estado");
 const claveCocinaGenerada = document.getElementById("clave-cocina-generada");
@@ -61,6 +68,7 @@ const contenidoComanda = document.getElementById("contenido-comanda");
 let versionPedidos = 0;
 let firmaListaPedidos = "";
 let cambiandoPedido = false;
+let historialActual = { cursores: [null], folio: "", siguiente: null };
 const panelEstadisticas = document.getElementById("panel-estadisticas");
 const formularioEstadisticas = document.getElementById("formulario-estadisticas");
 const desdeEstadisticas = document.getElementById("estadisticas-desde");
@@ -117,6 +125,10 @@ function mostrarAcceso() {
   estadoAgenda.textContent = "";
   agenda.open = false;
   panelPedidos.open = false;
+  vistaPedidos.value = "activos";
+  buscarHistorial.reset();
+  buscarHistorial.hidden = paginasHistorial.hidden = true;
+  historialActual = { cursores: [null], folio: "", siguiente: null };
   listaPedidos.replaceChildren();
   claveCocinaNueva.value = "";
   claveCocinaGenerada.hidden = true;
@@ -1069,6 +1081,7 @@ function tarjetaPedido(pedido) {
       " · Total " + importe(pedido.totalCentavos + detalle.entrega.envioCentavos);
   }
   tarjeta.append(contenido, total);
+  tarjeta.appendChild(controlCobro(pedido, importe));
 
   if (pedido.acciones.length) {
     const acciones = document.createElement("div");
@@ -1091,6 +1104,71 @@ function tarjetaPedido(pedido) {
   return tarjeta;
 }
 
+function controlCobro(pedido, importe) {
+  const bloque = document.createElement("div");
+  bloque.className = "control-cobro";
+  const envioPendiente = pedido.detalle.servicio === "domicilio" && !pedido.detalle.entrega;
+  const total = pedido.totalCentavos + (pedido.detalle.entrega?.envioCentavos ?? 0);
+  const sinCosto = !envioPendiente && total === 0;
+  const estado = document.createElement("p");
+  estado.textContent = pedido.cobro ? "Pagado · " + importe(pedido.cobro.importeCentavos) :
+    sinCosto ? "Pedido sin costo" : "Pago pendiente de confirmar";
+  bloque.appendChild(estado);
+  if (pedido.cobro) {
+    const corregir = document.createElement("button");
+    corregir.type = "button";
+    corregir.textContent = "Corregir registro de cobro";
+    corregir.addEventListener("click", () => {
+      if (window.confirm("¿Quitar la marca de pagado de este pedido en El Comal? Para devolver dinero, usa tu proveedor de pago.")) {
+        guardarCobro(pedido, { accion: "corregir", registrado: pedido.cobro.registrado }, corregir);
+      }
+    });
+    bloque.appendChild(corregir);
+    return bloque;
+  }
+  if (pedido.estado === "cancelado" || sinCosto) return bloque;
+
+  const editor = document.createElement("details");
+  const titulo = document.createElement("summary");
+  titulo.textContent = "Registrar pago recibido";
+  const formulario = document.createElement("form");
+  const monto = campoCatalogo(formulario, "Importe recibido", "number", envioPendiente ? "" : total / 100, {
+    required: true, min: String(Math.max(1, total) / 100), step: "0.01", readOnly: !envioPendiente
+  });
+  const guardar = document.createElement("button");
+  guardar.type = "submit";
+  guardar.textContent = "Marcar pagado";
+  formulario.addEventListener("submit", evento => {
+    evento.preventDefault();
+    const importeCentavos = Math.round(monto.valueAsNumber * 100);
+    if (window.confirm("¿Confirmas que recibiste " + importe(importeCentavos) + " para este pedido?")) {
+      guardarCobro(pedido, { accion: "registrar", importeCentavos }, guardar);
+    }
+  });
+  formulario.appendChild(guardar);
+  editor.append(titulo, formulario);
+  bloque.appendChild(editor);
+  return bloque;
+}
+
+async function guardarCobro(pedido, datos, boton) {
+  if (cambiandoPedido) return;
+  cambiandoPedido = true;
+  versionPedidos++;
+  boton.disabled = true;
+  estadoPedidos.textContent = "Guardando cobro…";
+  try {
+    await solicitar("pedidos/cobro", "PUT", { folio: pedido.folio, ...datos });
+    estadoPedidos.textContent = "Cobro actualizado.";
+    await cargarPedidos();
+  } catch (error) {
+    mostrarErrorPedidos(error);
+  } finally {
+    boton.disabled = false;
+    cambiandoPedido = false;
+  }
+}
+
 async function cambiarEstadoPedido(pedido, accion, boton) {
   if (cambiandoPedido) return;
   if (accion.id === "cancelado" && !window.confirm("¿Cancelar este pedido de prueba?")) return;
@@ -1110,28 +1188,82 @@ async function cambiarEstadoPedido(pedido, accion, boton) {
   }
 }
 
-async function cargarPedidos() {
+function actualizarPaginasHistorial() {
+  const pagina = historialActual.cursores.length;
+  const hayAnterior = pagina > 1;
+  const haySiguiente = historialActual.siguiente !== null;
+  paginasHistorial.hidden = vistaPedidos.value !== "historial" || (!hayAnterior && !haySiguiente);
+  anteriorHistorial.disabled = !hayAnterior;
+  siguienteHistorial.disabled = !haySiguiente;
+  paginaHistorial.textContent = "Página " + pagina;
+}
+
+async function cargarPedidos(pagina = historialActual) {
   const version = ++versionPedidos;
+  const historial = vistaPedidos.value === "historial";
+  buscarHistorial.hidden = !historial;
+  const parametros = new URLSearchParams({ vista: vistaPedidos.value });
+  if (historial) {
+    parametros.set("pagina", "1");
+    const antes = pagina.cursores.at(-1);
+    if (antes !== null) parametros.set("antes", antes);
+    if (pagina.folio) parametros.set("folio", pagina.folio);
+    anteriorHistorial.disabled = siguienteHistorial.disabled = true;
+  }
   try {
-    const pedidos = await solicitar("pedidos?vista=" + encodeURIComponent(vistaPedidos.value));
+    const resultado = await solicitar("pedidos?" + parametros);
     if (version !== versionPedidos || panel.hidden) return;
+    const pedidos = historial ? resultado.pedidos : resultado;
+    if (historial) historialActual = { ...pagina, siguiente: resultado.siguiente };
     const firma = JSON.stringify(pedidos);
     if (firma !== firmaListaPedidos) {
       listaPedidos.replaceChildren(...pedidos.map(tarjetaPedido));
       firmaListaPedidos = firma;
     }
-    if (!pedidos.length) estadoPedidos.textContent = "No hay pedidos en esta vista.";
-    else if (estadoPedidos.textContent !== "Estado guardado.") estadoPedidos.textContent = "";
+    if (!pedidos.length) {
+      estadoPedidos.textContent = historial && pagina.folio
+        ? "No hay un pedido entregado o cancelado con ese folio."
+        : "No hay pedidos en esta vista.";
+    }
+    else if (!["Estado guardado.", "Cobro actualizado."].includes(estadoPedidos.textContent)) estadoPedidos.textContent = "";
   } catch (error) {
     if (version === versionPedidos) mostrarErrorPedidos(error);
+  } finally {
+    if (version === versionPedidos) actualizarPaginasHistorial();
   }
 }
 
 panelPedidos.addEventListener("toggle", () => {
   if (panelPedidos.open && !panel.hidden) cargarPedidos();
 });
-vistaPedidos.addEventListener("change", cargarPedidos);
-actualizarPedidos.addEventListener("click", cargarPedidos);
+vistaPedidos.addEventListener("change", () => {
+  historialActual = { cursores: [null], folio: "", siguiente: null };
+  buscarHistorial.reset();
+  paginasHistorial.hidden = true;
+  listaPedidos.replaceChildren();
+  firmaListaPedidos = "";
+  estadoPedidos.textContent = "Cargando pedidos…";
+  cargarPedidos();
+});
+actualizarPedidos.addEventListener("click", () => cargarPedidos());
+buscarHistorial.addEventListener("submit", evento => {
+  evento.preventDefault();
+  cargarPedidos({ cursores: [null], folio: folioHistorial.value.trim() });
+});
+limpiarHistorial.addEventListener("click", () => {
+  buscarHistorial.reset();
+  cargarPedidos({ cursores: [null], folio: "" });
+});
+anteriorHistorial.addEventListener("click", () => {
+  if (historialActual.cursores.length > 1) {
+    cargarPedidos({ ...historialActual, cursores: historialActual.cursores.slice(0, -1) });
+  }
+});
+siguienteHistorial.addEventListener("click", () => {
+  if (historialActual.siguiente !== null) {
+    cargarPedidos({ ...historialActual, cursores: [...historialActual.cursores, historialActual.siguiente] });
+  }
+});
 generarClaveCocina.addEventListener("click", async () => {
   if (generarClaveCocina.disabled ||
       !window.confirm("¿Generar una contraseña nueva y cerrar las sesiones de cocina activas?")) return;
@@ -1153,7 +1285,10 @@ generarClaveCocina.addEventListener("click", async () => {
   }
 });
 window.setInterval(() => {
-  if (panelPedidos.open && !panel.hidden && !document.hidden && !cambiandoPedido) cargarPedidos();
+  if (panelPedidos.open && !panel.hidden && !document.hidden && !cambiandoPedido &&
+      !document.activeElement?.closest(".control-cobro") && vistaPedidos.value === "activos") {
+    cargarPedidos();
+  }
 }, 15000);
 
 function mostrarEstadisticas(datos) {

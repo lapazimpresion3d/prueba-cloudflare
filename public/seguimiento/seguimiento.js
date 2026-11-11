@@ -3,6 +3,7 @@ const folio = document.getElementById("folio-seguimiento");
 const estado = document.getElementById("estado-seguimiento");
 const fecha = document.getElementById("fecha-seguimiento");
 const actualizar = document.getElementById("actualizar-seguimiento");
+const cobroSeguimiento = document.getElementById("cobro-seguimiento");
 const detalleSeguimiento = document.getElementById("detalle-seguimiento");
 const servicioSeguimiento = document.getElementById("servicio-seguimiento");
 const productosSeguimiento = document.getElementById("productos-seguimiento");
@@ -10,6 +11,7 @@ const notasSeguimiento = document.getElementById("notas-seguimiento");
 const importesSeguimiento = document.getElementById("importes-seguimiento");
 let consultando = false;
 let terminado = false;
+let referenciaInvalida = false;
 let detalleMostrado = false;
 
 function mostrarDetallePedido(pedido) {
@@ -63,7 +65,7 @@ function mostrarDetallePedido(pedido) {
 }
 
 async function cargarSeguimiento() {
-  if (consultando || terminado) return;
+  if (consultando || referenciaInvalida) return;
   consultando = true;
   actualizar.disabled = true;
   try {
@@ -76,8 +78,10 @@ async function cargarSeguimiento() {
     const pedido = await respuesta.json();
     if (!respuesta.ok) {
       estado.textContent = pedido.error;
-      if (respuesta.status === 404 || respuesta.status === 400) terminado = true;
-      if (terminado) detalleSeguimiento.hidden = true;
+      if (respuesta.status === 404 || respuesta.status === 400) {
+        referenciaInvalida = true;
+        detalleSeguimiento.hidden = cobroSeguimiento.hidden = true;
+      }
       return;
     }
     folio.textContent = "Pedido #" + pedido.folio;
@@ -89,13 +93,20 @@ async function cargarSeguimiento() {
       dateStyle: "short", timeStyle: "short"
     }).format(pedido.actualizado);
     fecha.hidden = false;
+    const dinero = new Intl.NumberFormat("es-MX", { style: "currency", currency: pedido.detalle?.moneda ?? "MXN" });
+    const sinCosto = pedido.subtotalCentavos === 0 &&
+      (pedido.detalle?.servicio !== "domicilio" || pedido.detalle.entrega?.envioCentavos === 0);
+    const estadoCobro = pedido.cobro ? "Pagado · " + dinero.format(pedido.cobro.importeCentavos / 100) :
+      sinCosto ? "Pedido sin costo" : "Pago pendiente de confirmar";
+    if (cobroSeguimiento.textContent !== estadoCobro) cobroSeguimiento.textContent = estadoCobro;
+    cobroSeguimiento.hidden = false;
     if (!detalleMostrado && pedido.detalle) mostrarDetallePedido(pedido);
     terminado = ["entregado", "cancelado"].includes(pedido.estado);
   } catch {
     estado.textContent = "No pudimos consultar el estado. Intenta actualizar.";
   } finally {
     consultando = false;
-    actualizar.hidden = terminado;
+    actualizar.hidden = referenciaInvalida;
     actualizar.disabled = false;
   }
 }
@@ -104,7 +115,7 @@ if (/^[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/.test(token)) {
   actualizar.addEventListener("click", cargarSeguimiento);
   cargarSeguimiento();
   window.setInterval(() => {
-    if (!document.hidden) cargarSeguimiento();
+    if (!document.hidden && !terminado) cargarSeguimiento();
   }, 15000);
 } else {
   estado.textContent = "Abre el enlace de seguimiento que recibiste al registrar el pedido.";

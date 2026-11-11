@@ -59,15 +59,27 @@
           </div>
         </details>
         <h2>Pedidos activos e historial</h2>
+        <p>Cuando verifiques un pago en tu cuenta de cobro, regístralo en el pedido correspondiente.</p>
         <p>Los pedidos de días anteriores se conservan. Los pendientes siguen en Pedidos activos. Los entregados y cancelados pasan al historial.</p>
-        <p>La lista muestra hasta 50 pedidos por vista. En el historial aparecen los 50 más recientes.</p>
+        <p>En el historial puedes avanzar por los pedidos anteriores o buscar uno por su folio.</p>
         <label for="vista-pedidos">Mostrar</label>
         <select id="vista-pedidos">
           <option value="activos">Pedidos activos</option>
           <option value="historial">Entregados y cancelados</option>
         </select>
         <button id="actualizar-pedidos" type="button">Actualizar</button>
+        <form id="buscar-historial" hidden>
+          <label for="folio-historial">Folio del pedido</label>
+          <input id="folio-historial" type="text" inputmode="numeric" pattern="[1-9][0-9]*" maxlength="16">
+          <button type="submit">Buscar</button>
+          <button id="limpiar-historial" type="button">Quitar filtro</button>
+        </form>
         <p id="pedidos-estado" role="status"></p>
+        <nav id="paginas-historial" aria-label="Páginas del historial" hidden>
+          <button id="historial-anterior" type="button">Página anterior</button>
+          <span id="pagina-historial" aria-live="polite"></span>
+          <button id="historial-siguiente" type="button">Página siguiente</button>
+        </nav>
         <div id="lista-pedidos"></div>
       </details>
       <details id="panel-productos" open>

@@ -125,3 +125,12 @@ button:disabled { opacity: .65; cursor: wait; }
 #campos-negocio input, #campos-negocio textarea { display: block; width: 100%; margin: 4px 0 12px; }
 #campos-negocio textarea { padding: 10px; font: inherit; border: 1px solid #705c4d; border-radius: 8px; resize: vertical; }
 #negocio-estado:empty { display: none; }
+#buscar-historial, #paginas-historial { margin: 12px 0; }
+#folio-historial { max-width: 100%; }
+#buscar-historial button, #paginas-historial button { margin: 4px 4px 4px 0; }
+#paginas-historial span { display: inline-block; margin-right: 4px; }
+.control-cobro { margin: 10px 0; padding: 10px; border: 1px solid #e5ddd3; border-radius: 8px; }
+.control-cobro p { font-weight: bold; }
+.control-cobro summary { cursor: pointer; }
+.control-cobro label { margin-top: 8px; }
+.control-cobro input { display: block; width: 100%; margin: 4px 0 8px; }

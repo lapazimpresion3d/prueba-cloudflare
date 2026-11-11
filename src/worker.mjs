@@ -1,4 +1,4 @@
-import { administrarPedidos, consultarEstadisticas, pedidosPublicos } from "./pedidos.mjs";
+import { administrarCobro, administrarPedidos, consultarEstadisticas, pedidosPublicos } from "./pedidos.mjs";
 import { administrarAgenda, consultarDisponibilidad } from "./reservaciones.mjs";
 import { aplicarCatalogo, guardarProducto, servirFoto } from "./catalogo.mjs";
 import { administrarEntrega, leerEntrega } from "./entrega.mjs";
@@ -304,6 +304,10 @@ async function administrar(request, env, url) {
 
   if (url.pathname === "/api/admin/pedidos") {
     return administrarPedidos(request, env.DB, url, json);
+  }
+
+  if (url.pathname === "/api/admin/pedidos/cobro") {
+    return administrarCobro(request, env.DB, json);
   }
 
   if (url.pathname === "/api/admin/cocina/clave" && request.method === "POST") {
