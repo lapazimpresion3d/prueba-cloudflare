@@ -1,4 +1,4 @@
-const token = window.location.hash.slice(1) || window.seguimientoComal.leer()?.token || "";
+const token = window.location.hash.slice(1);
 const folio = document.getElementById("folio-seguimiento");
 const estado = document.getElementById("estado-seguimiento");
 const fecha = document.getElementById("fecha-seguimiento");
@@ -97,8 +97,7 @@ async function cargarSeguimiento() {
       return;
     }
     folio.textContent = "Pedido #" + pedido.folio;
-    const ultimo = window.seguimientoComal.leer();
-    if (!ultimo || pedido.folio >= ultimo.folio) window.seguimientoComal.guardar(token, pedido.folio);
+    window.seguimientoComal.guardar(token, pedido.folio);
     folio.hidden = false;
     estado.textContent = pedido.etiqueta;
     fecha.textContent = "Último cambio · " + new Intl.DateTimeFormat("es-MX", {
@@ -175,6 +174,15 @@ async function avisarTransferencia() {
   }
 }
 
+window.addEventListener("hashchange", () => window.location.reload());
+
+if (!token) {
+  document.getElementById("mis-pedidos").hidden = false;
+} else {
+  document.getElementById("pedido-seguimiento").hidden = false;
+  document.getElementById("volver-mis-pedidos").hidden = false;
+}
+
 if (/^[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/.test(token)) {
   actualizar.addEventListener("click", cargarSeguimiento);
   botonAviso.addEventListener("click", avisarTransferencia);
@@ -182,6 +190,6 @@ if (/^[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/.test(token)) {
   window.setInterval(() => {
     if (!document.hidden && !terminado) cargarSeguimiento();
   }, 15000);
-} else {
+} else if (token) {
   estado.textContent = "Abre el enlace de seguimiento que recibiste al registrar el pedido.";
 }

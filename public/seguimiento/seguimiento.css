@@ -16,3 +16,5 @@
 #datos-transferencia { white-space: pre-wrap; overflow-wrap: anywhere; }
 #importes-seguimiento > div { display: flex; justify-content: space-between; gap: 12px; margin: 8px 0; }
 #importes-seguimiento dd { margin: 0; text-align: right; font-weight: bold; }
+#pedidos-guardados { padding-left: 20px; }
+#pedidos-guardados a { display: inline-block; padding: 8px 0; color: #a02f1c; font-weight: bold; }

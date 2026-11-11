@@ -5,19 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
   <meta name="referrer" content="no-referrer">
-  <title>Seguimiento del pedido · Taquería El Comal</title>
+  <title>Seguimiento de pedidos · Taquería El Comal</title>
   <link rel="stylesheet" href="/admin/panel.css">
   <link rel="stylesheet" href="/seguimiento/seguimiento.css">
   <script src="/negocio.js" defer></script>
   <script src="/seguimiento/memoria.js" defer></script>
   <script src="/seguimiento/seguimiento.js" defer></script>
 </head>
-<body data-titulo-pagina="Seguimiento del pedido">
+<body data-titulo-pagina="Seguimiento de pedidos">
   <main>
     <p><a href="/#menu">Volver al menú</a></p>
-    <h1>Seguimiento del pedido</h1>
+    <h1>Seguimiento de pedidos</h1>
     <p><span data-nombre-negocio>Taquería El Comal</span> · Demostración</p>
-    <section class="pedido-cocina" aria-label="Estado del pedido de prueba">
+    <section id="mis-pedidos" hidden aria-labelledby="titulo-mis-pedidos">
+      <h2 id="titulo-mis-pedidos">Mis pedidos</h2>
+      <ul id="pedidos-guardados" hidden></ul>
+      <p id="sin-pedidos-guardados" hidden>Abre el enlace de seguimiento de un pedido para guardarlo en este navegador.</p>
+    </section>
+    <p id="volver-mis-pedidos" hidden><a href="/seguimiento/">Volver a mis pedidos</a></p>
+    <section id="pedido-seguimiento" class="pedido-cocina" aria-label="Estado del pedido de prueba" hidden>
       <h2 id="folio-seguimiento" hidden></h2>
       <p id="estado-seguimiento" role="status">Consultando el pedido…</p>
       <p id="cobro-seguimiento" role="status" hidden></p>
