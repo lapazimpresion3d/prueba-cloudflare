@@ -807,8 +807,12 @@ async function cargarPanel() {
   const [catalogo, negocio] = await Promise.all([solicitar("disponibilidad"), solicitar("negocio")]);
   mostrarProductosPanel(catalogo);
   mostrarDatosNegocio(negocio);
+  for (const seccion of panel.querySelectorAll("details[open]")) {
+    seccion.open = false;
+  }
   acceso.hidden = true;
   panel.hidden = false;
+  panelPedidos.open = true;
   cargarHorarioEditor();
 }
 
