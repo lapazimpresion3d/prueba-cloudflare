@@ -79,6 +79,8 @@ const hastaEstadisticas = document.getElementById("estadisticas-hasta");
 const estadoEstadisticas = document.getElementById("estadisticas-estado");
 const resultadoEstadisticas = document.getElementById("resultado-estadisticas");
 const descargarEstadisticas = document.getElementById("descargar-estadisticas");
+const descargarCobros = document.getElementById("descargar-cobros");
+let descargaCobrosEnCurso = false;
 let versionEstadisticas = 0;
 let estadisticasConsultadas = null;
 const nombresMetodosCobro = new Map([
@@ -156,6 +158,7 @@ function mostrarAcceso() {
   versionEstadisticas++;
   estadisticasConsultadas = null;
   descargarEstadisticas.disabled = true;
+  descargarCobros.disabled = true;
   formularioEstadisticas.reset();
   controlesEstadisticas.forEach(control => { control.disabled = false; });
   resultadoEstadisticas.hidden = true;
@@ -1322,6 +1325,9 @@ vistaPedidos.addEventListener("change", () => {
   consultarPrimeraPagina();
 });
 actualizarPedidos.addEventListener("click", () => cargarPedidos());
+metodoHistorial.addEventListener("change", () => {
+  if (vistaPedidos.value === "historial") buscarHistorial.requestSubmit();
+});
 buscarHistorial.addEventListener("submit", evento => {
   evento.preventDefault();
   consultarPrimeraPagina(folioHistorial.value.trim(), vistaPedidos.value === "historial" ? metodoHistorial.value : "");
@@ -1555,6 +1561,18 @@ function actualizarBotonDescarga() {
   descargarEstadisticas.disabled = !estadisticasConsultadas ||
     desdeEstadisticas.value !== estadisticasConsultadas.desde ||
     hastaEstadisticas.value !== estadisticasConsultadas.hasta;
+  descargarCobros.disabled = descargarEstadisticas.disabled || descargaCobrosEnCurso;
+}
+
+function descargarArchivo(archivo, nombre) {
+  const url = URL.createObjectURL(archivo);
+  const enlace = document.createElement("a");
+  enlace.href = url;
+  enlace.download = nombre;
+  document.body.append(enlace);
+  enlace.click();
+  enlace.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 30000);
 }
 
 descargarEstadisticas.addEventListener("click", () => {
@@ -1564,14 +1582,47 @@ descargarEstadisticas.addEventListener("click", () => {
   const archivo = new Blob(["\uFEFF", reporteEstadisticasCsv(datos)], {
     type: "text/csv;charset=utf-8"
   });
-  const url = URL.createObjectURL(archivo);
-  const enlace = document.createElement("a");
-  enlace.href = url;
-  enlace.download = `el-comal-estadisticas-${datos.desde}-a-${datos.hasta}.csv`;
-  document.body.append(enlace);
-  enlace.click();
-  enlace.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 30000);
+  descargarArchivo(archivo, `el-comal-estadisticas-${datos.desde}-a-${datos.hasta}.csv`);
+});
+
+descargarCobros.addEventListener("click", async () => {
+  if (panel.hidden || descargarCobros.disabled || !estadisticasConsultadas) return;
+
+  const version = versionEstadisticas;
+  const { desde, hasta } = estadisticasConsultadas;
+  const parametros = new URLSearchParams({ desde, hasta });
+  descargaCobrosEnCurso = true;
+  actualizarBotonDescarga();
+  estadoEstadisticas.textContent = "Preparando el detalle de cobros…";
+  try {
+    const respuesta = await fetch("/api/admin/estadisticas/cobros.csv?" + parametros, { cache: "no-store" });
+    if (version !== versionEstadisticas || panel.hidden) return;
+    if (respuesta.status === 401) {
+      mostrarAcceso();
+      mensaje.textContent = "Inicia sesión para descargar el detalle de cobros.";
+      return;
+    }
+    if (!respuesta.ok || !respuesta.headers.get("Content-Type")?.startsWith("text/csv")) {
+      const datos = await respuesta.json().catch(() => null);
+      throw new Error(datos?.error || "No se pudo descargar el detalle de cobros.");
+    }
+    const archivo = await respuesta.blob();
+    if (version !== versionEstadisticas || panel.hidden) return;
+    if (descargarEstadisticas.disabled) {
+      estadoEstadisticas.textContent = "Consulta las fechas seleccionadas para descargar su detalle de cobros.";
+      return;
+    }
+    descargarArchivo(archivo, `el-comal-cobros-${desde}-a-${hasta}.csv`);
+    estadoEstadisticas.textContent = "Detalle de cobros descargado.";
+  } catch (error) {
+    if (version === versionEstadisticas) {
+      estadoEstadisticas.textContent = error instanceof TypeError
+        ? "No se pudo descargar el detalle de cobros. Intenta nuevamente." : error.message;
+    }
+  } finally {
+    descargaCobrosEnCurso = false;
+    actualizarBotonDescarga();
+  }
 });
 
 async function cargarEstadisticas(dias) {
