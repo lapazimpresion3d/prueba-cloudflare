@@ -13,7 +13,26 @@
 #productos-seguimiento small { display: block; }
 #productos-seguimiento p { margin: 6px 0 0; font-size: .9rem; }
 #notas-seguimiento { white-space: pre-wrap; }
-#datos-transferencia { white-space: pre-wrap; overflow-wrap: anywhere; }
+#instrucciones-pago {
+  margin: 16px 0;
+  padding: 14px;
+  border: 1px solid #e5ddd3;
+  border-radius: 8px;
+  background: #fff6e7;
+}
+#instrucciones-pago > p { margin: 0; }
+#total-pago { font-size: 1.1rem; font-weight: bold; }
+#instrucciones-pago > #referencia-pago { margin-top: 8px; }
+#instrucciones-pago > #datos-transferencia {
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid #e5ddd3;
+  border-radius: 6px;
+  background: white;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
 #importes-seguimiento > div { display: flex; justify-content: space-between; gap: 12px; margin: 8px 0; }
 #importes-seguimiento dd { margin: 0; text-align: right; font-weight: bold; }
 #pedidos-guardados { padding-left: 20px; }
