@@ -8,14 +8,15 @@
   <title>Seguimiento del pedido · Taquería El Comal</title>
   <link rel="stylesheet" href="/admin/panel.css">
   <link rel="stylesheet" href="/seguimiento/seguimiento.css">
+  <script src="/negocio.js" defer></script>
   <script src="/seguimiento/memoria.js" defer></script>
   <script src="/seguimiento/seguimiento.js" defer></script>
 </head>
-<body>
+<body data-titulo-pagina="Seguimiento del pedido">
   <main>
     <p><a href="/#menu">Volver al menú</a></p>
     <h1>Seguimiento del pedido</h1>
-    <p>Taquería El Comal · Demostración</p>
+    <p><span data-nombre-negocio>Taquería El Comal</span> · Demostración</p>
     <section class="pedido-cocina" aria-label="Estado del pedido de prueba">
       <h2 id="folio-seguimiento" hidden></h2>
       <p id="estado-seguimiento" role="status">Consultando el pedido…</p>

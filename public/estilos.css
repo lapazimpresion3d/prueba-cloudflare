@@ -978,3 +978,13 @@ footer {
   background: white;
 }
 .acceso-seguimiento a { color: var(--rojo); font-weight: bold; }
+#contacto-negocio {
+  max-width: 720px;
+  margin: 24px auto 0;
+  padding: clamp(16px, 4vw, 28px);
+  border-radius: 12px;
+  background: white;
+}
+#contacto-negocio h2, #contacto-negocio a { color: var(--rojo); }
+#direccion-negocio { white-space: pre-line; overflow-wrap: anywhere; }
+#nombre-negocio { text-transform: uppercase; }

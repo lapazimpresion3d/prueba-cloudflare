@@ -3,6 +3,7 @@ import { administrarAgenda, consultarDisponibilidad } from "./reservaciones.mjs"
 import { aplicarCatalogo, guardarProducto, servirFoto } from "./catalogo.mjs";
 import { administrarEntrega, leerEntrega } from "./entrega.mjs";
 import { aplicarPrecio, fechaNegocio, validarPromocion } from "./promociones.mjs";
+import { guardarDatosNegocio, leerDatosNegocio } from "./negocio.mjs";
 
 const encoder = new TextEncoder();
 const cookieSesion = "__Host-comal-admin";
@@ -30,6 +31,8 @@ async function leerMenu(request, env) {
   if (preferencias) {
     menu.horario = { ...menu.horario, turnos: JSON.parse(preferencias.turnos_json) };
   }
+  menu.contacto = await leerDatosNegocio(env.DB, menu.negocio);
+  menu.negocio = menu.contacto.nombre;
   return menu;
 }
 
@@ -311,6 +314,12 @@ async function administrar(request, env, url) {
     return administrarEntrega(request, env.DB, json);
   }
 
+  if (url.pathname === "/api/admin/negocio") {
+    if (request.method === "GET") return json((await leerMenu(request, env)).contacto);
+    if (request.method === "PUT") return guardarDatosNegocio(request, env.DB, json);
+    return json({error:"Método no permitido."}, 405);
+  }
+
   if (url.pathname === "/api/admin/agenda") {
     return administrarAgenda(request, env.DB, url, () => leerMenu(request, env), json);
   }
@@ -446,6 +455,9 @@ export default {
     try {
       if (url.pathname === "/menu.json" && request.method === "GET") {
         return json(await menuActualizado(request, env));
+      }
+      if (url.pathname === "/api/negocio" && request.method === "GET") {
+        return json((await leerMenu(request, env)).contacto);
       }
       if (url.pathname.startsWith("/api/catalogo/foto/")) {
         return await servirFoto(request, env.DB, url);

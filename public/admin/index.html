@@ -11,7 +11,7 @@
 <body>
   <main>
     <h1>Panel del encargado</h1>
-    <p>Taquería El Comal</p>
+    <p id="nombre-negocio-panel">Taquería El Comal</p>
     <p id="mensaje" role="status"></p>
 
     <form id="acceso" hidden>
@@ -121,6 +121,29 @@
         </form>
         <p id="editor-entrega-estado" role="status"></p>
       </details>
+      <details id="editor-negocio">
+        <summary>Datos del negocio</summary>
+        <h2>Nombre y presentación</h2>
+        <form id="formulario-negocio" hidden>
+          <fieldset id="campos-negocio">
+            <legend>Información pública del restaurante</legend>
+            <label for="negocio-nombre">Nombre del negocio</label>
+            <input id="negocio-nombre" name="nombre" type="text" maxlength="80" required>
+            <label for="negocio-lema">Frase corta del encabezado</label>
+            <input id="negocio-lema" name="lema" type="text" maxlength="60">
+            <label for="negocio-presentacion">Texto de presentación</label>
+            <input id="negocio-presentacion" name="presentacion" type="text" maxlength="160">
+            <h2>Contacto y ubicación</h2>
+            <label for="negocio-whatsapp">WhatsApp con código de país</label>
+            <input id="negocio-whatsapp" name="whatsapp" type="tel" maxlength="30" required>
+            <p>Para México escribe 52 seguido de los 10 dígitos del número.</p>
+            <label for="negocio-direccion">Dirección pública (opcional)</label>
+            <textarea id="negocio-direccion" name="direccion" rows="3" maxlength="240"></textarea>
+            <button type="submit">Guardar datos del negocio</button>
+          </fieldset>
+        </form>
+        <p id="negocio-estado" role="status"></p>
+      </details>
       <details id="panel-estadisticas">
         <summary>Estadísticas de pedidos de prueba</summary>
         <p>El período usa la fecha en que se registró cada pedido. Los importes corresponden a los productos de los pedidos entregados.</p>
@@ -150,7 +173,7 @@
     </section>
   </main>
   <section id="comanda-impresa" hidden>
-    <p class="titulo-comanda">Taquería El Comal · Comanda de prueba</p>
+    <p id="titulo-comanda-negocio" class="titulo-comanda">Taquería El Comal · Comanda de prueba</p>
     <div id="contenido-comanda"></div>
   </section>
 </body>

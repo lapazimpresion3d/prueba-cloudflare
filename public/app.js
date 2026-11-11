@@ -67,6 +67,7 @@ let productosCatalogo = null;
 let firmaCatalogo = "";
 let fechaPreciosCatalogo = null;
 let actualizandoPrecios = false;
+let contactoNegocio = null;
 let avisoCarrito = "";
 let revisandoPedido = false;
 let mostrarCatalogo = () => {};
@@ -366,6 +367,7 @@ async function obtenerMenu() {
 }
 
 function actualizarCatalogo(menu) {
+  configurarDatosNegocio(menu.contacto);
   configurarEntrega(menu.entrega);
   const firma = JSON.stringify(menu.categorias);
   productosCatalogo = new Map(menu.categorias.flatMap(categoria =>
@@ -374,6 +376,25 @@ function actualizarCatalogo(menu) {
   sincronizarCarrito();
   if (firmaCatalogo && firmaCatalogo !== firma) mostrarCatalogo(menu);
   firmaCatalogo = firma;
+}
+
+function configurarDatosNegocio(contacto) {
+  if (!contacto) return;
+  contactoNegocio = contacto;
+  document.title = contacto.nombre;
+  document.getElementById("nombre-negocio").textContent = contacto.nombre;
+  const lema = document.getElementById("lema-negocio");
+  lema.textContent = contacto.lema;
+  lema.hidden = !contacto.lema;
+  const presentacion = document.getElementById("presentacion-negocio");
+  presentacion.textContent = contacto.presentacion;
+  presentacion.hidden = !contacto.presentacion;
+  document.getElementById("pie-negocio").textContent = contacto.nombre + " — Página de demostración";
+  const direccion = document.getElementById("direccion-negocio");
+  direccion.textContent = contacto.direccion;
+  direccion.hidden = !contacto.direccion;
+  document.getElementById("whatsapp-negocio").href = "https://wa.me/" + contacto.whatsapp;
+  document.getElementById("contacto-negocio").hidden = false;
 }
 
 async function cargarMenu() {
@@ -1246,7 +1267,7 @@ document.getElementById("enviar-pedido")
     }
 
     let mensaje =
-      "\uD83C\uDF2E DEMOSTRACIÓN - TAQUERÍA EL COMAL\n\n" +
+      "\uD83C\uDF2E DEMOSTRACIÓN - " + contactoNegocio.nombre + "\n\n" +
       "Cliente: " + nombreCliente + "\n" +
       detalleServicio + "\n" +
       "Hola, estoy probando el sistema de pedidos " +
@@ -1396,9 +1417,9 @@ registrarPedidoDemo.addEventListener("click", async () => {
 });
 
 function abrirWhatsApp(texto, ventana) {
-  const telefono = "526121992396";
+  const telefono = contactoNegocio?.whatsapp;
   if (!telefono) {
-    alert("Falta configurar el número de WhatsApp.");
+    alert("Espera a que carguen los datos del negocio y vuelve a intentar.");
     return false;
   }
 
@@ -1632,7 +1653,7 @@ formularioReservacion.addEventListener("submit", evento => {
   }).format(diaSolicitado);
 
   const mensaje =
-    "Solicitud de reservación de prueba — Taquería El Comal\n\n" +
+    "Solicitud de reservación de prueba — " + (contactoNegocio?.nombre ?? "") + "\n\n" +
     "Nombre: " + nombre + "\n" +
     "Teléfono: " + telefono + "\n" +
     "Fecha: " + fechaLegible + "\n" +

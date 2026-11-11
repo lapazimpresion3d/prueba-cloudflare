@@ -6,6 +6,12 @@ const estadoCatalogo = document.getElementById("catalogo-estado");
 const mensaje = document.getElementById("mensaje");
 const clave = document.getElementById("clave");
 const salir = document.getElementById("salir");
+const formularioNegocio = document.getElementById("formulario-negocio");
+const camposNegocio = document.getElementById("campos-negocio");
+const estadoNegocio = document.getElementById("negocio-estado");
+const editorNegocio = document.getElementById("editor-negocio");
+const nombreNegocioPanel = document.getElementById("nombre-negocio-panel");
+let versionNegocio = 0;
 const editorCategorias = document.getElementById("editor-categorias");
 const formularioCategorias = document.getElementById("formulario-categorias");
 const listaCategorias = document.getElementById("lista-categorias");
@@ -85,6 +91,12 @@ function mostrarAcceso() {
   productos.replaceChildren();
   altaProducto.replaceChildren();
   estadoCatalogo.textContent = "";
+  versionNegocio++;
+  formularioNegocio.reset();
+  formularioNegocio.hidden = true;
+  camposNegocio.disabled = false;
+  estadoNegocio.textContent = "";
+  editorNegocio.open = false;
   seccionesCategorias.clear();
   filasCategorias = [];
   listaCategorias.replaceChildren();
@@ -129,6 +141,40 @@ function mostrarError(error) {
   if (error.status === 401) mostrarAcceso();
   mensaje.textContent = error.status ? error.message : "No se pudo conectar. Intenta nuevamente.";
 }
+
+function mostrarDatosNegocio(datos) {
+  for (const nombre of ["nombre", "lema", "presentacion", "whatsapp", "direccion"]) {
+    formularioNegocio.elements.namedItem(nombre).value = datos[nombre];
+  }
+  nombreNegocioPanel.textContent = datos.nombre;
+  document.title = "Panel del encargado · " + datos.nombre;
+  document.getElementById("titulo-comanda-negocio").textContent = datos.nombre + " · Comanda de prueba";
+  formularioNegocio.hidden = false;
+}
+
+formularioNegocio.addEventListener("submit", async evento => {
+  evento.preventDefault();
+  if (camposNegocio.disabled) return;
+  const version = ++versionNegocio;
+  const datos = Object.fromEntries(
+    ["nombre", "lema", "presentacion", "whatsapp", "direccion"]
+      .map(nombre => [nombre, formularioNegocio.elements.namedItem(nombre).value])
+  );
+  camposNegocio.disabled = true;
+  estadoNegocio.textContent = "Guardando…";
+  try {
+    const resultado = await solicitar("negocio", "PUT", datos);
+    if (version !== versionNegocio) return;
+    mostrarDatosNegocio(resultado);
+    estadoNegocio.textContent = "Datos guardados. Se aplicarán al abrir o actualizar el menú.";
+  } catch (error) {
+    if (version !== versionNegocio) return;
+    if (error.status === 401) mostrarError(error);
+    else estadoNegocio.textContent = error.status ? error.message : "No se pudo conectar. Intenta nuevamente.";
+  } finally {
+    if (version === versionNegocio) camposNegocio.disabled = false;
+  }
+});
 
 function agregarFilaColonia(colonia = { nombre: "", envioCentavos: 0 }) {
   const fila = document.createElement("div");
@@ -723,7 +769,9 @@ function mostrarProductosPanel(categorias) {
 }
 
 async function cargarPanel() {
-  mostrarProductosPanel(await solicitar("disponibilidad"));
+  const [catalogo, negocio] = await Promise.all([solicitar("disponibilidad"), solicitar("negocio")]);
+  mostrarProductosPanel(catalogo);
+  mostrarDatosNegocio(negocio);
   acceso.hidden = true;
   panel.hidden = false;
   cargarHorarioEditor();
