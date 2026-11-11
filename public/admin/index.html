@@ -71,10 +71,21 @@
         </select>
         <button id="actualizar-pedidos" type="button">Actualizar</button>
         <form id="buscar-historial" hidden>
+          <div id="filtro-metodo-historial" hidden>
+            <label for="metodo-historial">Método de pago</label>
+            <select id="metodo-historial">
+              <option value="">Todos los pedidos</option>
+              <option value="efectivo">Efectivo</option>
+              <option value="tarjeta">Tarjeta</option>
+              <option value="transferencia">Transferencia</option>
+              <option value="otro">Otro</option>
+              <option value="sin-especificar">Sin especificar</option>
+            </select>
+          </div>
           <label for="folio-historial">Folio del pedido</label>
           <input id="folio-historial" type="text" inputmode="numeric" pattern="[1-9][0-9]*" maxlength="16">
-          <button type="submit">Buscar</button>
-          <button id="limpiar-historial" type="button">Quitar filtro</button>
+          <button type="submit">Aplicar filtros</button>
+          <button id="limpiar-historial" type="button">Limpiar filtros</button>
         </form>
         <p id="pedidos-estado" role="status"></p>
         <nav id="paginas-historial" aria-label="Páginas del historial" hidden>

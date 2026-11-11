@@ -53,6 +53,8 @@ const actualizarPedidos = document.getElementById("actualizar-pedidos");
 const estadoPedidos = document.getElementById("pedidos-estado");
 const listaPedidos = document.getElementById("lista-pedidos");
 const buscarHistorial = document.getElementById("buscar-historial");
+const filtroMetodoHistorial = document.getElementById("filtro-metodo-historial");
+const metodoHistorial = document.getElementById("metodo-historial");
 const folioHistorial = document.getElementById("folio-historial");
 const limpiarHistorial = document.getElementById("limpiar-historial");
 const paginasHistorial = document.getElementById("paginas-historial");
@@ -68,7 +70,7 @@ const contenidoComanda = document.getElementById("contenido-comanda");
 let versionPedidos = 0;
 let firmaListaPedidos = "";
 let cambiandoPedido = false;
-let historialActual = { cursores: [null], folio: "", siguiente: null };
+let historialActual = { cursores: [null], folio: "", metodo: "", siguiente: null };
 const panelEstadisticas = document.getElementById("panel-estadisticas");
 const formularioEstadisticas = document.getElementById("formulario-estadisticas");
 const controlesEstadisticas = formularioEstadisticas.querySelectorAll("button, input");
@@ -141,7 +143,7 @@ function mostrarAcceso() {
   vistaPedidos.value = "activos";
   buscarHistorial.reset();
   buscarHistorial.hidden = paginasHistorial.hidden = true;
-  historialActual = { cursores: [null], folio: "", siguiente: null };
+  historialActual = { cursores: [null], folio: "", metodo: "", siguiente: null };
   listaPedidos.replaceChildren();
   claveCocinaNueva.value = "";
   claveCocinaGenerada.hidden = true;
@@ -1122,6 +1124,45 @@ function tarjetaPedido(pedido) {
   return tarjeta;
 }
 
+function selectorMetodoCobro(formulario, metodoActual = "") {
+  const metodo = campoCatalogo(formulario, "Método de pago", "select", "", { required: true });
+  metodo.append(new Option("Selecciona un método", ""));
+  for (const [valor, etiqueta] of nombresMetodosCobro) {
+    metodo.append(new Option(etiqueta, valor));
+  }
+  metodo.value = metodoActual;
+  return metodo;
+}
+
+function editorMetodoCobro(pedido) {
+  const editor = document.createElement("details");
+  const titulo = document.createElement("summary");
+  titulo.textContent = "Cambiar método de pago";
+  const formulario = document.createElement("form");
+  const anterior = pedido.cobro.metodo ?? null;
+  const metodo = selectorMetodoCobro(formulario, anterior ?? "");
+  const guardar = document.createElement("button");
+  guardar.type = "submit";
+  guardar.textContent = "Guardar método";
+  guardar.disabled = true;
+  metodo.addEventListener("change", () => {
+    guardar.disabled = !metodo.value || metodo.value === anterior;
+  });
+  formulario.addEventListener("submit", evento => {
+    evento.preventDefault();
+    if (guardar.disabled) return;
+    guardarCobro(pedido, {
+      accion: "editar-metodo",
+      registrado: pedido.cobro.registrado,
+      metodoAnterior: anterior,
+      metodo: metodo.value
+    }, guardar);
+  });
+  formulario.append(guardar);
+  editor.append(titulo, formulario);
+  return editor;
+}
+
 function controlCobro(pedido, importe) {
   const bloque = document.createElement("div");
   bloque.className = "control-cobro";
@@ -1136,13 +1177,13 @@ function controlCobro(pedido, importe) {
   if (pedido.cobro) {
     const corregir = document.createElement("button");
     corregir.type = "button";
-    corregir.textContent = "Corregir registro de cobro";
+    corregir.textContent = "Quitar registro de cobro";
     corregir.addEventListener("click", () => {
       if (window.confirm("¿Quitar la marca de pagado de este pedido en El Comal? Para devolver dinero, usa tu proveedor de pago.")) {
         guardarCobro(pedido, { accion: "corregir", registrado: pedido.cobro.registrado }, corregir);
       }
     });
-    bloque.appendChild(corregir);
+    bloque.append(editorMetodoCobro(pedido), corregir);
     return bloque;
   }
   if (pedido.estado === "cancelado" || sinCosto) return bloque;
@@ -1154,11 +1195,7 @@ function controlCobro(pedido, importe) {
   const monto = campoCatalogo(formulario, "Importe recibido", "number", envioPendiente ? "" : total / 100, {
     required: true, min: String(Math.max(1, total) / 100), step: "0.01", readOnly: !envioPendiente
   });
-  const metodo = campoCatalogo(formulario, "Método de pago", "select", "", { required: true });
-  metodo.append(new Option("Selecciona un método", "", true, true));
-  for (const [valor, etiqueta] of nombresMetodosCobro) {
-    metodo.append(new Option(etiqueta, valor));
-  }
+  const metodo = selectorMetodoCobro(formulario);
   const guardar = document.createElement("button");
   guardar.type = "submit";
   guardar.textContent = "Marcar pagado";
@@ -1227,12 +1264,14 @@ async function cargarPedidos(pagina = historialActual) {
   const vista = vistaPedidos.value;
   const historial = vista === "historial" || vista === "sin-cobro";
   buscarHistorial.hidden = !historial;
+  filtroMetodoHistorial.hidden = vista !== "historial";
   const parametros = new URLSearchParams({ vista });
   if (historial) {
     parametros.set("pagina", "1");
     const antes = pagina.cursores.at(-1);
     if (antes !== null) parametros.set("antes", antes);
     if (pagina.folio) parametros.set("folio", pagina.folio);
+    if (vista === "historial" && pagina.metodo) parametros.set("metodo", pagina.metodo);
     anteriorHistorial.disabled = siguienteHistorial.disabled = true;
   }
   try {
@@ -1250,6 +1289,8 @@ async function cargarPedidos(pagina = historialActual) {
         estadoPedidos.textContent = pagina.folio
           ? "No hay un pedido entregado sin cobro registrado con ese folio."
           : "No hay pedidos entregados sin cobro registrado en esta página.";
+      } else if (vista === "historial" && pagina.metodo) {
+        estadoPedidos.textContent = "No hay pedidos que coincidan con los filtros.";
       } else {
         estadoPedidos.textContent = historial && pagina.folio
           ? "No hay un pedido entregado o cancelado con ese folio."
@@ -1264,26 +1305,30 @@ async function cargarPedidos(pagina = historialActual) {
   }
 }
 
-panelPedidos.addEventListener("toggle", () => {
-  if (panelPedidos.open && !panel.hidden) cargarPedidos();
-});
-vistaPedidos.addEventListener("change", () => {
-  historialActual = { cursores: [null], folio: "", siguiente: null };
-  buscarHistorial.reset();
+function consultarPrimeraPagina(folio = "", metodo = "") {
+  historialActual = { cursores: [null], folio, metodo, siguiente: null };
   paginasHistorial.hidden = true;
   listaPedidos.replaceChildren();
   firmaListaPedidos = "";
   estadoPedidos.textContent = "Cargando pedidos…";
-  cargarPedidos();
+  return cargarPedidos();
+}
+
+panelPedidos.addEventListener("toggle", () => {
+  if (panelPedidos.open && !panel.hidden) cargarPedidos();
+});
+vistaPedidos.addEventListener("change", () => {
+  buscarHistorial.reset();
+  consultarPrimeraPagina();
 });
 actualizarPedidos.addEventListener("click", () => cargarPedidos());
 buscarHistorial.addEventListener("submit", evento => {
   evento.preventDefault();
-  cargarPedidos({ cursores: [null], folio: folioHistorial.value.trim() });
+  consultarPrimeraPagina(folioHistorial.value.trim(), vistaPedidos.value === "historial" ? metodoHistorial.value : "");
 });
 limpiarHistorial.addEventListener("click", () => {
   buscarHistorial.reset();
-  cargarPedidos({ cursores: [null], folio: "" });
+  consultarPrimeraPagina();
 });
 anteriorHistorial.addEventListener("click", () => {
   if (historialActual.cursores.length > 1) {

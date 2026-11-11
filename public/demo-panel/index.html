@@ -62,6 +62,7 @@
       <p>Consulta los pedidos activos o el historial, prepara comandas y actualiza el estado del pedido.</p>
       <p>Los pedidos se conservan de un día a otro. En el historial puedes consultar páginas anteriores o buscar por folio.</p>
       <p>El encargado puede filtrar los pedidos entregados cuyo cobro aún no se registró.</p>
+      <p>En el historial también puede buscar por método de pago y por folio.</p>
       <p><a href="/demo-cocina/">Ver la cocina de ejemplo</a></p>
       <label for="vista-pedidos">Mostrar</label>
       <select id="vista-pedidos" disabled>
@@ -78,6 +79,18 @@
         </ul>
         <p>Instrucciones de cocina · Salsa aparte</p>
         <p><strong>Pagado · Efectivo</strong></p>
+        <details class="control-cobro">
+          <summary>Cambiar método de pago</summary>
+          <label>Método de pago
+            <select disabled>
+              <option>Efectivo</option>
+              <option>Tarjeta</option>
+              <option>Transferencia</option>
+              <option>Otro</option>
+            </select>
+          </label>
+          <button type="button" disabled>Guardar método</button>
+        </details>
         <div class="acciones-cocina">
           <button type="button" disabled>Imprimir comanda</button>
           <button type="button" disabled>Marcar listo</button>

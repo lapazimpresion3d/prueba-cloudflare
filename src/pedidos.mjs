@@ -240,6 +240,16 @@ export async function administrarPedidos(request, db, url, json, cocina = false)
       )`);
     }
     const valores = [];
+    const metodo = vista === "historial" ? url.searchParams.get("metodo") : null;
+    if (metodo === "sin-especificar") {
+      condiciones.push("c.pedido_folio IS NOT NULL", "c.metodo IS NULL");
+    } else if (metodo) {
+      if (!metodosCobro.includes(metodo)) {
+        return json({ error: "Selecciona un método de pago válido." }, 400);
+      }
+      condiciones.push("c.metodo = ?");
+      valores.push(metodo);
+    }
     if (paginado) {
       for (const [parametro, condicion] of [["antes", "folio < ?"], ["folio", "folio = ?"]]) {
         const valor = url.searchParams.get(parametro);
@@ -315,6 +325,20 @@ export async function administrarCobro(request, db, json) {
     ).bind(Date.now(), datos.folio, datos.registrado).first();
     return fila ? json({ cobro: null }) : json({ error: "El registro de cobro cambió. Actualiza el pedido." }, 409);
   }
+  const devolverCobro = "RETURNING importe_centavos AS cobro_centavos, registrado AS cobro_registrado, metodo AS cobro_metodo";
+  if (datos.accion === "editar-metodo") {
+    if (!Number.isSafeInteger(datos.registrado) || datos.registrado < 1 ||
+        (datos.metodoAnterior !== null && !metodosCobro.includes(datos.metodoAnterior)) ||
+        !metodosCobro.includes(datos.metodo)) {
+      return json({ error: "Selecciona un método de pago válido y vuelve a intentar." }, 400);
+    }
+    const fila = await db.prepare(
+      "UPDATE cobros_pedido SET metodo = ? WHERE pedido_folio = ? AND registrado = ? " +
+      "AND metodo IS ? AND anulado IS NULL " + devolverCobro
+    ).bind(datos.metodo, datos.folio, datos.registrado, datos.metodoAnterior).first();
+    return fila ? json({ cobro: cobroRegistrado(fila, true) }) :
+      json({ error: "El registro de cobro cambió. Actualiza el pedido." }, 409);
+  }
   if (datos.accion !== "registrar" || !Number.isSafeInteger(datos.importeCentavos) || datos.importeCentavos < 1) {
     return json({ error: "Indica el importe que recibiste." }, 400);
   }
@@ -341,8 +365,7 @@ export async function administrarCobro(request, db, json) {
     "SELECT folio, ?, ?, ? FROM pedidos_demo WHERE folio = ? AND estado <> 'cancelado' " +
     "ON CONFLICT (pedido_folio) DO UPDATE SET importe_centavos = excluded.importe_centavos, " +
     "registrado = MAX(excluded.registrado, cobros_pedido.registrado + 1), anulado = NULL, metodo = excluded.metodo " +
-    "WHERE cobros_pedido.anulado IS NOT NULL " +
-    "RETURNING importe_centavos AS cobro_centavos, registrado AS cobro_registrado, metodo AS cobro_metodo"
+    "WHERE cobros_pedido.anulado IS NOT NULL " + devolverCobro
   ).bind(datos.importeCentavos, Date.now(), datos.metodo ?? null, datos.folio).first();
   return fila ? json({ cobro: cobroRegistrado(fila, true) }) :
     json({ error: "El pedido ya tiene un cobro registrado o fue cancelado. Actualiza la lista." }, 409);
