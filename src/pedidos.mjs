@@ -360,7 +360,11 @@ export async function administrarPedidos(request, db, url, json, cocina = false)
       const detalle = JSON.parse(fila.detalle_json);
       const pedido = {
         ...estadoPublico(fila), creado: fila.creado,
-        acciones: accionesPara(fila.estado, detalle.servicio, cocina)
+        acciones: accionesPara(fila.estado, detalle.servicio, cocina).map(accion => ({
+          ...accion,
+          ...(accion.id === "entregado" && !cocina && fila.total_centavos + (detalle.entrega?.envioCentavos ?? 0) > 0 &&
+              fila.cobro_registrado == null ? { requiereCobro: true } : {})
+        }))
       };
       if (!cocina) return {
         ...pedido, detalle, totalCentavos: fila.total_centavos,
@@ -396,12 +400,23 @@ export async function administrarPedidos(request, db, url, json, cocina = false)
   if (!accionesPara(fila.estado, servicio, cocina).some(accion => accion.id === datos.nuevo)) {
     return json({ error: "Ese cambio de estado no está disponible." }, 400);
   }
+  // El último cambio solo puede hacerse con un cobro activo en D1.
+  // La condición se aplica dentro del UPDATE para impedir carreras entre cobro y entrega.
+  const requiereCobro = datos.nuevo === "entregado";
   const actualizado = await db.prepare(
     "UPDATE pedidos_demo SET estado = ?, actualizado = ? WHERE folio = ? AND estado = ? " +
+    (requiereCobro ? "AND (total_centavos + COALESCE(json_extract(detalle_json, '$.entrega.envioCentavos'), 0) = 0 " +
+      "OR EXISTS (SELECT 1 FROM cobros_pedido WHERE pedido_folio = pedidos_demo.folio AND anulado IS NULL)) " : "") +
     "RETURNING folio, estado, actualizado"
   ).bind(datos.nuevo, Date.now(), datos.folio, datos.actual).first();
-  return actualizado ? json(estadoPublico(actualizado)) :
-    json({ error: "El estado ya cambió. Actualiza la lista." }, 409);
+  if (actualizado) return json(estadoPublico(actualizado));
+  if (requiereCobro) {
+    const vigente = await db.prepare("SELECT estado FROM pedidos_demo WHERE folio = ?").bind(datos.folio).first();
+    if (vigente?.estado === datos.actual) {
+      return json({ error: "Registra el pago recibido antes de marcar el pedido como entregado." }, 409);
+    }
+  }
+  return json({ error: "El estado ya cambió. Actualiza la lista." }, 409);
 }
 
 export async function administrarCobro(request, db, json) {
