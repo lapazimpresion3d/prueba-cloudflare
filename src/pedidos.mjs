@@ -265,17 +265,16 @@ export async function pedidosPublicos(request, env, url, obtenerMenu, json) {
     const { entrega, error } = cotizarEntrega(menu.entrega, datos.entrega, pedido.totalCentavos);
     if (error) return json({ error }, 409);
     if (entrega) pedido.detalle.entrega = entrega;
-    if (datos.direccionEntrega !== undefined) {
-      const direccion = datos.direccionEntrega;
-      const limites = { calle: 120, colonia: 80, referencias: 160, telefono: 25 };
-      if (!direccion || !Object.entries(limites).every(([campo, maximo]) =>
-        typeof direccion[campo] === "string" && direccion[campo].length <= maximo) ||
-        !direccion.calle.trim() || !direccion.colonia.trim()) {
-        return json({ error: "Revisa la calle, el número y la colonia del pedido." }, 400);
-      }
-      pedido.detalle.direccionEntrega = Object.fromEntries(Object.keys(limites).map(campo =>
-        [campo, direccion[campo].trim()]));
+    // La dirección es obligatoria también en la API: no depender de la validación del navegador.
+    const direccion = datos.direccionEntrega;
+    const limites = { calle: 120, colonia: 80, referencias: 160, telefono: 25 };
+    if (!direccion || !Object.entries(limites).every(([campo, maximo]) =>
+      typeof direccion[campo] === "string" && direccion[campo].length <= maximo) ||
+      !direccion.calle.trim() || !direccion.colonia.trim()) {
+      return json({ error: "Revisa la calle, el número y la colonia del pedido." }, 400);
     }
+    pedido.detalle.direccionEntrega = Object.fromEntries(Object.keys(limites).map(campo =>
+      [campo, direccion[campo].trim()]));
   }
   if (soloRevisar) return json({ ok: true });
 
