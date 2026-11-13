@@ -271,7 +271,7 @@ export async function pedidosPublicos(request, env, url, obtenerMenu, json) {
     if (!direccion || !Object.entries(limites).every(([campo, maximo]) =>
       typeof direccion[campo] === "string" && direccion[campo].length <= maximo) ||
       !direccion.calle.trim() || !direccion.colonia.trim() ||
-      (direccion.telefono.trim() && !/^\\+?\\d{10,15}$/.test(direccion.telefono.replace(/[\\s().-]/g, "")))) {
+      (direccion.telefono.trim() && !/^\+?\d{10,15}$/.test(direccion.telefono.replace(/[\s().-]/g, "")))) {
       return json({ error: "Revisa la dirección y el teléfono de contacto del pedido." }, 400);
     }
     // No permitir cotizar una colonia y enviar el pedido a otra con una tarifa diferente.
