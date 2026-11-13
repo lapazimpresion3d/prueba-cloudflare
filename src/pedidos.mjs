@@ -270,8 +270,13 @@ export async function pedidosPublicos(request, env, url, obtenerMenu, json) {
     const limites = { calle: 120, colonia: 80, referencias: 160, telefono: 25 };
     if (!direccion || !Object.entries(limites).every(([campo, maximo]) =>
       typeof direccion[campo] === "string" && direccion[campo].length <= maximo) ||
-      !direccion.calle.trim() || !direccion.colonia.trim()) {
-      return json({ error: "Revisa la calle, el número y la colonia del pedido." }, 400);
+      !direccion.calle.trim() || !direccion.colonia.trim() ||
+      (direccion.telefono.trim() && !/^\\+?\\d{10,15}$/.test(direccion.telefono.replace(/[\\s().-]/g, "")))) {
+      return json({ error: "Revisa la dirección y el teléfono de contacto del pedido." }, 400);
+    }
+    // No permitir cotizar una colonia y enviar el pedido a otra con una tarifa diferente.
+    if (entrega && direccion.colonia.trim() !== entrega.colonia) {
+      return json({ error: "La colonia cambió. Revisa la dirección y el costo de envío." }, 409);
     }
     pedido.detalle.direccionEntrega = Object.fromEntries(Object.keys(limites).map(campo =>
       [campo, direccion[campo].trim()]));
