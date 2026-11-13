@@ -1180,6 +1180,13 @@ function tarjetaPedido(pedido) {
       const boton = document.createElement("button");
       boton.type = "button";
       boton.textContent = accion.id === "cancelado" ? "Cancelar pedido" : "Marcar " + accion.etiqueta.toLowerCase();
+      if (accion.requiereCobro) {
+        boton.disabled = true;
+        boton.title = "Primero registra el pago recibido.";
+        const aviso = document.createElement("small");
+        aviso.textContent = "Para marcar entregado, primero registra el pago recibido.";
+        acciones.appendChild(aviso);
+      }
       boton.addEventListener("click", () => cambiarEstadoPedido(pedido, accion, boton));
       acciones.appendChild(boton);
     }
