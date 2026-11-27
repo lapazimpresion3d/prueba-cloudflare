@@ -1,5 +1,5 @@
 import {cambiosEmpresa,agregarEventos,leerAuditoria,evento} from "./auditoria-practica.mjs";
-import {gruposPermisos,permisosBase,validarPermisos} from "./permisos-practica.mjs";
+import {gruposPermisos,permisosBase,validarPermisos,validarDenegados,restringirEmpleado,permisosHeredados,permisosEmpleado} from "./permisos-practica.mjs";
 import {obtenerEstablecimiento} from "./establecimientos.mjs";
 import {planes,capacidades,limitesPlanes as limites} from "./config.mjs";
 import {planesRepresentativos,enlacesDemo} from "./presentaciones.mjs";
@@ -47,7 +47,8 @@ function validar(c,d){
  if(!Array.isArray(activas)||!activas.includes(1)||!activas.includes(d.sucursal)||new Set(activas).size!==activas.length||activas.some(s=>!Number.isInteger(s)||s<1||s>c.sucursales)||!Array.isArray(asignaciones)||asignaciones.length!==d.personal.length||asignaciones.some((s,i)=>["propietario","administrador"].includes(d.personal[i])?s!==null:!activas.includes(s)))throw Error("Sucursal o alcance de práctica inválidos.");
  const rolesPersonalizados=validarRolesPersonalizados(d.rolesPersonalizados??[]),rolesAsignados=d.rolesAsignados??d.personal.map(()=>null);
  if(!Array.isArray(rolesAsignados)||rolesAsignados.length!==d.personal.length||rolesAsignados[0]!==null||rolesAsignados.some((r,i)=>r!==null&&!rolesPersonalizados.some(x=>x.id===r&&x.base===d.personal[i])))throw Error("Asignación de rol personalizado inválida.");
- return {sucursal:d.sucursal,personal:[...d.personal],activas:[...activas].sort((a,b)=>a-b),asignaciones:[...asignaciones],...(rolesPersonalizados.length||d.rolesPersonalizados!==undefined?{rolesPersonalizados,rolesAsignados}:{})};
+ const denegadosIndividuales=validarDenegados(d.denegadosIndividuales,d.personal.length);
+ return {sucursal:d.sucursal,personal:[...d.personal],activas:[...activas].sort((a,b)=>a-b),asignaciones:[...asignaciones],...(denegadosIndividuales?{denegadosIndividuales}:{}),...(rolesPersonalizados.length||d.rolesPersonalizados!==undefined?{rolesPersonalizados,rolesAsignados}:{})};
 }
 export function almacenEmpresa(c,storage){
  return {
@@ -71,6 +72,18 @@ export function montarEmpresa(root,id,plan,storage){
  const nombreSucursal=s=>s===1?"Sucursal principal":"Sucursal de ejemplo "+s;
  rol.replaceChildren(...roles.slice(1).map(r=>option(r,r)));
  $("#empresa-limites").textContent=c.paquete.nombre+" · Hasta "+c.usuarios+" usuarios y "+c.sucursales+" sucursales (límites propuestos)";
+ let seleccionado=null;
+ const editor=el("section");editor.hidden=true;editor.id="empresa-permisos-individuales";$("#empresa-personal").after(editor);
+ function editarIndividual(d,i){
+  editor.replaceChildren();editor.hidden=i===null||i<1||i>=d.personal.length;if(editor.hidden)return;
+  const heredados=permisosHeredados(d,i),denegados=new Set(d.denegadosIndividuales?.[i]??[]);
+  editor.append(el("h3","Permisos individuales · Empleado de ejemplo "+(i+1)),el("p","Rol: "+nombreRolEmpleado(d,i)+" · "+permisosEmpleado(d,i).length+" permisos efectivos. Solo práctica local. No concede permisos fuera del rol."));
+  const campos=el("div");for(const [grupo,...items] of gruposPermisos){const f=el("fieldset");f.append(el("legend",grupo));for(const [id,t] of items){const l=el("label"),ch=el("input");ch.type="checkbox";ch.checked=heredados.includes(id)&&!denegados.has(id);ch.disabled=!heredados.includes(id);ch.onchange=()=>{if(ch.checked)denegados.delete(id);else denegados.add(id);};l.append(ch," "+t+(ch.disabled?" · No heredado (protegido)":denegados.has(id)?" · Restringido":" · Heredado"));f.append(l,el("br"));}campos.append(f);}editor.append(campos);
+  const guardar=el("button","Guardar restricciones"),restaurar=el("button","Restablecer permisos del rol"),probar=el("button","Probar como empleado"),cerrar=el("button","Cerrar");for(const b of [guardar,restaurar,probar,cerrar])b.type="button";
+  guardar.onclick=()=>{try{const actual=a.leer();if(JSON.stringify(actual)!==JSON.stringify(d))throw Error("La configuración cambió. Vuelve a abrir el empleado.");cambiar(restringirEmpleado(actual,i,[...denegados]));}catch(err){aviso.textContent=err.message;}};
+  restaurar.onclick=()=>{try{const actual=a.leer();if(JSON.stringify(actual)!==JSON.stringify(d))throw Error("La configuración cambió. Vuelve a abrir el empleado.");cambiar(restringirEmpleado(actual,i,[]));}catch(err){aviso.textContent=err.message;}};
+  probar.onclick=()=>{const u=new URL(enlacesDemo(id,plan).administracion,location.origin);u.searchParams.set("rolVista","1");u.searchParams.set("empleado",String(i));u.searchParams.set("sucursal",String(d.asignaciones[i]??d.sucursal));location.assign(u.pathname+u.search);};cerrar.onclick=()=>{seleccionado=null;editor.hidden=true;};editor.append(guardar," ",restaurar," ",probar," ",cerrar);
+ }
  function render(d){
   const personalizados=d.rolesPersonalizados??[],opcionesRoles=()=>[...roles.slice(1).map(r=>option(r,r)),...personalizados.map(r=>option(r.nombre+" ("+r.base+")",r.id))];rol.replaceChildren(...opcionesRoles());
   $("#empresa-roles-personalizados").replaceChildren(...personalizados.map(r=>{const li=el("li",r.nombre+" · Permisos de "+r.base+" ");const editar=el("button","Editar"),borrar=el("button","Eliminar");editar.type=borrar.type="button";editar.onclick=()=>{$("#empresa-rol-id").value=r.id;$("#empresa-rol-nombre").value=r.nombre;$("#empresa-rol-base").value=r.base;mostrarPermisos(r.permisos??permisosBase(r.base));$("#empresa-rol-nombre").focus();};borrar.onclick=()=>{if(!confirm("¿Eliminar el rol "+r.nombre+"?"))return;try{cambiar(quitarRolPersonalizado(a.leer(),r.id));}catch(e){aviso.textContent=e.message;}};li.append(editar," ",borrar);return li;}));
@@ -88,20 +101,20 @@ export function montarEmpresa(root,id,plan,storage){
    alcance.replaceChildren(...(r==="administrador"?[option("Toda la empresa","")]:d.activas.map(s=>option(nombreSucursal(s),String(s)))));alcance.value=d.asignaciones[i]===null?"":String(d.asignaciones[i]);alcance.disabled=r==="administrador";
    selector.onchange=()=>{try{cambiar(asignarRolPersonalizado(a.leer(),i,selector.value));}catch(e){aviso.textContent=e.message;}};
    alcance.onchange=()=>{const v=a.leer();v.asignaciones[i]=Number(alcance.value);cambiar(v);};
-   b.type="button";b.onclick=()=>{const v=a.leer();cambiar({...v,personal:v.personal.filter((_,j)=>j!==i),asignaciones:v.asignaciones.filter((_,j)=>j!==i),...(v.rolesAsignados?{rolesAsignados:v.rolesAsignados.filter((_,j)=>j!==i)}:{})});};li.append(selector," ",alcance," ",b);return li;
+   b.type="button";b.onclick=()=>{const v=a.leer();seleccionado=null;cambiar({...v,...(v.denegadosIndividuales?{denegadosIndividuales:v.denegadosIndividuales.filter((_,j)=>j!==i)}:{}),personal:v.personal.filter((_,j)=>j!==i),asignaciones:v.asignaciones.filter((_,j)=>j!==i),...(v.rolesAsignados?{rolesAsignados:v.rolesAsignados.filter((_,j)=>j!==i)}:{})});};const permisos=el("button","Permisos individuales");permisos.type="button";permisos.onclick=()=>{seleccionado=i;editarIndividual(a.leer(),i);editor.scrollIntoView({block:"nearest"});};li.append(selector," ",alcance," ",permisos," ",b);return li;
   }));
-  $("#empresa-agregar").disabled=d.personal.length>=c.usuarios;
+  $("#empresa-agregar").disabled=d.personal.length>=c.usuarios;editarIndividual(d,seleccionado);
  }
  function cambiar(d){try{render(a.guardar(d));aviso.textContent="Cambio guardado en este navegador.";}catch(e){render(a.leer());aviso.textContent=e.message;}}
  sucursal.onchange=()=>cambiar({...a.leer(),sucursal:Number(sucursal.value)});
- $("#empresa-agregar").onclick=()=>{const d=a.leer(),p=(d.rolesPersonalizados??[]).find(x=>x.id===rol.value),base=p?.base??rol.value;cambiar({...d,personal:[...d.personal,base],asignaciones:[...d.asignaciones,base==="administrador"?null:d.sucursal],...(d.rolesPersonalizados?{rolesAsignados:[...(d.rolesAsignados??d.personal.map(()=>null)),p?.id??null]}:{})});};
+ $("#empresa-agregar").onclick=()=>{const d=a.leer(),p=(d.rolesPersonalizados??[]).find(x=>x.id===rol.value),base=p?.base??rol.value;cambiar({...d,...(d.denegadosIndividuales?{denegadosIndividuales:[...d.denegadosIndividuales,[]]}:{}),personal:[...d.personal,base],asignaciones:[...d.asignaciones,base==="administrador"?null:d.sucursal],...(d.rolesPersonalizados?{rolesAsignados:[...(d.rolesAsignados??d.personal.map(()=>null)),p?.id??null]}:{})});};
  function mostrarPermisos(seleccion=permisosBase($("#empresa-rol-base").value)){const permitidos=permisosBase($("#empresa-rol-base").value);$("#empresa-permisos").replaceChildren(...gruposPermisos.map(([nombre,...items])=>{const f=el("fieldset"),l=el("legend",nombre);f.append(l);for(const [id,t] of items){const label=el("label"),ch=el("input");ch.type="checkbox";ch.value=id;ch.disabled=!permitidos.includes(id);ch.checked=!ch.disabled&&seleccion.includes(id);label.append(ch," "+t);f.append(label);}return f;}));}
  $("#empresa-rol-base").onchange=()=>mostrarPermisos();$("#empresa-permisos-todos").onclick=()=>mostrarPermisos();$("#empresa-permisos-ninguno").onclick=()=>mostrarPermisos([]);mostrarPermisos();
  const limpiarRol=()=>{$("#empresa-rol-id").value="";$("#empresa-rol-nombre").value="";$("#empresa-rol-base").value="encargado";mostrarPermisos();};
  $("#empresa-rol-nuevo").onclick=limpiarRol;
  $("#empresa-rol-guardar").onclick=()=>{try{const d=a.leer(),id=$("#empresa-rol-id").value||"ROL-"+crypto.randomUUID();const v=guardarRolPersonalizado(d,id,$("#empresa-rol-nombre").value,$("#empresa-rol-base").value,[...$("#empresa-permisos").querySelectorAll("input:checked")].map(x=>x.value));render(a.guardar(v));limpiarRol();aviso.textContent="Rol personalizado guardado.";}catch(e){aviso.textContent=e.message;}};
 
- $("#empresa-restaurar").onclick=()=>{if(confirm("¿Restaurar solo personal y contexto de este negocio y plan?"))try{render(a.restaurar());aviso.textContent="Contexto restaurado.";}catch(e){aviso.textContent=e.message;}};
+ $("#empresa-restaurar").onclick=()=>{if(confirm("¿Restaurar solo personal y contexto de este negocio y plan?"))try{seleccionado=null;render(a.restaurar());aviso.textContent="Contexto restaurado.";}catch(e){aviso.textContent=e.message;}};
  $("#empresa-modulos").replaceChildren(...c.modulos.map(m=>el("li",m.nombre+" — "+({disponible:"Práctica disponible",en_desarrollo:"En desarrollo",otro_plan:"Plan superior",ejemplo:"Vista previa"}[m.estadoEfectivo]))));
  render(a.leer());
 }

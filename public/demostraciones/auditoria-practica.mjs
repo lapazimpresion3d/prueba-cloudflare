@@ -12,6 +12,8 @@ export function cambiosEmpresa(antes,despues){
  registrar("Personal","Conjunto de empleados (posiciones de práctica)",personal(antes),personal(despues));
  const roles=d=>(d.rolesPersonalizados??[]).map(r=>({id:r.id,base:r.base,permisos:r.permisos??null}));
  registrar("Roles","Roles personalizados",roles(antes),roles(despues));
+ const restricciones=d=>d.personal.flatMap((rol,i)=>d.denegadosIndividuales?.[i]?.length?[{posicion:i+1,rol,sucursal:d.asignaciones[i],denegados:d.denegadosIndividuales[i]}]:[]);
+ registrar("Permisos individuales","Restricciones por posición de empleado",restricciones(antes),restricciones(despues));
  registrar("Sucursales","Sucursales activas",antes.activas,despues.activas);
  return resultado;
 }

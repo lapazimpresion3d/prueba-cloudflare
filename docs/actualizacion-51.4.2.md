@@ -1,0 +1,3 @@
+# 51.4.2 — Permisos individuales de práctica
+
+Editor por empleado en Personal y sucursales, grupos existentes, permisos heredados y protegidos, guardar/restablecer y probar como empleado. Denegaciones persisten en localStorage por negocio/plan, se conservan al cambiar rol, se desplazan junto a las posiciones al quitar personal. Propietario protegido; nunca concede permisos fuera del rol. Auditoría local de cambios de restricciones por posición. Reutiliza permisosEmpleado para navegación y operaciones que ya lo consultan. No cubre módulos sin guardia, no es seguridad real, ni reproduce exactamente los permisos de servidor; no hay identificador estable local. Sin migraciones ni rutas privadas. Pruebas automatizadas; revisión visual y despliegue pendientes.
