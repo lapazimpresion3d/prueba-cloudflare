@@ -1,4 +1,7 @@
 # Registro de cambios
+## 2026-11-27 — Cobros múltiples y auditoría de práctica
+- Núcleo de abonos, propinas, división, subcuentas, anulaciones, reasignación y comprobantes; API y panel de cuentas. Migraciones 0007–0009 pendientes de verificación remota.
+- Conciliación del resumen de pedidos y protección de rutas POST/PATCH. Ver docs/auditoria-cobros-demo-2026-11-27.md. No se certifica D1 ni navegador; sin cambios a main.
 ## 2026-11-27 — Personalización visual y perfiles privados en servidor
 - Portadas ilustradas de cuatro giros, logo/portada JPG/PNG/WebP optimizados a JPEG localmente y vista previa de práctica.
 - API /api/demo/perfil, sesión temporal, revisión y tabla dedicada demo_perfiles. Guardado/recuperación explícitos desde panel; sin publicación real ni cambios en DB original.
