@@ -1,3 +1,4 @@
+import {menuComalPractica} from "./menu-comal-practica.mjs";
 // Semillas ficticias independientes; no consultar /menu.json ni API operativas.
 // Los alimentos de El Comal reutilizan referencias del menú estático, no sus datos vivos.
 const semillas = [
@@ -325,7 +326,7 @@ const semillas = [
 export const establecimientos = semillas.map(({catalogo,...perfil}) => ({
   ...perfil,
   configuracion: {moneda:"MXN", zonaHoraria:"America/Mazatlan", demo:true, qrOpcional:true},
-  catalogo: catalogo.map(([id,nombre,categoria,tipo,precioCentavos,descripcion,duracionMinutos,imagen]) => ({
+  catalogo: perfil.id==="taqueria-el-comal"?JSON.parse(JSON.stringify(menuComalPractica)):catalogo.map(([id,nombre,categoria,tipo,precioCentavos,descripcion,duracionMinutos,imagen]) => ({
     id,nombre,categoria,tipo,precioCentavos,descripcion,
     ...(duracionMinutos ? {duracionMinutos} : {}), ...(imagen ? {imagen} : {})
   }))
