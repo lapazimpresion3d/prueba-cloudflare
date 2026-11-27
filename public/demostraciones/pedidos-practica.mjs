@@ -1,3 +1,4 @@
+import {aplicarCobro,validarCambioPedido,referenciaRepetida} from "./cobros-practica.mjs";
 import {cotizarEntregaDemo,entregaConfirmada} from "./entrega-practica.mjs";
 import {normalizarOpciones,claveLinea} from "./menu-comal-practica.mjs";
 import {datosPedidoDemo} from "./clientes-practica.mjs";
@@ -90,7 +91,9 @@ export function crearPedidosPractica(almacen,id,plan,{ahora=()=>Date.now(),folio
   function cambiar(folio,estadoEsperado,destino){
     const pedidos=leer(),p=pedidos.find(x=>x.folio===folio);
     if(!p||p.estado!==estadoEsperado||!transicionesPedido(p.estado).includes(destino))throw Error("El estado cambió o la transición no está permitida.");
+    validarCambioPedido(p,destino);
     p.estado=destino;p.historial.push({estado:destino,fecha:ahora()});guardar(pedidos);return copiar(p);
   }
-  return {leer,crear,cambiar,restaurar:()=>guardar([])};
+  function cobrar(folio,d){const pedidos=leer(),i=pedidos.findIndex(x=>x.folio===folio);if(i<0)throw Error("Pedido no encontrado.");const p=aplicarCobro(pedidos[i],d,ahora());if(referenciaRepetida(pedidos,p,p.cobro))throw Error("Este folio de transferencia ya está registrado en otro pedido.");pedidos[i]=p;guardar(pedidos);return copiar(p);}
+  return {leer,crear,cambiar,cobrar,restaurar:()=>guardar([])};
 }
