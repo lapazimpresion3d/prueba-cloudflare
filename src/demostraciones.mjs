@@ -1,7 +1,7 @@
 // API exclusivamente de demostraciones. Nunca utiliza env.DB ni credenciales de El Comal.
 import { establecimientos, obtenerEstablecimiento } from "../public/demostraciones/establecimientos.mjs";
 import { planes, capacidades } from "../public/demostraciones/config.mjs";
-import { validarOferta } from "../public/demostraciones/catalogo-local.mjs";
+import { validarOferta, LIMITE_CATALOGO_BYTES, validarTamanoCatalogo } from "../public/demostraciones/catalogo-local.mjs";
 import { validarPerfil, perfilPlano, crearPerfilesLocales } from "../public/demostraciones/perfil-local.mjs";
 import { leerJsonLimitado } from "./seguridad.mjs";
 
@@ -22,12 +22,12 @@ export function validarCatalogoDemo(id,catalogo){
   const e=obtenerEstablecimiento(id);
   if(!e||!Array.isArray(catalogo)||catalogo.length>100)throw Error("Catálogo inválido.");
   const vistos=new Set();
-  return catalogo.map(p=>{
+  return validarTamanoCatalogo(catalogo.map(p=>{
     if(!p||vistos.has(p.id)||!(e.catalogo.some(x=>x.id===p.id)||/^local-[1-9][0-9]{0,3}$/.test(p.id)))throw Error("Identificador de oferta inválido o duplicado.");
     if(typeof p.disponible!=="boolean")throw Error("Disponibilidad inválida.");
     vistos.add(p.id);
     return validarOferta(p,p.id,e.catalogo.find(x=>x.id===p.id));
-  });
+  }));
 }
 function tokenCookie(request){
   const coincidencias=(request.headers.get("Cookie")||"").split(";").map(x=>x.trim()).filter(x=>x.startsWith(COOKIE+"="));
@@ -124,12 +124,12 @@ export async function atenderDemo(request,env,url,json){
     const fila=await db.prepare("SELECT revision, datos_json FROM demo_catalogos WHERE sesion_id=? AND establecimiento_id=?").bind(s.id,id).first();
     return json({establecimiento:id,revision:fila?.revision??0,catalogo:fila?JSON.parse(fila.datos_json):ctx.establecimiento.catalogo,expira:s.expira});
   }
-  const datos=await leerJsonLimitado(request,65536);
+  const datos=await leerJsonLimitado(request,LIMITE_CATALOGO_BYTES+4096);
   if(!Number.isSafeInteger(datos?.revision)||datos.revision<0||datos.revision>=1000000)return error(json,"Revisión inválida.",400);
   let catalogo;
   try{catalogo=validarCatalogoDemo(id,datos.catalogo);}catch(e){return error(json,e.message,400);}
   const serial=JSON.stringify(catalogo);
-  if(encoder.encode(serial).length>60000)return error(json,"Catálogo demasiado grande.",413);
+  if(encoder.encode(serial).length>LIMITE_CATALOGO_BYTES)return error(json,"Catálogo demasiado grande.",413);
   const fila=datos.revision===0
     ? await db.prepare("INSERT INTO demo_catalogos (sesion_id, establecimiento_id, revision, datos_json) SELECT ?, ?, 1, ? WHERE EXISTS (SELECT 1 FROM demo_sesiones WHERE id=? AND expira>?) ON CONFLICT(sesion_id, establecimiento_id) DO NOTHING RETURNING revision").bind(s.id,id,serial,s.id,ahora).first()
     : await db.prepare("UPDATE demo_catalogos SET revision=revision+1, datos_json=? WHERE sesion_id=? AND establecimiento_id=? AND revision=? AND EXISTS (SELECT 1 FROM demo_sesiones WHERE id=? AND expira>?) RETURNING revision").bind(serial,s.id,id,datos.revision,s.id,ahora).first();
