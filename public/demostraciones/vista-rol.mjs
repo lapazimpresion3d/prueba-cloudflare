@@ -1,0 +1,11 @@
+import {contextoEmpresa,almacenEmpresa,nombreRolEmpleado} from "./empresa-practica.mjs";
+import {permisosEmpleado} from "./permisos-practica.mjs";
+import {enlacesDemo} from "./presentaciones.mjs";
+// Vista voluntaria, no autenticación. Los módulos sin actor individual quedan fuera.
+export const requisitosVista=Object.freeze({"admin-pos":["ventas.ver","caja.ver","inventario.ver"],"admin-caja":["caja.ver"],"admin-comprobantes":["ventas.ver","caja.ver"],"admin-inventario":["inventario.ver"],"admin-almacen":["almacen.ver"],"admin-compras":["compras.ver"],"admin-recetas":["recetas.ver","recetas.rentabilidad"]});
+export function accesoVista(d,i,key){if(i===0||key==="admin-resumen")return true;const req=requisitosVista[key];return !!req&&req.every(p=>permisosEmpleado(d,i).includes(p));}
+export function contextoVista(id,plan,q,storage){const d=almacenEmpresa(contextoEmpresa(id,plan),storage).leer(),activa=q.get("rolVista")==="1",raw=q.get("empleado"),i=activa&&raw!==null&&/^\d+$/.test(raw)?Number(raw):0;
+ if(activa&&(!Number.isInteger(i)||i<1||!d.personal[i]))return {d,activa:true,invalida:true,i:-1,s:d.sucursal};
+ const s=d.asignaciones[i]??(d.activas.includes(Number(q.get("sucursal")))?Number(q.get("sucursal")):d.sucursal);return {d,activa,i,s,nombre:nombreRolEmpleado(d,i)};}
+export function urlVista(url,v){if(!v.activa)return url;const u=new URL(url,"https://demo.invalid");u.searchParams.set("rolVista","1");u.searchParams.set("empleado",String(v.i));u.searchParams.set("sucursal",String(v.s));return u.pathname+u.search+u.hash;}
+export function montarSelector(root,id,plan,v){const label=document.createElement("label");label.className="selector-rol-vista";label.append("Probar como empleado");const sel=document.createElement("select");sel.append(new Option("Propietario · vista completa","0"),...v.d.personal.slice(1).map((_,j)=>new Option("Empleado "+(j+2)+" · "+nombreRolEmpleado(v.d,j+1),String(j+1))));sel.value=String(v.i);sel.onchange=()=>{const i=Number(sel.value),url=enlacesDemo(id,plan).administracion;location.assign(i===0?url:urlVista(url,{activa:true,i,s:v.d.asignaciones[i]??v.s}));};label.append(sel);root.append(label);if(v.activa){const p=document.createElement("p");p.className="nota";p.textContent="Vista de práctica: "+v.nombre+" · Sucursal "+v.s+". No es un inicio de sesión.";root.append(p);}}

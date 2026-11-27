@@ -1,3 +1,4 @@
+import {contextoVista,accesoVista,urlVista,montarSelector} from "./vista-rol.mjs";
 import {cargarEjemplos,retirarEjemplos,recorridos} from "./ejemplos-operativos.mjs";
 import {perfilPanel,tituloAdmin,priorizarTareas} from "./perfil-panel.mjs";
 import {admiteCitas,crearCitasPractica,relojLocal} from "./citas-practica.mjs";
@@ -10,14 +11,15 @@ const $=id=>document.getElementById(id),el=(tag,t,cls)=>{const n=document.create
 export function montarInicioAdmin({negocio,plan,catalogos,perfiles}){
  $("admin-plan").textContent=plan.nombre;const perfil=perfiles.leer(negocio.id),im=el("img",undefined,"admin-logo");im.src=perfil.logo||logoDemo(negocio.id);im.alt="";$("nombre-admin").before(im);
  const nav=$("admin-nav"),menu=$("admin-menu");function abrir(v){nav.hidden=!v;menu.setAttribute("aria-expanded",String(v));}const media=matchMedia("(max-width: 780px)");abrir(!media.matches);media.addEventListener("change",e=>abrir(!e.matches));menu.onclick=()=>abrir(nav.hidden);
+ const v=contextoVista(negocio.id,plan.id,new URLSearchParams(location.search),localStorage);montarSelector($("admin-selector-rol"),negocio.id,plan.id,v);if(v.activa){for(const [,items] of gruposAdmin)for(const [id] of items){const n=$(id);if(!accesoVista(v.d,v.i,id)||v.invalida)n.hidden=true;else if(n.tagName==="A")n.href=urlVista(n.getAttribute("href"),v);} $("admin-ejemplos-seccion").hidden=true;$("admin-indicadores").hidden=true;$("admin-ayuda-texto").textContent="Selecciona una herramienta autorizada. Vuelve a propietario para configurar el negocio.";}
  const ids=gruposAdmin.flatMap(([,items])=>items.map(([id])=>id)).filter(id=>!$(id).hidden);
  for(const g of nav.querySelectorAll(".admin-grupo"))if(!g.classList.contains("admin-enlaces"))g.hidden=![...g.querySelectorAll("a,button")].some(n=>!n.hidden);
- const perfilVista=perfilPanel(negocio.giro,plan.id);$("admin-intro").textContent=perfilVista.intro;
+ const perfilVista=perfilPanel(negocio.giro,plan.id);$("admin-intro").textContent=v.activa?"Herramientas disponibles para "+(v.nombre??"este empleado")+".":perfilVista.intro;
  for(const [g,items] of gruposAdmin)for(const [id,nombre] of items)$(id).textContent=tituloAdmin(negocio.giro,id,nombre);
  const tareas=priorizarTareas(tareasAdmin(ids),negocio.giro,plan.id);
  $("admin-rapidas").replaceChildren(...tareas.map(t=>{const b=el("button",undefined,"admin-tarea");b.type="button";b.append(el("strong",tituloAdmin(negocio.giro,t.id,t.nombre)),el("span",t.detalle),el("span","Abrir →","admin-abrir"));b.onclick=()=>$(t.id).click();return b;}));
  const a=$("admin-ver-pagina");a.href=$("admin-ver-negocio").href;
- function indicadores(){
+ function indicadores(){if(v.activa)return;
  const cat=catalogos.leer(negocio.id),datos=[],hoy=relojLocal().fecha;
  const servicios=negocio.giro==="barberia"||negocio.giro==="taller";
  if(admiteCitas(negocio.id,plan.id)){try{const citas=crearCitasPractica(sessionStorage,negocio.id,plan.id).leer();datos.push(["Citas de hoy · locales",citas.filter(c=>c.fecha===hoy&&["pendiente","confirmada"].includes(c.estado)).length],["Citas pendientes · locales",citas.filter(c=>c.estado==="pendiente").length]);}catch{datos.push(["Agenda local","No disponible"]);}}
