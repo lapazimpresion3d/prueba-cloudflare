@@ -63,6 +63,12 @@
         <div class="acciones-demo"><button type="submit" class="principal">Guardar elemento</button><button type="button" id="cancelar-edicion" hidden>Cancelar edición</button></div>
       </form>
       <p id="aviso-editor" role="status" aria-live="polite"></p>
+      <div class="editor-servidor">
+        <h3>Guardar práctica en servidor</h3>
+        <p class="nota">Copia privada de demostración por navegador, caduca a las dos horas. No publica el catálogo ni modifica los datos de otros visitantes. Cargar reemplaza únicamente la copia de práctica de este negocio.</p>
+        <div class="acciones-demo"><button type="button" id="demo-sesion">Conectar práctica</button><button type="button" id="demo-cargar" disabled>Cargar copia guardada</button><button type="button" id="demo-guardar" disabled>Guardar copia actual</button></div>
+        <p id="demo-servidor-aviso" role="status" aria-live="polite">Comprobando servicio de práctica…</p>
+      </div>
       <div id="lista-editor" class="lista-editor"></div>
       <button type="button" id="restaurar-catalogo">Restaurar catálogo original</button>
     </section>
