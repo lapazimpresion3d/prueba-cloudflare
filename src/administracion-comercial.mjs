@@ -1,3 +1,4 @@
+import {restriccionesOperativas} from "./nucleo-comercial.mjs";
 // Administración privada. Revalidación del propietario dentro del batch D1.
 const operativos=["empresa.ver","pos.operar","caja.operar","caja.supervisar","reportes.ver","inventario.operar"];
 const id=x=>typeof x==="string"&&x.length>0&&x.length<=128;
@@ -52,7 +53,7 @@ export async function crearAdministracionComercial(env,{autenticar,habilitado=fa
  },
  async guardarPermisosIndividuales(r,d){
   const a=await contexto(r,d.empresa);
-  const permitidos=["pos.operar","caja.operar","caja.supervisar","reportes.ver","inventario.operar"];
+  const permitidos=restriccionesOperativas;
   if(!id(d.usuario)||!Array.isArray(d.denegados)||d.denegados.length>permitidos.length||new Set(d.denegados).size!==d.denegados.length||d.denegados.some(p=>!permitidos.includes(p)))throw Error("Restricciones individuales inválidas.");
   const marca=crypto.randomUUID(),args=[d.empresa,a,"usuarios.administrar"];
   const filtro=" AND EXISTS(SELECT 1 FROM membresias m JOIN usuarios u ON u.id=m.usuario WHERE m.empresa=? AND m.usuario=? AND m.rol<>'propietario' AND m.activa=1 AND u.activo=1)";
