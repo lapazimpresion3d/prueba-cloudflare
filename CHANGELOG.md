@@ -1,4 +1,11 @@
 # Registro de cambios
+## 2026-11-26 — Vista individual y editor de práctica de las cinco demostraciones
+- Vista de negocio directa con retorno al comparador y enlace por establecimiento/plan.
+- Editor reutilizable: alta, edición, baja, disponibilidad, precios en centavos, duración de servicios y restauración. Persistencia local por establecimiento en la sesión de pestaña, sin API ni D1.
+- Administración SaaS sigue en desarrollo; no hay cuentas ni operaciones comerciales reales desde el editor.
+- 15 pruebas de lógica JS correctas (7 previas + 8 nuevas), sintaxis e IDs/campos HTML verificados; navegador, Node completo y preview pendientes.
+- ROADMAP y documentación de integración actualizados; sin cambios en main, sitio comercial o El Comal original.
+
 ## 2026-11-26 — Demostraciones multicomercio tempranas
 - Escaparate compartido /demostraciones/ con Café Mirador, Barbería Elite, Mundo Mascotas, Taquería El Comal y Auto Servicio Bahía; 27 ofertas ficticias tipadas y 20 combinaciones giro/plan.
 - Selector independiente de planes, precios configurables en registro central, filtros y estados de disponibilidad. Solo página y catálogo operativos en la galería; módulos futuros identificados sin simular operaciones.
