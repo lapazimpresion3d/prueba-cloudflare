@@ -8,7 +8,10 @@ Estado: Etapa 0 y estabilización del núcleo en curso. La demo El Comal conserv
 - [ ] Confirmar bindings, aislamiento de demo y migraciones remotas.
 - [ ] Respaldo D1 independiente y restauración en entorno separado.
 - [x] Implementar primera consolidación de entrega/cotización/cobros, token persistente en la misma pestaña y paginación de activos/cocina.
+- [x] Reforzar lectura JSON, límites atómicos de acceso y rutas API; pruebas unitarias y de migración reproducibles.
+- [x] Documentar respaldo y restauración segura D1.
 - [ ] Aplicar 0018 en desarrollo tras respaldo; completar pruebas de regresión, concurrencia, recuperación y seguridad.
+- [ ] Diseñar revocación individual de sesiones y ejecutar pruebas del Worker completo.
 - [ ] Auditar autenticación, acceso, privacidad y concurrencia; probar en preview.
 ## Plan maestro (no implementado)
 1. Multirrestaurante y configuración por establecimiento.
