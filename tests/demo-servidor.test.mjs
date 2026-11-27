@@ -218,3 +218,26 @@ test("reservaciones: capacidad, exclusión de intervalos, aislamiento y cancelac
  assert.equal((await llamar(env,ruta,"POST",a,pierde)).status,201);
  env.DEMO_DB.sql.exec("DELETE FROM demo_sesiones");assert.equal(env.DEMO_DB.sql.prepare("SELECT count(*) AS n FROM demo_reservaciones").get().n,0);
 });
+
+test("cobros: conciliación, folio único activo, conflictos e aislamiento",async()=>{
+ const env=envDemo(),ruta="/api/demo/pedidos?negocio=taqueria-el-comal&plan=p4",a=await iniciar(env,"192.0.2.1"),b=await iniciar(env,"192.0.2.2");
+ const solicitud="b7a48289-b63a-4ec4-8e19-c376f91aef77",otro="b7a48289-b63a-4ec4-8e19-c376f91aef78";
+ const pedido={solicitud,catalogo:"original",modalidad:"recoger",lineas:[{id:"pastor",cantidad:5,precioEsperado:2500}],totalEsperado:12500};
+ for(const id of [solicitud,otro])assert.equal((await llamar(env,ruta,"POST",a,{...pedido,solicitud:id})).status,201);
+ const patch=(id,cobro,cookie=a)=>llamar(env,ruta,"PATCH",cookie,{solicitud:id,cobro});
+ const pagar={accion:"registrar",revision:0,totalEsperado:12500,metodo:"transferencia",recibidoCentavos:12500,referencia:"DEMO-123456"};
+ assert.equal((await patch(solicitud,pagar,b)).status,404);
+ assert.equal((await patch(solicitud,{...pagar,recibidoCentavos:12499})).status,409);
+ const resultados=await Promise.all([patch(solicitud,pagar),patch(otro,pagar)]);
+ assert.deepEqual(resultados.map(x=>x.status).sort(),[200,409]);
+ const ganador=resultados[0].status===200?solicitud:otro;
+ assert.equal((await patch(ganador,pagar)).status,409);
+ assert.equal((await llamar(env,ruta,"PATCH",a,{solicitud:ganador,esperado:"recibido",destino:"cancelado"})).status,409);
+ assert.equal((await patch(ganador,{accion:"anular",revision:1,motivo:"Método incorrecto"})).status,200);
+ for(const [esperado,destino] of [["recibido","preparando"],["preparando","listo"]])assert.equal((await llamar(env,ruta,"PATCH",a,{solicitud:ganador,esperado,destino})).status,200);
+ assert.equal((await llamar(env,ruta,"PATCH",a,{solicitud:ganador,esperado:"listo",destino:"entregado"})).status,409);
+ assert.equal((await patch(ganador,{...pagar,revision:2,metodo:"efectivo",recibidoCentavos:15000})).status,200);
+ assert.equal((await llamar(env,ruta,"PATCH",a,{solicitud:ganador,esperado:"listo",destino:"entregado"})).status,200);
+ assert.equal((await patch(ganador,{accion:"anular",revision:3,motivo:"Importe incorrecto"})).status,409);
+ const p=(await (await llamar(env,ruta,"GET",a)).json()).pedidos.find(p=>p.solicitud===ganador);assert.equal(p.historialCobros.length,3);assert.equal(p.cobro.cambioCentavos,2500);
+});
