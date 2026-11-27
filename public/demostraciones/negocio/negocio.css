@@ -11,3 +11,5 @@ body[data-estilo=taller]{--hero:#193b5c;--acento:#ffcc76;--papel:#e3edf6;--radio
 .demo-bar-enlaces{display:flex;gap:16px;flex-wrap:wrap}.arte-vector{display:grid;place-items:center;font-size:4.5rem;min-height:100px}.arte-vector svg{max-width:100%;height:auto}
 
 .logo img{width:100%;height:100%;object-fit:contain;background:white;border-radius:inherit}.hero-arte{position:relative;isolation:isolate;overflow:hidden}.portada-practica{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-1}.arte-emblema{position:relative}
+
+.portada-ilustrada{position:absolute;inset:0;z-index:-1;overflow:hidden}.portada-ilustrada svg{width:100%;height:100%;display:block;object-fit:cover}.hero-arte:has(.portada-ilustrada) .arte-emblema{align-self:end;justify-self:end;width:145px;padding:10px;border-radius:10px;background:#17232be8}.hero-arte:has(.portada-ilustrada) .arte-vector{min-height:30px}.hero-arte:has(.portada-ilustrada) .arte-vector svg{width:46px}.hero-arte:has(.portada-ilustrada) .arte-sigla{font-size:2.2rem}.hero-arte:has(.portada-ilustrada) .arte-nombre{font-size:.63rem}.hero-arte:has(.portada-practica) .arte-emblema{background:#17232be8}
