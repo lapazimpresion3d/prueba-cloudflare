@@ -29,7 +29,7 @@ export async function crearAdministradorCentral(env,{autenticarCentral,habilitad
  },
  async indicadores(r){
   const a=await actor(r),n=reloj();
-  return q("SELECT (SELECT count(*) FROM empresas) AS clientes,(SELECT count(*) FROM comercial_suscripciones s JOIN empresas e ON e.id=s.empresa WHERE e.activa=1 AND s.estado='activa' AND s.inicio<=? AND s.vence>?) AS vigentes,(SELECT COALESCE(sum(p.mensualidad),0) FROM comercial_suscripciones s JOIN empresas e ON e.id=s.empresa JOIN comercial_planes p ON p.id=s.plan AND p.version=s.version WHERE e.activa=1 AND s.estado='activa' AND s.inicio<=? AND s.vence>?) AS mrr_centavos,(SELECT COALESCE(sum(importe),0) FROM central_pagos_servicio) AS registrado_centavos WHERE "+guard,n,n,n,n,a).first();
+  return q("SELECT (SELECT count(*) FROM empresas) AS clientes,(SELECT count(*) FROM comercial_suscripciones s JOIN empresas e ON e.id=s.empresa WHERE e.activa=1 AND s.estado='activa' AND s.inicio<=? AND s.vence>?) AS vigentes,(SELECT COALESCE(sum(p.mensualidad),0) FROM comercial_suscripciones s JOIN empresas e ON e.id=s.empresa JOIN comercial_planes p ON p.id=s.plan AND p.version=s.version WHERE e.activa=1 AND s.estado='activa' AND s.inicio<=? AND s.vence>?) AS mrr_centavos,(SELECT COALESCE(sum(importe),0) FROM central_pagos_servicio p WHERE NOT EXISTS(SELECT 1 FROM central_anulaciones_pago a WHERE a.pago=p.id)) AS registrado_centavos WHERE "+guard,n,n,n,n,a).first();
  },
  async versionPlan(r,d){
   const a=await actor(r,true);if(!["p1","p2","p3","p4"].includes(d.id)||!id(d.nombre)||!Number.isSafeInteger(d.version)||d.version<2||![d.implementacion,d.mensualidad].every(x=>Number.isSafeInteger(x)&&x>=0&&x<=100000000)||![d.usuarios,d.sucursales].every(x=>Number.isSafeInteger(x)&&x>0&&x<=10000)||!Array.isArray(d.modulos)||!d.modulos.every(x=>modulos.some(m=>m.id===x)))throw Error("Plan inválido.");
@@ -42,8 +42,24 @@ export async function crearAdministradorCentral(env,{autenticarCentral,habilitad
  },
  async registrarPago(r,d){
   const a=await actor(r,true);if(!id(d.id)||!id(d.empresa)||!["implementacion","mensualidad","adicional"].includes(d.concepto)||!Number.isSafeInteger(d.importe)||d.importe<1||d.importe>100000000||typeof d.referencia!=="string"||!d.referencia.trim()||d.referencia.trim().length>120)throw Error("Registro inválido.");
-  return escribir(q("INSERT INTO central_pagos_servicio SELECT ?,?,?,?,?,?,? WHERE "+guard+" RETURNING id",d.id,d.empresa,d.concepto,d.importe,reloj(),d.referencia.trim(),a,a),a,d.empresa,"pago.registrado",d.id,{sql:"SELECT NULL",args:[]},{sql:"SELECT json_object('concepto',concepto,'importe',importe) FROM central_pagos_servicio WHERE id=? AND empresa=?",args:[d.id,d.empresa]});
+  const referencia=d.referencia.trim();
+  const stmt=q("INSERT INTO central_pagos_servicio SELECT ?,?,?,?,?,?,? WHERE "+guard+" ON CONFLICT DO NOTHING RETURNING id",d.id,d.empresa,d.concepto,d.importe,reloj(),referencia,a,a);
+  const res=await db.batch([stmt,log(a,d.empresa,"pago.registrado",d.id,{sql:"SELECT NULL",args:[]},{sql:"SELECT json_object('concepto',concepto,'importe',importe) FROM central_pagos_servicio WHERE id=? AND empresa=?",args:[d.id,d.empresa]})]);
+  if(res[0].results?.length)return {...res[0].results[0],repetido:false};
+  const previo=await q("SELECT id FROM central_pagos_servicio WHERE id=? AND empresa=? AND concepto=? AND importe=? AND referencia=? AND "+guard,d.id,d.empresa,d.concepto,d.importe,referencia,a).first();
+  if(!previo)throw Error("Conflicto de identificador, referencia o autorización.");
+  return {...previo,repetido:true};
  },
- async pagos(r,empresa){const a=await actor(r);if(!id(empresa))throw Error("Empresa inválida.");return (await q("SELECT id,concepto,importe,fecha,referencia FROM central_pagos_servicio WHERE empresa=? AND "+guard+" ORDER BY fecha DESC,id LIMIT 100",empresa,a).all()).results;}
+ async anularPago(r,d){
+  const a=await actor(r,true);if(!id(d.id)||!id(d.empresa)||!id(d.pago)||!["importe_incorrecto","concepto_incorrecto","registro_duplicado","referencia_incorrecta"].includes(d.motivo))throw Error("Anulación inválida.");
+  const stmt=q("INSERT INTO central_anulaciones_pago(id,pago,actor,fecha,motivo) SELECT ?,p.id,?,?,? FROM central_pagos_servicio p WHERE p.id=? AND p.empresa=? AND "+guard+" ON CONFLICT DO NOTHING RETURNING id",d.id,a,reloj(),d.motivo,d.pago,d.empresa,a);
+  const estado=(anulado)=>({sql:"SELECT json_object('pago',id,'importe',importe,'concepto',concepto,'anulado',"+anulado+") FROM central_pagos_servicio WHERE id=? AND empresa=?",args:[d.pago,d.empresa]});
+  const res=await db.batch([stmt,log(a,d.empresa,"pago.anulado",d.id,estado(0),{sql:"SELECT json_object('pago',p.id,'importe',p.importe,'concepto',p.concepto,'anulado',1,'motivo',x.motivo) FROM central_pagos_servicio p JOIN central_anulaciones_pago x ON x.pago=p.id WHERE x.id=? AND p.empresa=?",args:[d.id,d.empresa]})]);
+  if(res[0].results?.length)return {...res[0].results[0],repetido:false};
+  const previo=await q("SELECT x.id FROM central_anulaciones_pago x JOIN central_pagos_servicio p ON p.id=x.pago WHERE x.id=? AND x.pago=? AND p.empresa=? AND x.motivo=? AND "+guard,d.id,d.pago,d.empresa,d.motivo,a).first();
+  if(!previo)throw Error("Conflicto de anulación o autorización.");
+  return {...previo,repetido:true};
+ },
+ async pagos(r,empresa){const a=await actor(r);if(!id(empresa))throw Error("Empresa inválida.");return (await q("SELECT p.id,p.concepto,p.importe,p.fecha,p.referencia,CASE WHEN x.id IS NULL THEN 0 ELSE 1 END AS anulado,x.id AS anulacion FROM central_pagos_servicio p LEFT JOIN central_anulaciones_pago x ON x.pago=p.id WHERE p.empresa=? AND "+guard+" ORDER BY p.fecha DESC,p.id LIMIT 100",empresa,a).all()).results;}
  });
 }
