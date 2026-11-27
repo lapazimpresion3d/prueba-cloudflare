@@ -1,3 +1,5 @@
+import {partidasCuenta} from "../public/demostraciones/division-cuentas.mjs";
+import {movimientoIndividual,subcuentas} from "../public/demostraciones/subcuentas.mjs";
 // Adaptador D1 aislado. No habilitar en rutas públicas hasta conciliar el cierre
 // y los cobros anteriores. No procesa dinero ni modifica demo_pedidos.
 import {crearPlanCobro,agregarMovimiento,resumenPlanCobro} from "../public/demostraciones/pagos-multiples.mjs";
@@ -8,7 +10,7 @@ export async function pagosMultiplesListos(db){
 }
 async function contexto(db,s,id,permitirCerrada=false){
  if(!cuentaIdValida(id))throw Error("Cuenta inválida.");
- const c=await db.prepare("SELECT cuenta_id,cerrado FROM demo_cuentas WHERE sesion_id=? AND cuenta_id=? AND (?=1 OR cerrado IS NULL) AND EXISTS(SELECT 1 FROM demo_sesiones WHERE id=? AND expira>?)").bind(s.id,id,permitirCerrada?1:0,s.id,ahora()).first();
+ const c=await db.prepare("SELECT cuenta_id,cerrado,personas FROM demo_cuentas WHERE sesion_id=? AND cuenta_id=? AND (?=1 OR cerrado IS NULL) AND EXISTS(SELECT 1 FROM demo_sesiones WHERE id=? AND expira>?)").bind(s.id,id,permitirCerrada?1:0,s.id,ahora()).first();
  if(!c)throw Error("Cuenta no disponible.");
  const filas=(await db.prepare("SELECT solicitud_id,datos_json FROM demo_pedidos WHERE sesion_id=? AND establecimiento_id='taqueria-el-comal' AND json_extract(datos_json,'$.cuenta')=? ORDER BY solicitud_id").bind(s.id,id).all()).results;
  const pedidos=filas.map(f=>JSON.parse(f.datos_json));
@@ -18,17 +20,17 @@ async function contexto(db,s,id,permitirCerrada=false){
  const plan=fila?JSON.parse(fila.datos_json):crearPlanCobro(total);
  if(plan.consumoCentavos!==total)throw Error("El consumo cambió; requiere conciliación.");
  if(c.cerrado!==null&&!fila)throw Error("La cuenta cerrada no tiene pagos múltiples.");
- return {plan,filas,cerrado:c.cerrado};
+ return {plan,filas,cerrado:c.cerrado,personas:c.personas,pedidos};
 }
 export async function leerPlanCobro(db,s,id){
- const {plan,cerrado}=await contexto(db,s,id,true);
- return {plan,cerrado,resumen:resumenPlanCobro(plan)};
+ const {plan,cerrado,pedidos,personas}=await contexto(db,s,id,true);
+ return {plan,cerrado,resumen:resumenPlanCobro(plan),subcuentas:subcuentas(plan),partidas:partidasCuenta(pedidos),personas};
 }
 export async function guardarMovimiento(db,s,id,d){
  if(!await pagosMultiplesListos(db))throw Error("Falta configurar la conciliación de pagos múltiples.");
- const {plan,filas}=await contexto(db,s,id);
- const nuevo=agregarMovimiento(plan,d);
- if(nuevo===plan)return {plan,resumen:resumenPlanCobro(plan),repetido:true};
+ const {plan,filas,pedidos,personas}=await contexto(db,s,id);
+ const nuevo=movimientoIndividual(plan,d,partidasCuenta(pedidos),personas);
+ if(nuevo===plan)return {plan,resumen:resumenPlanCobro(plan),subcuentas:subcuentas(plan),repetido:true};
  // Compare-and-swap de revisión y fotografía exacta de comandas en una sola sentencia.
  const sql=`INSERT INTO demo_planes_cobro(sesion_id,cuenta_id,revision,datos_json)
  SELECT ?,?,?,? WHERE
@@ -43,7 +45,7 @@ export async function guardarMovimiento(db,s,id,d){
  WHERE demo_planes_cobro.revision=? RETURNING revision`;
  const f=await db.prepare(sql).bind(s.id,id,nuevo.revision,JSON.stringify(nuevo),s.id,ahora(),s.id,id,s.id,id,filas.length,JSON.stringify(filas),s.id,s.id,id,plan.revision,plan.revision).first();
  if(!f)throw Error("La cuenta cambió o expiró. Actualiza antes de reintentar.");
- return {plan:nuevo,resumen:resumenPlanCobro(nuevo)};
+ return {plan:nuevo,resumen:resumenPlanCobro(nuevo),subcuentas:subcuentas(nuevo)};
 }
 
 // Cierre exclusivo del libro múltiple; nunca marca pedidos como pagados por el método anterior.
