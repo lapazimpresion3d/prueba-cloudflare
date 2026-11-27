@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Demostraciones comerciales | Lapazimpresion3d</title>
+  <link rel="stylesheet" href="./estilos.css">
+  <script type="module" src="./app.mjs"></script>
+</head>
+<body>
+  <header class="barra"><a href="https://lapazimpresion3d.com">← Lapazimpresion3d</a><span>Demostraciones comerciales</span><a href="/demo/">Demo original de El Comal</a></header>
+  <main>
+    <section class="introduccion">
+      <p class="sobrelinea">PLATAFORMA MODULAR · VISTA PREVIA</p>
+      <h1>Explora un negocio como el tuyo</h1>
+      <p>Elige un establecimiento y un plan de manera independiente. Los catálogos son ficticios; no se realizan pedidos, cobros, citas ni movimientos reales desde este escaparate.</p>
+    </section>
+    <section aria-labelledby="titulo-negocios">
+      <h2 id="titulo-negocios">1. Elige el giro comercial</h2>
+      <div id="negocios" class="negocios" role="group" aria-label="Establecimientos"></div>
+    </section>
+    <section aria-labelledby="titulo-planes">
+      <h2 id="titulo-planes">2. Elige el plan</h2>
+      <div id="planes" class="planes" role="group" aria-label="Planes comerciales"></div>
+      <p class="nota">Precios en MXN más IVA. El selector es una vista comercial, no modifica suscripciones ni autoriza operaciones.</p>
+    </section>
+    <div id="estado" role="status" aria-live="polite"></div>
+    <section class="perfil" id="perfil" aria-labelledby="nombre" hidden>
+      <div class="perfil-marca" id="marca"></div>
+      <div><p class="sobrelinea" id="giro"></p><h2 id="nombre"></h2><p id="lema"></p><p id="descripcion"></p></div>
+      <div class="perfil-info"><strong>Información de ejemplo</strong><p id="horario"></p><p id="ubicacion"></p><p>QR opcional · atención tradicional compatible como objetivo</p></div>
+    </section>
+    <section aria-labelledby="titulo-catalogo" id="seccion-catalogo" hidden>
+      <div class="encabezado"><h2 id="titulo-catalogo">Catálogo del establecimiento</h2><span class="etiqueta disponible">Disponible</span></div>
+      <div class="filtros">
+        <label>Buscar <input id="buscar" type="search" placeholder="Nombre o descripción"></label>
+        <label>Tipo <select id="tipo"><option value="">Todos</option><option value="alimento">Alimentos</option><option value="fisico">Productos físicos</option><option value="servicio">Servicios</option></select></label>
+        <label>Categoría <select id="categoria"><option value="">Todas</option></select></label>
+      </div>
+      <p id="resultado" class="nota" role="status"></p><div id="catalogo" class="catalogo"></div>
+    </section>
+    <section aria-labelledby="titulo-capacidades" id="seccion-capacidades" hidden>
+      <h2 id="titulo-capacidades">Funcionalidades de este plan y giro</h2>
+      <p id="resumen-plan"></p>
+      <div class="leyenda"><span class="etiqueta disponible">Disponible aquí</span><span class="etiqueta en_desarrollo">En desarrollo</span><span class="etiqueta otro_plan">Plan superior</span></div>
+      <div id="capacidades" class="capacidades"></div>
+    </section>
+    <section id="legado" class="legado" hidden>
+      <h2>Referencia restaurantera existente</h2>
+      <p>Estas vistas previas originales de El Comal muestran datos ficticios y controles desactivados. No forman parte de las capacidades operativas del selector.</p>
+      <div id="referencias"></div>
+    </section>
+    <noscript><p>Activa JavaScript para explorar el selector y los catálogos.</p></noscript>
+  </main>
+  <footer>Lapazimpresion3d · Establecimientos ficticios · Vista previa en desarrollo</footer>
+</body>
+</html>
