@@ -49,7 +49,7 @@ export function iniciarCarrito(datos,plan,practica){
     $("carrito-vacio").hidden=!!r.detalle.length;
     $("pedido-subtotal").textContent=importe(r.subtotal);$("pedido-cargo").textContent=importe(r.cargo);$("pedido-total").textContent=importe(r.total);
     $("nav-carrito").textContent="Carrito ("+r.detalle.reduce((n,l)=>n+l.cantidad,0)+")";
-    $("enviar-pedido").disabled=comprobando||enviando||conectando||(!pendiente&&!r.detalle.length)||(servidor&&configurado!==true);
+    $("enviar-pedido").disabled=comprobando||enviando||conectando||(!pendiente&&!r.detalle.length)||(servidor&&configurado!==true)||(!servidor&&configurado===null&&preferencia!=="local");
     $("enviar-pedido").textContent=pendiente?"Reintentar pedido pendiente":"Crear pedido de práctica";
     $("vaciar-carrito").disabled=enviando||!!pendiente||!r.detalle.length;
     $("modalidad-pedido").disabled=enviando||!!pendiente;
@@ -65,7 +65,7 @@ export function iniciarCarrito(datos,plan,practica){
   }
   async function seguimiento(){
     const n=++consultando,modo=servidor;
-    let pedidos;try{if(modo&&expira===null&&!pendiente)pedidos=[];else if(modo){const v=await remoto.leerEstado();if(n!==consultando||!servidor)return;expira=v.expira;totalRemoto=v.pedidos.length;pedidos=v.pedidos;}else pedidos=repo.leer();}catch(e){if(n===consultando){$("lista-seguimiento").replaceChildren();$("sin-pedidos").hidden=true;$("aviso-seguimiento").textContent=e.message+" Activa la práctica en servidor o actualiza."; }return;}
+    let pedidos;try{if(modo&&configurado!==true)throw Error("No se ha comprobado la agenda de pedidos del servidor.");if(modo&&expira===null&&!pendiente&&preferencia!=="servidor")pedidos=[];else if(modo){const v=await remoto.leerEstado();if(n!==consultando||!servidor)return;expira=v.expira;totalRemoto=v.pedidos.length;pedidos=v.pedidos;}else pedidos=repo.leer();}catch(e){if(n===consultando){totalRemoto=null;render();$("lista-seguimiento").replaceChildren();$("sin-pedidos").hidden=true;$("aviso-seguimiento").textContent=e.message+" Activa la práctica en servidor o actualiza."; }return;}
     if(n!==consultando||modo!==servidor)return;
     $("aviso-seguimiento").textContent="";
     $("sin-pedidos").hidden=pedidos.length>0;render();
@@ -80,7 +80,7 @@ export function iniciarCarrito(datos,plan,practica){
   $("activar-pedidos").addEventListener("click",async()=>{if(comprobando||enviando||conectando||pendiente)return;conectando=true;render();try{await remoto.conectar();const v=await remoto.leerEstado();expira=v.expira;configurado=true;servidor=true;guardarModo();aviso("Sesión en servidor activada. Los pedidos locales no se importan.");await seguimiento();}catch(e){aviso(e.message);}finally{conectando=false;render();}});
   $("pedidos-locales").addEventListener("click",()=>{if(comprobando||enviando||pendiente||conectando)return;servidor=false;guardarModo();aviso("Práctica local activa.");render();seguimiento();});
   $("enviar-pedido").addEventListener("click",async()=>{
-    if(comprobando||enviando||conectando||servidor&&configurado!==true)return;enviando=true;render();
+    if(comprobando||enviando||conectando||servidor&&configurado!==true||!servidor&&configurado===null&&preferencia!=="local")return;enviando=true;render();
     try{
       let p;
       if(servidor){
