@@ -199,68 +199,7 @@ const semillas = [
     },
     "horario": "Martes a domingo · 12:00 a 22:00",
     "ubicacion": "Sucursal ficticia · La Paz, BCS",
-    "catalogo": [
-      [
-        "combo-el-comal",
-        "Combo El Comal",
-        "Combos",
-        "alimento",
-        8500,
-        "Tres tacos al pastor; bebida a elegir.",
-        null,
-        "/imagenes/pastor.webp"
-      ],
-      [
-        "pastor",
-        "Taco al pastor",
-        "Tacos",
-        "alimento",
-        2500,
-        "Carne al pastor, cebolla y cilantro.",
-        null,
-        "/imagenes/pastor.webp"
-      ],
-      [
-        "asada",
-        "Taco de asada",
-        "Tacos",
-        "alimento",
-        3000,
-        "Carne asada, cebolla y cilantro.",
-        null,
-        "/imagenes/asada.webp"
-      ],
-      [
-        "birria",
-        "Taco de birria",
-        "Tacos",
-        "alimento",
-        3500,
-        "Taco de birria.",
-        null,
-        "/imagenes/birria.webp"
-      ],
-      [
-        "quesadilla",
-        "Quesadilla",
-        "Especialidades",
-        "alimento",
-        4500,
-        "Quesadilla de la casa.",
-        null,
-        "/imagenes/quesadilla.webp"
-      ],
-      [
-        "jamaica",
-        "Agua de jamaica",
-        "Bebidas",
-        "alimento",
-        2500,
-        "Bebida fresca.",
-        null,
-        "/imagenes/jamaica.webp"
-      ]
-    ]
+    "catalogo": []
   },
   {
     "id": "auto-servicio-bahia",
