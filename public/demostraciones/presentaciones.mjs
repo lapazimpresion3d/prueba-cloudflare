@@ -50,6 +50,8 @@ export function enlacesDemo(id,plan,practica=false){
   return {administracion,negocio,comparador:"/demostraciones/?"+q};
 }
 
+export function enlaceGaleria(plan){return "/demostraciones/ejemplos/?"+new URLSearchParams({plan});}
+
 // Símbolos vectoriales originales, decorativos y sin recursos externos.
 export const simbolos={
  cafe:'<path d="M18 42h50v10a25 25 0 0 1-50 0z"/><path d="M68 45h9a9 9 0 0 1 0 18h-14M13 79h61M30 32c-9-8 9-12 0-20M45 32c-9-8 9-12 0-20M60 32c-9-8 9-12 0-20"/>',
