@@ -1,3 +1,4 @@
+import { leerJsonLimitado } from "./seguridad.mjs";
 import { cotizarEntrega } from "./entrega.mjs";
 
 const encoder = new TextEncoder();
@@ -28,30 +29,6 @@ function accionesPara(estado, servicio, cocina) {
   return siguiente ? [siguiente, "cancelado"].map(id => ({ id, etiqueta: estados[id] })) : [];
 }
 
-async function leerJson(request) {
-  const reader = request.body?.getReader();
-  if (!reader) return null;
-  const decoder = new TextDecoder();
-  let texto = "";
-  let bytes = 0;
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      bytes += value.byteLength;
-      if (bytes > 16000) {
-        await reader.cancel();
-        return null;
-      }
-      texto += decoder.decode(value, { stream: true });
-    }
-    return JSON.parse(texto + decoder.decode());
-  } catch {
-    return null;
-  } finally {
-    reader.releaseLock();
-  }
-}
 
 async function hash(texto) {
   const datos = await crypto.subtle.digest("SHA-256", encoder.encode(texto));
@@ -206,7 +183,7 @@ async function instruccionesTransferencia(db) {
 export async function administrarPreferenciasPagos(request, db, json) {
   if (request.method === "GET") return json({ instrucciones: await instruccionesTransferencia(db) });
   if (request.method !== "PUT") return json({ error: "Método no permitido." }, 405);
-  const datos = await leerJson(request);
+  const datos = await leerJsonLimitado(request, 16000);
   if (typeof datos?.instrucciones !== "string" || datos.instrucciones.length > 600) {
     return json({ error: "Escribe hasta 600 caracteres en las instrucciones de transferencia." }, 400);
   }
@@ -222,7 +199,7 @@ export async function pedidosPublicos(request, env, url, obtenerMenu, json) {
   if (request.method !== "POST") return json({ error: "Método no permitido." }, 405);
   if (request.headers.get("Origin") !== url.origin) return json({ error: "Solicitud de origen no permitido." }, 403);
 
-  const datos = await leerJson(request);
+  const datos = await leerJsonLimitado(request, 16000);
   if (typeof datos?.token !== "string" || !tokenValido.test(datos.token)) {
     return json({ error: "Referencia de seguimiento inválida." }, 400);
   }
@@ -396,7 +373,7 @@ export async function administrarPedidos(request, db, url, json, cocina = false)
   }
 
   if (request.method !== "PUT") return json({ error: "Método no permitido." }, 405);
-  const datos = await leerJson(request);
+  const datos = await leerJsonLimitado(request, 16000);
   if (!Number.isSafeInteger(datos?.folio) || datos.folio < 1 ||
       !Object.hasOwn(estados, datos.actual) || !Object.hasOwn(estados, datos.nuevo) ||
       (cocina && !accionesPara(datos.actual, null, true).some(accion => accion.id === datos.nuevo))) {
@@ -436,7 +413,7 @@ export async function administrarPedidos(request, db, url, json, cocina = false)
 
 export async function administrarCobro(request, db, json) {
   if (request.method !== "PUT") return json({ error: "Método no permitido." }, 405);
-  const datos = await leerJson(request);
+  const datos = await leerJsonLimitado(request, 16000);
   if (!Number.isSafeInteger(datos?.folio) || datos.folio < 1) {
     return json({ error: "Indica un folio válido." }, 400);
   }
