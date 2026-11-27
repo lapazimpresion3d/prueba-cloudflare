@@ -27,3 +27,6 @@ Siguiente: verificar navegador y preview, completar ADR del núcleo, autenticaci
 
 ## Ampliación de servidor
 El escaparate consulta /api/demo/contexto y ofrece conectar/cargar/guardar una copia de práctica temporal por sesión y establecimiento mediante una D1 dedicada opcional. La descripción anterior de ausencia de llamadas API corresponde a la versión histórica; ahora hay consultas de contexto y acciones de práctica separadas de las API de El Comal. No se ha configurado DEMO_DB ni aplicado el esquema; el modo local sigue disponible. Ver docs/nucleo-demos-servidor.md.
+
+## Personalización local de página
+Editor compartido para nombre comercial, icono predefinido, colores, lema, descripción, horario, ubicación ficticia y contacto textual. Sin carga de imágenes, enlaces externos, datos reales ni edición de IDs/giro. Los cambios quedan en sessionStorage por establecimiento y se pueden restaurar; si falla almacenamiento se conservan en memoria. La página individual refleja la práctica local, no publica cambios. La persistencia remota de perfil sigue pendiente; la copia de catálogo en D1 requiere configurar base dedicada. Ver tests/perfil-demo.test.mjs.
