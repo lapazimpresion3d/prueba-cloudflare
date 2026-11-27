@@ -10,14 +10,25 @@ export async function crearAdministracionComercial(env,{autenticar,habilitado=fa
  const q=(s,...a)=>db.prepare(s).bind(...a);
  async function contexto(r,e){if(!habilitado||!id(e)||r.method!=="POST"||r.headers.get("Origin")!==new URL(r.url).origin)throw Error("Operación no permitida.");const a=await autenticar(r);if(!id(a?.actor))throw Error("Autenticación requerida.");return a.actor;}
  const log=(e,a,accion,obj)=>q("INSERT INTO comercio_auditoria(empresa,actor,accion,objetivo,fecha) SELECT ?,?,?,?,? WHERE changes()=1",e,a,accion,obj,reloj());
- async function ejecutar(stm){const r=await db.batch(stm);if(!r[0].results?.length)throw Error("Operación no autorizada o inexistente.");return r[0].results[0];}
+
+ const detalle=(e,a,accion,obj,sucursal,consulta,params,permiso)=>{
+  const marca=crypto.randomUUID();
+  const previo=q("INSERT INTO comercio_auditoria_detalle(id,empresa,actor,sucursal,accion,objetivo,fecha,anterior) SELECT ?,?,?,?,?,?,?,("+consulta+") WHERE "+guard,marca,e,a,sucursal,accion,obj,reloj(),...params,e,a,permiso);
+  const final=q("UPDATE comercio_auditoria_detalle SET posterior=("+consulta+") WHERE id=?",...params,marca);
+  return {previo,final};
+ };
+ const estadoSucursal="SELECT json_object('activa',activa) FROM sucursales WHERE empresa=? AND id=?";
+ const estadoRol="SELECT json_object('permisos',json((SELECT json_group_array(permiso) FROM (SELECT permiso FROM rol_permisos WHERE empresa=roles.empresa AND rol=roles.id ORDER BY permiso)))) FROM roles WHERE empresa=? AND id=?";
+ const estadoMembresia="SELECT json_object('rol',rol,'activa',activa,'alcance',alcance,'sucursales',json((SELECT json_group_array(sucursal) FROM (SELECT sucursal FROM membresia_sucursales WHERE empresa=membresias.empresa AND usuario=membresias.usuario ORDER BY sucursal)))) FROM membresias WHERE empresa=? AND usuario=?";
+ async function ejecutar(stm,indice=0){const r=await db.batch(stm);if(!r[indice].results?.length)throw Error("Operación no autorizada o inexistente.");return r[indice].results[0];}
  return Object.freeze({
  async guardarSucursal(r,d){
   const a=await contexto(r,d.empresa);if(!nombre(d.nombre)||![0,1].includes(d.activa))throw Error("Sucursal inválida.");
   const s=d.id??crypto.randomUUID();if(!id(s))throw Error("Sucursal inválida.");
   const args=[d.empresa,a,"sucursales.administrar"];
   const stmt=d.id?q("UPDATE sucursales SET nombre=?,activa=? WHERE empresa=? AND id=? AND "+guard+" RETURNING id",d.nombre.trim(),d.activa,d.empresa,s,...args):q("INSERT INTO sucursales(empresa,id,nombre,activa) SELECT ?,?,?,? WHERE "+guard+" RETURNING id",d.empresa,s,d.nombre.trim(),d.activa,...args);
-  return ejecutar([stmt,log(d.empresa,a,"sucursal.guardada",s)]);
+  const h=detalle(d.empresa,a,"sucursal.guardada",s,s,estadoSucursal,[d.empresa,s],"sucursales.administrar");
+  return ejecutar([h.previo,stmt,log(d.empresa,a,"sucursal.guardada",s),h.final],1);
  },
  async guardarRol(r,d){
   const a=await contexto(r,d.empresa);if(!nombre(d.nombre)||!Array.isArray(d.permisos)||!d.permisos.length||d.permisos.some(p=>!operativos.includes(p)))throw Error("Rol inválido o permiso crítico.");
@@ -25,7 +36,8 @@ export async function crearAdministracionComercial(env,{autenticar,habilitado=fa
   const args=[d.empresa,a,"usuarios.administrar"];
   const stm=[d.id?q("UPDATE roles SET nombre=? WHERE empresa=? AND id=? AND "+guard+" RETURNING id",d.nombre.trim(),d.empresa,rol,...args):q("INSERT INTO roles SELECT ?,?,? WHERE "+guard+" RETURNING id",d.empresa,rol,d.nombre.trim(),...args),log(d.empresa,a,"rol.guardado",rol),q("DELETE FROM rol_permisos WHERE empresa=? AND rol=? AND "+guard,d.empresa,rol,...args)];
   for(const p of new Set(d.permisos))stm.push(q("INSERT INTO rol_permisos SELECT ?,?,? WHERE EXISTS(SELECT 1 FROM roles WHERE empresa=? AND id=?) AND "+guard,d.empresa,rol,p,d.empresa,rol,...args));
-  return ejecutar(stm);
+  const h=detalle(d.empresa,a,"rol.guardado",rol,null,estadoRol,[d.empresa,rol],"usuarios.administrar");
+  return ejecutar([h.previo,...stm,h.final],1);
  },
  async asignar(r,d){
   const a=await contexto(r,d.empresa);if(!id(d.usuario)||!id(d.rol)||!Array.isArray(d.sucursales)||d.sucursales.length<1||d.sucursales.length>20||d.sucursales.some(s=>!id(s))||!["encargado","cajero"].includes(d.rol)&&!/^custom-[a-f0-9-]{36}$/.test(d.rol))throw Error("Asignación inválida.");

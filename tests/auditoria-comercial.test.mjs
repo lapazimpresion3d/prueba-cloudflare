@@ -1,0 +1,19 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {DatabaseSync} from "node:sqlite";
+import {readFileSync} from "node:fs";
+import {crearAdministracionComercial} from "../src/administracion-comercial.mjs";
+import {crearConsultaAuditoria} from "../src/auditoria-comercial.mjs";
+import {crearNucleoComercial} from "../src/nucleo-comercial.mjs";
+async function fixture(){
+ const sql=new DatabaseSync(":memory:");sql.exec("PRAGMA foreign_keys=ON");
+ for(const f of ["0001_identidad.sql","0002_sesiones.sql","0003_altas.sql","0004_administracion.sql","0005_suscripciones.sql","0006_administrador_central.sql","0007_auditoria_detalle.sql"])sql.exec(readFileSync(new URL("../migrations-comercios/"+f,import.meta.url),"utf8"));
+ sql.exec("INSERT INTO empresas VALUES('a','A',1),('b','B',1); INSERT INTO usuarios VALUES('u','issuer','owner',1),('v','issuer','other',1); INSERT INTO roles VALUES('a','propietario','Owner'),('b','propietario','Owner'); INSERT INTO membresias VALUES('a','u','propietario',1,'empresa'),('b','v','propietario',1,'empresa'); INSERT INTO rol_permisos VALUES('a','propietario','usuarios.administrar'),('a','propietario','sucursales.administrar'),('b','propietario','usuarios.administrar'); INSERT INTO sucursales VALUES('a','s','Centro',1),('a','t','Otra',1);");
+ const db={prepare(q){return {first:async()=>sql.prepare(q).get()??null,bind(...a){return {q,a,first:async()=>sql.prepare(q).get(...a)??null,all:async()=>({results:sql.prepare(q).all(...a)})}}}},async batch(stm){sql.exec("BEGIN");try{const r=stm.map(({q,a})=>/RETURNING/i.test(q)?{results:sql.prepare(q).all(...a)}:{meta:sql.prepare(q).run(...a)});sql.exec("COMMIT");return r}catch(e){sql.exec("ROLLBACK");throw e}}};
+ const env={COMMERCE_DB:db},auth=async r=>({actor:r.headers.get("X-Test")==="other"?"v":"u",emisor:"issuer",sujeto:r.headers.get("X-Test")||"owner"});
+ const a=await crearAdministracionComercial(env,{autenticar:auth,habilitado:true}),n=await crearNucleoComercial(env,{autenticar:auth}),h=await crearConsultaAuditoria(env,{autorizar:n.autorizar,habilitado:true});
+ const req=(method="POST",subject="owner")=>new Request("https://example.com/",{method,headers:{Origin:"https://example.com","X-Test":subject}});
+ return {sql,a,h,req};
+}
+test("sucursal: captura anterior y posterior; no conserva nombre libre",async()=>{const {sql,a,h,req}=await fixture();await a.guardarSucursal(req(),{empresa:"a",id:"s",nombre:"Nombre privado",activa:0});const [r]=await h(req("GET"),{empresa:"a"});assert.deepEqual(JSON.parse(r.anterior),{activa:1});assert.deepEqual(JSON.parse(r.posterior),{activa:0});assert.equal(r.actor,"u");assert.equal(r.sucursal,"s");assert.ok(!JSON.stringify(r).includes("Nombre privado"));assert.throws(()=>sql.exec("DELETE FROM comercio_auditoria_detalle"));assert.throws(()=>sql.exec("UPDATE comercio_auditoria_detalle SET posterior='{}'"));});
+test("alta de sucursal y rol; cambios de permisos; rechazo sin registro",async()=>{const {a,h,req,sql}=await fixture();await a.guardarSucursal(req(),{empresa:"a",nombre:"Nueva",activa:1});const {id}=await a.guardarRol(req(),{empresa:"a",nombre:"Prueba",permisos:["pos.operar"]});await a.guardarRol(req(),{empresa:"a",id,nombre:"Prueba",permisos:["caja.operar"]});const rows=await h(req("GET"),{empresa:"a"});assert.equal(rows.length,3);assert.ok(rows.some(r=>r.anterior===null&&r.sucursal));assert.ok(rows.some(r=>r.anterior&&JSON.parse(r.anterior).permisos?.includes("pos.operar")&&JSON.parse(r.posterior).permisos.includes("caja.operar")));await assert.rejects(a.guardarSucursal(req(),{empresa:"a",id:"inexistente",nombre:"X",activa:1}));await assert.rejects(a.guardarSucursal(req("POST","other"),{empresa:"a",id:"s",nombre:"X",activa:0}));assert.equal(sql.prepare("SELECT count(*) n FROM comercio_auditoria_detalle").get().n,3);await assert.rejects(h(req("GET","other"),{empresa:"a"}));await assert.rejects(h(req("GET"),{empresa:"b"}));});
