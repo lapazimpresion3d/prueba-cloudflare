@@ -11,21 +11,27 @@
 <body>
   <header class="barra"><a href="https://lapazimpresion3d.com">← Lapazimpresion3d</a><span>Demostraciones comerciales</span><a href="/demo/">Demo original de El Comal</a></header>
   <main>
-    <section class="introduccion">
+    <section class="introduccion" id="introduccion">
       <p class="sobrelinea">PLATAFORMA MODULAR · VISTA PREVIA</p>
       <h1>Explora un negocio como el tuyo</h1>
       <p>Elige un establecimiento y un plan de manera independiente. Los catálogos son ficticios; no se realizan pedidos, cobros, citas ni movimientos reales desde este escaparate.</p>
     </section>
-    <section aria-labelledby="titulo-negocios">
+    <section aria-labelledby="titulo-negocios" id="selector-negocios">
       <h2 id="titulo-negocios">1. Elige el giro comercial</h2>
       <div id="negocios" class="negocios" role="group" aria-label="Establecimientos"></div>
     </section>
-    <section aria-labelledby="titulo-planes">
+    <section aria-labelledby="titulo-planes" id="selector-planes">
       <h2 id="titulo-planes">2. Elige el plan</h2>
       <div id="planes" class="planes" role="group" aria-label="Planes comerciales"></div>
       <p class="nota">Precios en MXN más IVA. El selector es una vista comercial, no modifica suscripciones ni autoriza operaciones.</p>
     </section>
     <div id="estado" role="status" aria-live="polite"></div>
+    <nav class="acciones-demo" aria-label="Vistas de demostración">
+      <button type="button" id="vista-cliente">Ver página del negocio</button>
+      <button type="button" id="vista-comparador" hidden>Comparar negocios y planes</button>
+      <button type="button" id="abrir-editor">Probar editor de catálogo</button>
+      <a id="compartir-vista" href="./">Enlace directo al negocio</a>
+    </nav>
     <section class="perfil" id="perfil" aria-labelledby="nombre" hidden>
       <div class="perfil-marca" id="marca"></div>
       <div><p class="sobrelinea" id="giro"></p><h2 id="nombre"></h2><p id="lema"></p><p id="descripcion"></p></div>
@@ -39,6 +45,26 @@
         <label>Categoría <select id="categoria"><option value="">Todas</option></select></label>
       </div>
       <p id="resultado" class="nota" role="status"></p><div id="catalogo" class="catalogo"></div>
+    </section>
+    <section id="editor" class="editor" aria-labelledby="titulo-editor" hidden>
+      <div class="encabezado"><h2 id="titulo-editor">Editor de catálogo · práctica local</h2><button type="button" id="cerrar-editor">Cerrar editor</button></div>
+      <p>Prueba el alta, edición, disponibilidad y eliminación de productos o servicios. Los cambios son exclusivos de esta pestaña y establecimiento. No se publican, no afectan pedidos reales ni requieren datos personales. Usa información ficticia.</p>
+      <form id="form-oferta">
+        <h3 id="titulo-form-oferta">Agregar elemento</h3>
+        <div class="campos-editor">
+          <label>Nombre <input name="nombre" maxlength="100" required></label>
+          <label>Categoría <input name="categoria" maxlength="60" required></label>
+          <label>Tipo <select name="tipo"><option value="fisico">Producto físico</option><option value="alimento">Alimento</option><option value="servicio">Servicio</option></select></label>
+          <label>Precio MXN <input name="precio" inputmode="decimal" placeholder="0.00" required maxlength="10"></label>
+          <label id="campo-duracion" hidden>Duración en minutos <input name="duracion" type="number" min="5" max="1440" step="1" disabled></label>
+          <label class="check-editor"><input type="checkbox" name="disponible" checked> Disponible</label>
+          <label class="campo-ancho">Descripción <textarea name="descripcion" maxlength="300" rows="2"></textarea></label>
+        </div>
+        <div class="acciones-demo"><button type="submit" class="principal">Guardar elemento</button><button type="button" id="cancelar-edicion" hidden>Cancelar edición</button></div>
+      </form>
+      <p id="aviso-editor" role="status" aria-live="polite"></p>
+      <div id="lista-editor" class="lista-editor"></div>
+      <button type="button" id="restaurar-catalogo">Restaurar catálogo original</button>
     </section>
     <section aria-labelledby="titulo-capacidades" id="seccion-capacidades" hidden>
       <h2 id="titulo-capacidades">Funcionalidades de este plan y giro</h2>
