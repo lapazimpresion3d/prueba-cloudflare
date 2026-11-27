@@ -1,8 +1,9 @@
+import {zonasEntregaDemo,horarioEntregaDemo} from "./entrega-practica.mjs";
 import {nuevosListos} from "./cocina-practica.mjs";
 import {normalizarOpciones,claveLinea,textoLinea} from "./menu-comal-practica.mjs";
 import {clientesDemo,direccionesDemo,notasPedidoDemo,pagosDemo,mesasDemo,seleccionPedido} from "./clientes-practica.mjs";
 import {importe} from "./config.mjs";
-import {admitePedidos,modalidadesPedido,ofertaPedible,resumirCarrito,crearPedidosPractica,nombresEstado} from "./pedidos-practica.mjs";
+import {admitePedidos,modalidadesPedido,ofertaPedible,resumirCarrito,resumirPedidoConfirmado,crearPedidosPractica,nombresEstado} from "./pedidos-practica.mjs";
 import {crearPedidosRemotos,prepararSolicitudPedido,detectarPedidos} from "./pedidos-remotos.mjs";
 const $=id=>document.getElementById(id);
 function nodo(tag,texto,clase){const n=document.createElement(tag);if(texto!==undefined)n.textContent=texto;if(clase)n.className=clase;return n;}
@@ -34,17 +35,36 @@ export function iniciarCarrito(datos,plan,practica,mesa=null){
   elegir("nota-pedido",notasPedidoDemo);
   elegir("mesa-pedido",mesasDemo.filter(id=>!mesa||id===mesa).map(id=>({id,nombre:"Mesa "+id})),mesa?null:"Selecciona una mesa");
   if(mesa){$("modalidad-pedido").value="local";$("mesa-pedido").value=mesa;}
-  elegir("direccion-pedido",direccionesDemo.map(x=>({id:x.id,nombre:x.calle+" · "+x.colonia})),"Selecciona dirección");
+  const porZona=datos.id==="taqueria-el-comal";
+  const modoHorario=()=>$("simular-entrega").checked?"simulado":"actual";
+  $("reglas-entrega-demo").hidden=!porZona;
+  $("horario-entrega-demo").textContent="Entregas: "+horarioEntregaDemo+". Tarifas ficticias de práctica.";
+  elegir("colonia-pedido",[...zonasEntregaDemo.map(z=>({id:z.id,nombre:z.nombre+" · "+importe(z.envioCentavos)})),{id:"fuera",nombre:"Mi colonia no aparece"}],"Selecciona colonia");
+  function direccionesDisponibles(){
+    const anterior=$("direccion-pedido").value,z=zonasEntregaDemo.find(z=>z.id===$("colonia-pedido").value);
+    const lista=porZona?direccionesDemo.filter(x=>x.id===z?.direccion):direccionesDemo.filter(x=>x.id!=="domicilio-3");
+    elegir("direccion-pedido",lista.map(x=>({id:x.id,nombre:x.calle+" · "+x.colonia})),"Selecciona dirección");
+    if(lista.some(x=>x.id===anterior))$("direccion-pedido").value=anterior;
+    else if(porZona&&lista.length===1)$("direccion-pedido").value=lista[0].id;
+  }
+  direccionesDisponibles();
+  function resumenVista(items=lineas){return resumirCarrito(datos.id,datos.catalogo,items,$("modalidad-pedido").value,{direccion:$("direccion-pedido").value,horario:modoHorario()});}
+  function resumenConfirmado(d){return resumirPedidoConfirmado(datos.id,datos.catalogo,lineas,$("modalidad-pedido").value,d,modoHorario());}
+  $("colonia-pedido").addEventListener("change",()=>{direccionesDisponibles();render();});
+  $("simular-entrega").addEventListener("change",render);
+  $("recoger-sin-cobertura").addEventListener("click",()=>{$("modalidad-pedido").value="recoger";render();});
   function datosCliente(){return seleccionPedido({cliente:$("cliente-pedido").value,pago:$("pago-pedido").value,nota:$("nota-pedido").value,mesa:(mesa||$("mesa-pedido").value),direccion:$("direccion-pedido").value},$("modalidad-pedido").value,datos.giro);}
   function mostrarDatos(){
    const cliente=clientesDemo.find(x=>x.id===$("cliente-pedido").value),dir=direccionesDemo.find(x=>x.id===$("direccion-pedido").value);
    $("telefono-pedido").value=cliente?.telefono||"";
    $("detalle-direccion").textContent=dir?dir.colonia+" · "+dir.referencias:"";
+   $("colonia-pedido").disabled=$("simular-entrega").disabled=enviando||!!pendiente;
+   $("recoger-sin-cobertura").disabled=enviando||!!pendiente;
    $("campo-mesa").hidden=!(datos.giro==="restaurante"&&$("modalidad-pedido").value==="local");
    $("campos-entrega").hidden=$("modalidad-pedido").value!=="domicilio";
    for(const k of ["cliente-pedido","pago-pedido","nota-pedido","mesa-pedido","direccion-pedido"])$(k).disabled=enviando||!!pendiente||!!mesa&&k==="mesa-pedido";
   }
-  for(const k of ["cliente-pedido","pago-pedido","nota-pedido","mesa-pedido","direccion-pedido"])$(k).addEventListener("change",mostrarDatos);
+  for(const k of ["cliente-pedido","pago-pedido","nota-pedido","mesa-pedido","direccion-pedido"])$(k).addEventListener("change",()=>{mostrarDatos();if(k==="direccion-pedido")render();});
   let temporizadorAviso;
   const temporizadoresBoton=new WeakMap();
   function notificar(m,error=false){
@@ -71,12 +91,13 @@ export function iniciarCarrito(datos,plan,practica,mesa=null){
     const clave=claveLinea({id,opciones});const copia=lineas.map(x=>({...x})),i=copia.findIndex(l=>claveLinea(l)===clave);
     if(i<0){if(delta<=0)return {ok:false,mensaje:"El producto ya no está en el carrito."};copia.push({id,cantidad:delta,...(opciones?{opciones}:{})});}
     else{copia[i].cantidad+=delta;if(copia[i].cantidad<=0)copia.splice(i,1);}
-    try{resumirCarrito(datos.id,datos.catalogo,copia,$("modalidad-pedido").value);lineas=copia;const guardado=persistir();render();aviso(guardado?"Carrito actualizado.":"Carrito temporal: el navegador no conserva la copia.");return {ok:true,guardado,cantidad:lineas.find(l=>claveLinea(l)===clave)?.cantidad||0};}
+    try{resumenVista(copia);lineas=copia;const guardado=persistir();render();aviso(guardado?"Carrito actualizado.":"Carrito temporal: el navegador no conserva la copia.");return {ok:true,guardado,cantidad:lineas.find(l=>claveLinea(l)===clave)?.cantidad||0};}
     catch(e){aviso(e.message);return {ok:false,mensaje:e.message};}
   }
   function render(){
+    if(pendiente){const d=pendiente.datos.datosCliente;if(d&&porZona){$("colonia-pedido").value=zonasEntregaDemo.find(z=>z.direccion===d.direccion)?.id||"";direccionesDisponibles();$("simular-entrega").checked=pendiente.datos.horarioEntrega==="simulado";}const op=modos.find(m=>m.id===pendiente.datos.modalidad);if(op)$("modalidad-pedido").value=op.id;if(d){for(const [k,v] of [["cliente-pedido",d.cliente],["pago-pedido",d.pago],["nota-pedido",d.nota],["mesa-pedido",d.mesa],["direccion-pedido",d.direccion]])$(k).value=v||"";}}
     let r;
-    try{r=resumirCarrito(datos.id,datos.catalogo,lineas,$("modalidad-pedido").value);}
+    try{r=resumenVista();}
     catch(e){aviso(e.message);r={detalle:[],subtotal:0,cargo:0,total:0};}
     $("lineas-carrito").replaceChildren(...r.detalle.map(l=>{
       const fila=nodo("div",undefined,"linea-carrito"),info=nodo("div");
@@ -87,17 +108,19 @@ export function iniciarCarrito(datos,plan,practica,mesa=null){
       controles.append(menos,nodo("span",String(l.cantidad)),mas,quitar);fila.append(info,controles);return fila;
     }));
     $("carrito-vacio").hidden=!!r.detalle.length;
-    $("pedido-subtotal").textContent=importe(r.subtotal);$("pedido-cargo").textContent=importe(r.cargo);$("pedido-total").textContent=importe(r.total);
+    const cot=r.cotizacion,fuera=porZona&&$("colonia-pedido").value==="fuera";
+    $("cotizacion-entrega-demo").textContent=cot?(fuera?"Colonia fuera de cobertura. Puedes recoger en mostrador.":cot.zona?("Envío: "+importe(cot.envioCentavos)+" · Mínimo: "+importe(cot.minimoCentavos)+(cot.faltante?" · Faltan "+importe(cot.faltante):" · Mínimo alcanzado")+(cot.abierto?(cot.horario==="simulado"?" · Horario abierto simulado":" · Servicio abierto"):" · Fuera de horario")):cot.error):"";
+    $("recoger-sin-cobertura").hidden=!cot||(!fuera&&(!cot.zona||cot.abierto));
+    $("pedido-subtotal").textContent=importe(r.subtotal);$("pedido-cargo").textContent=cot&&!cot.zona?"Por cotizar":importe(r.cargo);$("pedido-total").textContent=cot&&!cot.zona?"Por cotizar":importe(r.total);
     const cantidad=r.detalle.reduce((n,l)=>n+l.cantidad,0);
     $("nav-carrito").textContent="Carrito ("+cantidad+")";
     $("cantidad-carrito-flotante").textContent=String(cantidad);
     $("subtotal-carrito-flotante").textContent=importe(r.subtotal);
     $("carrito-flotante").setAttribute("aria-label","Ver carrito, "+cantidad+" productos, subtotal "+importe(r.subtotal));
-    $("enviar-pedido").disabled=comprobando||enviando||conectando||(!pendiente&&!r.detalle.length)||(servidor&&configurado!==true)||(!servidor&&configurado===null&&preferencia!=="local");
+    $("enviar-pedido").disabled=comprobando||enviando||conectando||(!pendiente&&(!r.detalle.length||!!cot?.error||fuera&&!!cot))||(servidor&&configurado!==true)||(!servidor&&configurado===null&&preferencia!=="local");
     $("enviar-pedido").textContent=pendiente?"Reintentar pedido pendiente":"Revisar pedido";
     $("vaciar-carrito").disabled=enviando||!!pendiente||!r.detalle.length;
     $("modalidad-pedido").disabled=enviando||!!pendiente||!!mesa;
-    if(pendiente){const op=modos.find(m=>m.id===pendiente.datos.modalidad);if(op)$("modalidad-pedido").value=op.id;const d=pendiente.datos.datosCliente;if(d){for(const [k,v] of [["cliente-pedido",d.cliente],["pago-pedido",d.pago],["nota-pedido",d.nota],["mesa-pedido",d.mesa],["direccion-pedido",d.direccion]])$(k).value=v||"";}}
     mostrarDatos();
     $("modo-pedidos").textContent=servidor?"Práctica en servidor · sesión privada":"Práctica local · esta pestaña";
     $("activar-pedidos").disabled=comprobando||enviando||conectando||!!pendiente||configurado===false;
@@ -123,7 +146,7 @@ export function iniciarCarrito(datos,plan,practica,mesa=null){
     $("lista-seguimiento").replaceChildren(...visibles.map(p=>{
       const c=nodo("article",undefined,"pedido-resumen");
       c.append(nodo("strong",p.folio),nodo("p",nombresEstado[p.estado],"estado-pedido"+(p.estado==="listo"?" pedido-listo":"")),nodo("p",p.detalle.map(l=>l.cantidad+" × "+textoLinea(l)).join(" · ")),nodo("p","Total: "+importe(p.total)));
-      if(p.datosCliente?.cliente){const d=p.datosCliente;c.append(nodo("p","Cliente: "+d.cliente.nombre),nodo("p","Pago previsto: "+d.pago.nombre+(d.mesa?" · Mesa "+d.mesa:"")));if(d.entrega)c.append(nodo("p","Entrega: "+d.entrega.calle+" · "+d.entrega.colonia));}
+      if(p.datosCliente?.cliente){const d=p.datosCliente;c.append(nodo("p","Cliente: "+d.cliente.nombre),nodo("p","Pago previsto: "+d.pago.nombre+(d.mesa?" · Mesa "+d.mesa:"")));if(d.entrega)c.append(nodo("p","Entrega: "+d.entrega.calle+" · "+d.entrega.colonia));if(p.entrega)c.append(nodo("p","Envío: "+importe(p.entrega.envioCentavos)+(p.entrega.horario==="simulado"?" · Horario simulado":"")));}
       return c;
     }));
   }
@@ -139,16 +162,16 @@ export function iniciarCarrito(datos,plan,practica,mesa=null){
     if(pendiente){await enviar();return;}
     if(comprobando||enviando||conectando)return;
     try{
-     const r=resumirCarrito(datos.id,datos.catalogo,lineas,$("modalidad-pedido").value),d=datosCliente();
+     const d=datosCliente(),r=resumenConfirmado(d);
      if(!r.detalle.length)throw Error("Agrega al menos un producto.");
      const cliente=clientesDemo.find(x=>x.id===d.cliente),dir=direccionesDemo.find(x=>x.id===d.direccion),pago=pagosDemo.find(x=>x.id===d.pago),nota=notasPedidoDemo.find(x=>x.id===d.nota);
      const detalle=r.detalle.map(l=>nodo("p",l.cantidad+" × "+textoLinea(l)+" · "+importe(l.subtotal)));
-     $("detalle-revision-demo").replaceChildren(nodo("p","Cliente: "+cliente.nombre),nodo("p","Teléfono: "+cliente.telefono),nodo("p","Modalidad: "+modos.find(m=>m.id===r.modalidad).nombre+(d.mesa?" · Mesa "+d.mesa:"")), ...(dir?[nodo("p","Entrega: "+dir.calle+" · "+dir.colonia)]:[]),nodo("p","Pago previsto: "+pago.nombre),nodo("p","Instrucciones: "+nota.nombre),...detalle,nodo("p","Subtotal: "+importe(r.subtotal)),nodo("p","Entrega: "+importe(r.cargo)),nodo("strong","Total: "+importe(r.total)));
+     $("detalle-revision-demo").replaceChildren(nodo("p","Cliente: "+cliente.nombre),nodo("p","Teléfono: "+cliente.telefono),nodo("p","Modalidad: "+modos.find(m=>m.id===r.modalidad).nombre+(d.mesa?" · Mesa "+d.mesa:"")), ...(dir?[nodo("p","Entrega: "+dir.calle+" · "+dir.colonia)]:[]),nodo("p","Pago previsto: "+pago.nombre),nodo("p","Instrucciones: "+nota.nombre),...detalle,nodo("p","Subtotal: "+importe(r.subtotal)),nodo("p","Entrega: "+importe(r.cargo)+(r.entrega?" · "+r.entrega.colonia+(r.entrega.horario==="simulado"?" (horario simulado)":""):"")),nodo("strong","Total: "+importe(r.total)));
      revision=JSON.stringify({r,d});dialogo.showModal();
     }catch(e){aviso(e.message);notificar(e.message,true);}
   });
   $("confirmar-revision-demo").addEventListener("click",async()=>{
-   try{const r=resumirCarrito(datos.id,datos.catalogo,lineas,$("modalidad-pedido").value),d=datosCliente();if(!revision||revision!==JSON.stringify({r,d}))throw Error("El pedido cambió. Revísalo de nuevo.");revision=null;dialogo.close();await enviar();}
+   try{const d=datosCliente(),r=resumenConfirmado(d);if(!revision||revision!==JSON.stringify({r,d}))throw Error("El pedido cambió. Revísalo de nuevo.");revision=null;dialogo.close();await enviar();}
    catch(e){revision=null;dialogo.close();aviso(e.message);notificar(e.message,true);}
   });
   async function enviar(){
@@ -160,11 +183,11 @@ export function iniciarCarrito(datos,plan,practica,mesa=null){
         if(!pendiente&&expira===null)await remoto.conectar();
         const v=await remoto.leerEstado();expira=v.expira;totalRemoto=v.pedidos.length;
         if(pendiente&&pendiente.expira!==expira)throw Error("La sesión del pedido pendiente caducó. No se reenviará a otra sesión.");
-        if(!pendiente){const resumen=resumirCarrito(datos.id,datos.catalogo,lineas,$("modalidad-pedido").value);if(!resumen.detalle.length)throw Error("Agrega al menos un producto.");guardarPendiente({expira,datos:prepararSolicitudPedido(resumen,practica,crypto.randomUUID(),clienteNuevo)});}guardarModo();
+        if(!pendiente){const resumen=resumenConfirmado(clienteNuevo);if(!resumen.detalle.length)throw Error("Agrega al menos un producto.");guardarPendiente({expira,datos:prepararSolicitudPedido(resumen,practica,crypto.randomUUID(),clienteNuevo)});}guardarModo();
         const resultado=await remoto.crear(pendiente.datos);p=resultado.pedido;
         if(!p||p.solicitud!==pendiente.datos.solicitud)throw Error("No se pudo confirmar el pedido. Reintenta con el mismo identificador.");
         guardarPendiente(null);
-      }else{p=repo.crear(datos.catalogo,lineas,$("modalidad-pedido").value,clienteNuevo);guardarModo();}
+      }else{p=repo.crear(datos.catalogo,lineas,$("modalidad-pedido").value,clienteNuevo,modoHorario());guardarModo();}
       lineas=[];persistir();await seguimiento();aviso("Pedido de práctica "+(servidor?"guardado en servidor":"creado localmente")+". "+p.folio+" · No se envió a un negocio real.");
       $("seccion-seguimiento").scrollIntoView({block:"start"});
     }catch(e){
