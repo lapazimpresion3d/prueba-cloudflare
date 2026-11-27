@@ -11,28 +11,32 @@ export function validarInventario(i){
 }
 export function estadoExistencia(p){return !p?.activo?"sin_control":p.existencias===0?"agotado":p.existencias<=p.minimo?"bajo":"disponible";}
 const buscar=(i,s,id)=>i.productos.find(p=>p.sucursal===s&&p.id===id);
-export function registrar(i,p,a,tipo,delta,motivo,fecha,referencia=""){
+export function valorSalida(p,n){return p.valorCentavos==null?null:n===0?0:Math.round(p.valorCentavos*n/p.existencias);}
+export function registrar(i,p,a,tipo,delta,motivo,fecha,referencia="",valorEntrada=null){
  if(i.movimientos.length>=MAX_MOV)throw Error("Límite de movimientos de práctica.");
  const antes=p.existencias,despues=antes+delta;if(!entero(despues))throw Error("Existencias insuficientes o fuera de límite.");
- p.existencias=despues;i.movimientos.unshift({sucursal:a.sucursal,empleado:a.empleado,rol:a.rol,id:p.id,sku:p.sku,tipo,delta,antes,despues,motivo,fecha,referencia});
+ const valorAntes=p.valorCentavos??null;let valorDespues=valorAntes;if(delta<0)valorDespues=valorAntes===null?null:valorAntes-valorSalida(p,-delta);if(delta>0)valorDespues=valorEntrada===null||antes>0&&valorAntes===null?null:(valorAntes??0)+valorEntrada;if(despues===0)valorDespues=0;if(valorDespues!==null&&(!Number.isSafeInteger(valorDespues)||valorDespues<0||valorDespues>100000000000))throw Error("Valor de inventario inválido.");p.valorCentavos=valorDespues;
+ p.existencias=despues;i.movimientos.unshift({sucursal:a.sucursal,empleado:a.empleado,rol:a.rol,id:p.id,sku:p.sku,tipo,delta,antes,despues,motivo,fecha,referencia,valorAntes,valorDespues});
 }
 export function configurarInventario(i,a,catalogo,id,d,fecha){
  const oferta=catalogo.find(p=>p.id===id);
  if(!oferta||oferta.tipo==="servicio"||typeof d.activo!=="boolean"||!skuValido(d.sku)||!entero(d.minimo))throw Error("Producto o configuración inválida.");
  if(i.productos.some(p=>p.sucursal===a.sucursal&&p.id!==id&&p.sku===d.sku))throw Error("SKU repetido en esta sucursal.");
  let p=buscar(i,a.sucursal,id);
- if(!p){if(i.productos.length>=300||!entero(d.inicial))throw Error("Existencia inicial inválida o límite alcanzado.");p={id,sucursal:a.sucursal,sku:d.sku,activo:d.activo,minimo:d.minimo,existencias:0};i.productos.push(p);registrar(i,p,a,"inicial",d.inicial,"Existencia inicial",fecha);}
+ if(!p){if(i.productos.length>=300||!entero(d.inicial))throw Error("Existencia inicial inválida o límite alcanzado.");p={id,sucursal:a.sucursal,sku:d.sku,activo:d.activo,minimo:d.minimo,existencias:0,valorCentavos:0};i.productos.push(p);registrar(i,p,a,"inicial",d.inicial,"Existencia inicial",fecha);}
  else{if(d.inicial!==undefined)throw Error("Utiliza un ajuste para cambiar existencias.");p.sku=d.sku;p.activo=d.activo;p.minimo=d.minimo;}
  return p;
 }
-export function movimientoInventario(i,a,id,tipo,cantidad,motivo,fecha){
+export function movimientoInventario(i,a,id,tipo,cantidad,motivo,fecha,costoUnitario=null){
  const p=buscar(i,a.sucursal,id);if(!p?.activo||!Object.hasOwn(motivosInventario,tipo)||!motivosInventario[tipo].includes(motivo)||!entero(cantidad)||tipo!=="ajuste"&&cantidad===0)throw Error("Movimiento inválido.");
- registrar(i,p,a,tipo,tipo==="ajuste"?cantidad-p.existencias:tipo==="entrada"?cantidad:-cantidad,motivo,fecha);return p;
+ const delta=tipo==="ajuste"?cantidad-p.existencias:tipo==="entrada"?cantidad:-cantidad;if(costoUnitario!==null&&(!Number.isSafeInteger(costoUnitario)||costoUnitario<0||costoUnitario>100000000))throw Error("Costo unitario inválido.");registrar(i,p,a,tipo,delta,motivo,fecha,"",delta>0&&costoUnitario!==null?delta*costoUnitario:null);return p;
 }
 export function consumoVenta(i,a,detalle){
  const cantidades=new Map();for(const l of detalle)cantidades.set(l.id,(cantidades.get(l.id)||0)+l.cantidad);
- const consumo=[];for(const [id,cantidad] of cantidades){const p=buscar(i,a.sucursal,id);if(!p?.activo)continue;if(p.existencias<cantidad)throw Error("Inventario insuficiente: "+id+". Disponible: "+p.existencias);consumo.push({id,cantidad});}return consumo;
+ const consumo=[];for(const [id,cantidad] of cantidades){const p=buscar(i,a.sucursal,id);if(!p?.activo)continue;if(p.existencias<cantidad)throw Error("Inventario insuficiente: "+id+". Disponible: "+p.existencias);consumo.push({id,cantidad,costo:valorSalida(p,cantidad)});}return consumo;
 }
 export function registrarConsumo(i,a,consumo,folio,fecha,reversa=false){
- for(const l of consumo){const p=buscar(i,a.sucursal,l.id);if(!p)throw Error("Registro de inventario ausente.");registrar(i,p,a,reversa?"cancelacion":"venta",reversa?l.cantidad:-l.cantidad,reversa?"Cancelación de venta":"Venta POS",fecha,folio);}
+ for(const l of consumo){const p=buscar(i,a.sucursal,l.id);if(!p)throw Error("Registro de inventario ausente.");registrar(i,p,a,reversa?"cancelacion":"venta",reversa?l.cantidad:-l.cantidad,reversa?"Cancelación de venta":"Venta POS",fecha,folio,reversa?l.costo??null:null);}
 }
+
+export function valorarStock(i,a,id,costo,fecha){const p=buscar(i,a.sucursal,id);if(!p?.activo||!Number.isSafeInteger(costo)||costo<0||costo>100000000||costo*p.existencias>100000000000||i.movimientos.length>=MAX_MOV)throw Error("Valoración inválida.");const antes=p.valorCentavos??null;p.valorCentavos=costo*p.existencias;i.movimientos.unshift({sucursal:a.sucursal,empleado:a.empleado,rol:a.rol,id,sku:p.sku,tipo:"valoracion",delta:0,antes:p.existencias,despues:p.existencias,motivo:"Valoración manual",fecha,referencia:"",valorAntes:antes,valorDespues:p.valorCentavos});return p;}

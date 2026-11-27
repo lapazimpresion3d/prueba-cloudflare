@@ -27,7 +27,7 @@ function orden(c,a,f){const o=c.ordenes.find(o=>o.folio===f&&o.sucursal===a.sucu
 function evento(o,a,tipo,fecha,d){o.eventos.push({tipo,fecha,empleado:a.empleado,rol:a.rol,...d});}
 export function recibirCompra(c,i,a,f,id,n,fecha,r=null){
  const o=orden(c,a,f),l=o.lineas.find(l=>l.id===id),p=stock(i,a.sucursal,id);const ins=r?.insumos.find(x=>x.sucursal===a.sucursal&&x.id===id);if(o.estado!=="abierta"||!l||!(p?.activo||ins)||!entero(n)||n===0||n>l.cantidad-l.recibido)throw Error("Recepción superior a pendiente o inválida.");
- if(ins)entradaInsumo(r,a,id,n,n*l.costo,fecha,f);else registrar(i,p,a,"compra_entrada",n,"Recepción de compra",fecha,f);l.recibido+=n;evento(o,a,"recepcion",fecha,{id,cantidad:n});if(o.lineas.every(l=>l.recibido===l.cantidad))o.estado="cerrada";return o;
+ if(ins)entradaInsumo(r,a,id,n,n*l.costo,fecha,f);else registrar(i,p,a,"compra_entrada",n,"Recepción de compra",fecha,f,n*l.costo);l.recibido+=n;evento(o,a,"recepcion",fecha,{id,cantidad:n});if(o.lineas.every(l=>l.recibido===l.cantidad))o.estado="cerrada";return o;
 }
 export function devolverCompra(c,i,a,f,id,n,fecha,r=null){
  const o=orden(c,a,f),l=o.lineas.find(l=>l.id===id),p=stock(i,a.sucursal,id);const ins=r?.insumos.find(x=>x.sucursal===a.sucursal&&x.id===id);if(!l||!(p?.activo||ins)||!entero(n)||n===0||n>l.recibido-l.devuelto||n>(ins?ins.stock:p.existencias)||n*l.costo>resumenCompra(o).pendiente)throw Error("Devolución inválida o requiere ajuste de un pago previo.");
