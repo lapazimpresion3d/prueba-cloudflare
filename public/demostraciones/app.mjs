@@ -2,6 +2,7 @@ import {planes,capacidades,importe} from "./config.mjs";
 import {establecimientos,obtenerEstablecimiento,filtrarCatalogo} from "./establecimientos.mjs";
 import {crearCatalogosLocales,centavosDesdeTexto} from "./catalogo-local.mjs";
 import {crearPerfilesLocales,perfilPlano} from "./perfil-local.mjs";
+import {enlacesDemo} from "./presentaciones.mjs";
 let almacenamiento;
 try { almacenamiento=window.sessionStorage; } catch {}
 const catalogos=crearCatalogosLocales(almacenamiento);
@@ -14,8 +15,10 @@ const tipos={alimento:"Alimento",fisico:"Producto físico",servicio:"Servicio"};
 const params=new URLSearchParams(location.search);
 let negocio=obtenerEstablecimiento(params.get("negocio")) ?? establecimientos[0];
 let plan=planes.find(p=>p.id===params.get("plan")) ?? planes[0];
-let vistaNegocio=params.get("vista")==="negocio";
-let editorAbierto=false, perfilAbierto=false;
+const vistaAdmin=params.get("vista")==="administracion";
+let vistaNegocio=false;
+if(params.get("vista")==="negocio"&&obtenerEstablecimiento(params.get("negocio"))&&planes.some(p=>p.id===params.get("plan")))location.replace(enlacesDemo(negocio.id,plan.id).negocio);
+let editorAbierto=vistaAdmin, perfilAbierto=false;
 let editando=null;
 let contextoServidor=null, consultaContexto=0, ocupada=false;
 const revisiones=new Map();
@@ -30,9 +33,10 @@ function boton(textos,activo,accion){
 }
 function guardarURL(){
   const url=new URL(location.href);url.searchParams.set("negocio",negocio.id);url.searchParams.set("plan",plan.id);
-  if(vistaNegocio)url.searchParams.set("vista","negocio");else url.searchParams.delete("vista");
+  if(vistaAdmin)url.searchParams.set("vista","administracion");else url.searchParams.delete("vista");
   history.replaceState(null,"",url);
-  const enlace=new URL(url.pathname,url.origin);enlace.searchParams.set("negocio",negocio.id);enlace.searchParams.set("plan",plan.id);enlace.searchParams.set("vista","negocio");$("compartir-vista").href=enlace.href;
+  const enlaces=enlacesDemo(negocio.id,plan.id);$("compartir-vista").href=enlaces.negocio;
+  $("admin-ver-negocio").href=enlacesDemo(negocio.id,plan.id,true).negocio;$("admin-salir").href=enlaces.negocio;
 }
 function renderSelectores(){
   $("negocios").replaceChildren(...establecimientos.map(e=>boton([["span",e.marca.icono,"icono"],["strong",e.nombre],["small",e.giroNombre]],e.id===negocio.id,()=>{
@@ -89,17 +93,21 @@ function renderCapacidades(){
 function renderTodo(reiniciarCategoria){
   renderSelectores();renderPerfil();if(reiniciarCategoria)categorias();renderCatalogo();renderCapacidades();
   $("seccion-catalogo").hidden=false;renderVista();
-  $("estado").textContent=negocio.nombre+" · "+plan.nombre;guardarURL();consultarContexto();
+  $("estado").textContent=negocio.nombre+" · "+plan.nombre;guardarURL();if(!vistaAdmin)consultarContexto();
 }
 function renderVista(){
-  $("introduccion").hidden=$("selector-negocios").hidden=$("selector-planes").hidden=vistaNegocio;
-  $("seccion-capacidades").hidden=vistaNegocio;
+  $("introduccion").hidden=$("selector-negocios").hidden=$("selector-planes").hidden=vistaNegocio||vistaAdmin;
+  $("seccion-capacidades").hidden=vistaNegocio||vistaAdmin;
+  $("cabecera-admin").hidden=!vistaAdmin;$("acciones-comparador").hidden=vistaAdmin;
+  $("estado").hidden=vistaAdmin;$("perfil").hidden=vistaAdmin;$("seccion-catalogo").hidden=vistaAdmin;
+  $("editor-servidor").hidden=vistaAdmin;$("enlace-original").hidden=vistaAdmin;
+  if(vistaAdmin){$("titulo-barra").textContent="Panel de demostración";$("nombre-admin").textContent=perfiles.leer(negocio.id).nombre;$("admin-catalogo").setAttribute("aria-pressed",String(editorAbierto));$("admin-perfil").setAttribute("aria-pressed",String(perfilAbierto));}
   $("vista-cliente").hidden=vistaNegocio;$("vista-comparador").hidden=!vistaNegocio;
   $("abrir-editor").hidden=vistaNegocio||editorAbierto;$("editor").hidden=vistaNegocio||!editorAbierto;
   $("abrir-perfil").hidden=vistaNegocio||perfilAbierto;$("editor-perfil").hidden=vistaNegocio||!perfilAbierto;
-  if(vistaNegocio)$("legado").hidden=true;
+  if(vistaNegocio||vistaAdmin)$("legado").hidden=true;
   if(editorAbierto&&!vistaNegocio)renderEditor();
-  document.title=(vistaNegocio?perfiles.leer(negocio.id).nombre:"Demostraciones comerciales")+" | Lapazimpresion3d";
+  document.title=(vistaAdmin?"Panel · "+perfiles.leer(negocio.id).nombre:"Demostraciones comerciales")+" | Lapazimpresion3d";
 }
 function ajustarDuracion(){
   const servicio=campo("tipo").value==="servicio";
@@ -132,10 +140,12 @@ function renderEditor(){
     fila.append(info,editar,borrar);return fila;
   }));
 }
-$("vista-cliente").addEventListener("click",()=>{vistaNegocio=true;editorAbierto=false;perfilAbierto=false;reiniciarFormulario();renderTodo(false);});
+$("vista-cliente").addEventListener("click",()=>{location.href=enlacesDemo(negocio.id,plan.id).negocio;});
 $("vista-comparador").addEventListener("click",()=>{vistaNegocio=false;renderTodo(false);});
 $("abrir-editor").addEventListener("click",()=>{perfilAbierto=false;editorAbierto=true;renderVista();actualizarBotonesServidor();campo("nombre").focus();});
-$("cerrar-editor").addEventListener("click",()=>{editorAbierto=false;reiniciarFormulario();renderVista();$("abrir-editor").focus();});
+$("cerrar-editor").addEventListener("click",()=>{editorAbierto=false;reiniciarFormulario();renderVista();$(vistaAdmin?"admin-catalogo":"abrir-editor").focus();});
+$("admin-catalogo").addEventListener("click",()=>{perfilAbierto=false;editorAbierto=true;renderVista();campo("nombre").focus();});
+$("admin-perfil").addEventListener("click",()=>{editorAbierto=false;reiniciarFormulario();perfilAbierto=true;cargarPerfil();$("aviso-perfil").textContent="";renderVista();$("form-perfil").elements.namedItem("nombre").focus();});
 function cargarPerfil(){
   const p=perfilPlano(perfiles.leer(negocio.id));
   for(const [k,v] of Object.entries(p))$("form-perfil").elements.namedItem(k).value=v;
@@ -144,17 +154,17 @@ $("abrir-perfil").addEventListener("click",()=>{
   editorAbierto=false;reiniciarFormulario();perfilAbierto=true;cargarPerfil();$("aviso-perfil").textContent="";
   renderVista();$("form-perfil").elements.namedItem("nombre").focus();
 });
-$("cerrar-perfil").addEventListener("click",()=>{perfilAbierto=false;renderVista();$("abrir-perfil").focus();});
+$("cerrar-perfil").addEventListener("click",()=>{perfilAbierto=false;renderVista();$(vistaAdmin?"admin-perfil":"abrir-perfil").focus();});
 $("form-perfil").addEventListener("submit",e=>{
   e.preventDefault();
   try{
     const guardado=perfiles.guardar(negocio.id,Object.fromEntries(new FormData(e.currentTarget)));
-    renderPerfil();$("aviso-perfil").textContent=guardado?"Identidad actualizada en esta pestaña.":"Identidad actualizada en memoria; se perderá al recargar.";
+    renderPerfil();renderVista();$("aviso-perfil").textContent=guardado?"Identidad actualizada en esta pestaña.":"Identidad actualizada en memoria; se perderá al recargar.";
   }catch(error){$("aviso-perfil").textContent=error.message;}
 });
 $("restaurar-perfil").addEventListener("click",()=>{
   if(!confirm("¿Restaurar la identidad ficticia original de "+negocio.nombre+"?"))return;
-  const guardado=perfiles.restaurar(negocio.id);cargarPerfil();renderPerfil();
+  const guardado=perfiles.restaurar(negocio.id);cargarPerfil();renderPerfil();renderVista();
   $("aviso-perfil").textContent=guardado?"Identidad original restaurada.":"Restaurada en memoria; no se conserva al recargar.";
 });
 $("cancelar-edicion").addEventListener("click",reiniciarFormulario);
