@@ -8,6 +8,7 @@ import { establecimientos } from "../public/demostraciones/establecimientos.mjs"
 function d1(){
   const sql=new DatabaseSync(":memory:");
   sql.exec("PRAGMA foreign_keys=ON;"+readFileSync(new URL("../migrations-demo/0001_practica.sql",import.meta.url),"utf8"));
+  sql.exec(readFileSync(new URL("../migrations-demo/0002_perfiles.sql",import.meta.url),"utf8"));
   const wrap=(q,args=[])=>({bind:(...v)=>wrap(q,v),first:async()=>sql.prepare(q).get(...args)??null,run:async()=>sql.prepare(q).run(...args)});
   return {sql,prepare:q=>wrap(q),batch:async ss=>{sql.exec("BEGIN");try{for(const s of ss)await s.run();sql.exec("COMMIT");}catch(e){sql.exec("ROLLBACK");throw e;}}};
 }
@@ -91,5 +92,27 @@ test("una base sin marca de esquema no habilita persistencia ni sesiones",async(
   assert.equal((await r.json()).persistenciaConfigurada,false);
   assert.equal((await llamar(env,"/api/demo/sesion","POST")).status,503);
   env.DEMO_DB.sql.exec("INSERT INTO demo_identidad VALUES ('lapaz-demo-practica',1)");
+  assert.equal((await (await llamar(env,"/api/demo/contexto?negocio=cafe-mirador&plan=p1")).json()).persistenciaConfigurada,true);
+});
+
+test("perfil remoto privado, revisiones, separación y migración opcional",async()=>{
+  const env=envDemo(),ruta="/api/demo/perfil?negocio=cafe-mirador&plan=p1",otra="/api/demo/perfil?negocio=barberia-elite&plan=p4";
+  assert.equal((await llamar(env,ruta)).status,401);
+  const a=await iniciar(env,"192.0.2.1"),b=await iniciar(env,"192.0.2.2");
+  const inicial=await (await llamar(env,ruta,"GET",a)).json();
+  assert.equal(inicial.revision,0);
+  const perfil={...inicial.perfil,nombre:"Café de práctica"};
+  assert.equal((await llamar(env,ruta,"PUT",a,{revision:0,perfil})).status,200);
+  assert.equal((await llamar(env,ruta,"PUT",a,{revision:0,perfil})).status,409);
+  assert.equal((await (await llamar(env,ruta,"GET",a)).json()).perfil.nombre,"Café de práctica");
+  assert.equal((await (await llamar(env,ruta,"GET",b)).json()).revision,0);
+  assert.equal((await (await llamar(env,otra,"GET",a)).json()).revision,0);
+  assert.equal((await llamar(env,ruta,"PUT",a,{revision:1,perfil:{...perfil,logo:"https://example.invalid"}})).status,400);
+  assert.equal((await llamar(env,ruta,"PUT",a,{revision:1,perfil})).status,200);
+  env.DEMO_DB.sql.exec("DELETE FROM demo_sesiones;");
+  assert.equal(env.DEMO_DB.sql.prepare("SELECT count(*) AS n FROM demo_perfiles").get().n,0);
+  env.DEMO_DB.sql.exec("DROP TABLE demo_perfiles;");
+  assert.equal((await (await llamar(env,"/api/demo/contexto?negocio=cafe-mirador&plan=p1")).json()).perfilConfigurado,false);
+  assert.equal((await llamar(env,ruta)).status,503);
   assert.equal((await (await llamar(env,"/api/demo/contexto?negocio=cafe-mirador&plan=p1")).json()).persistenciaConfigurada,true);
 });
