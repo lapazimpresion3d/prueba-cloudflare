@@ -1,5 +1,5 @@
 import {tienePermiso} from "./permisos-practica.mjs";
-import {desactivarReceta,resumenRentabilidad,recetasVacias,validarRecetas,crearInsumo,entradaInsumo,mermaInsumo,guardarReceta,consumoRecetas,registrarRecetas,consultarRecetas} from "./recetas-practica.mjs";
+import {guardarSubreceta,producirLote,desactivarReceta,resumenRentabilidad,recetasVacias,validarRecetas,crearInsumo,entradaInsumo,mermaInsumo,guardarReceta,consumoRecetas,registrarRecetas,consultarRecetas} from "./recetas-practica.mjs";
 import {comprasVacias,validarCompras,guardarProveedor,crearOrden,recibirCompra,devolverCompra,cerrarCompra,pagarCompra,resumenCompra,sugerirCompras} from "./compras-practica.mjs";
 import {enviarTraspaso,recibirTraspaso,cancelarTraspaso,consolidarInventario} from "./almacen-practica.mjs";
 import {inventarioVacio,validarInventario,configurarInventario,movimientoInventario,consumoVenta,registrarConsumo} from "./inventario-practica.mjs";
@@ -82,6 +82,8 @@ export function crearPosPractica(storage,id,plan,{empresaStorage=storage,ahora=D
  function comprarInsumo(s,e,id,n,costo){const a=accesoRecetas(s,e,"recetas.entrada"),d=leerEstado(),p=entradaInsumo(d.recetas,a,id,n,costo,ahora());guardar(d);return copy(p);}
  function perderInsumo(s,e,id,n){const a=accesoRecetas(s,e,"recetas.merma"),d=leerEstado(),p=mermaInsumo(d.recetas,a,id,n,ahora());guardar(d);return copy(p);}
  function editarReceta(s,e,catalogo,id,datos){const a=accesoRecetas(s,e,"recetas.editar"),d=leerEstado();if(d.inventario.productos.some(p=>p.sucursal===s&&p.id===id&&p.activo))throw Error("Desactiva el control de producto terminado antes de usar receta.");const v=guardarReceta(d.recetas,a,catalogo,id,datos);guardar(d);return copy(v);}
+ function editarSubreceta(s,e,id,datos){const a=accesoRecetas(s,e,"produccion.configurar"),d=leerEstado(),v=guardarSubreceta(d.recetas,a,id,datos);guardar(d);return copy(v);}
+ function producir(s,e,id,datos){const a=accesoRecetas(s,e,"produccion.registrar"),d=leerEstado(),v=producirLote(d.recetas,a,id,datos,"LOTE-"+folio(),ahora());guardar(d);return copy(v);}
  function quitarReceta(s,e,id){const a=accesoRecetas(s,e,"recetas.quitar"),d=leerEstado();desactivarReceta(d.recetas,a,id);guardar(d);}
  function rentabilidad(s,e){accesoRecetas(s,e,"recetas.rentabilidad");return resumenRentabilidad(leerEstado().ventas.filter(v=>v.sucursal===s));}
  function configurarStock(sucursal,empleado,catalogo,id,config){const a=autorizar(sucursal,empleado,"inventario.configurar"),d=leerEstado(),p=(()=>{if(config.activo&&d.recetas.recetas.some(r=>r.sucursal===sucursal&&r.id===id))throw Error("El producto ya consume insumos mediante receta.");if(!config.activo&&d.compras.ordenes.some(o=>o.sucursal===sucursal&&o.estado==="abierta"&&o.lineas.some(l=>l.id===id&&l.recibido<l.cantidad)))throw Error("Hay compras pendientes para este producto.");if(!config.activo&&d.inventario.traspasos.some(t=>t.estado==="transito"&&t.id===id&&(t.origen===sucursal||t.destino===sucursal)))throw Error("Hay traspasos pendientes para este producto.");return configurarInventario(d.inventario,a,catalogo,id,config,ahora());})();guardar(d);return copy(p);}
@@ -108,5 +110,5 @@ export function crearPosPractica(storage,id,plan,{empresaStorage=storage,ahora=D
   registrarConsumo(dEstado.inventario,actor,v.consumoInventario??[],f,ahora(),true);registrarRecetas(dEstado.recetas,actor,v.consumoInsumos??[],ahora(),f,true);
   v.estado="cancelado";v.cancelacion={...actor,motivo,fecha:ahora()};guardar(dEstado);return copy(v);
  }
- return {contexto,permite,leer:s=>{autorizar(s.sucursal,s.empleado,"ventas.ver");return leerEstado().ventas.filter(v=>v.sucursal===s.sucursal);},vender,cancelar,abrir,mover,cerrar,consultarCaja,consultarInventario,configurarStock,moverStock,consultarAlmacen,enviarStock,recibirStock,cancelarStock,consultarCompras,proveedor,ordenar,recibirOrden,devolverOrden,cerrarOrden,pagarOrden,verRecetas,nuevoInsumo,comprarInsumo,perderInsumo,editarReceta,quitarReceta,rentabilidad,empresa:()=>empresa.leer()};
+ return {contexto,permite,leer:s=>{autorizar(s.sucursal,s.empleado,"ventas.ver");return leerEstado().ventas.filter(v=>v.sucursal===s.sucursal);},vender,cancelar,abrir,mover,cerrar,consultarCaja,consultarInventario,configurarStock,moverStock,consultarAlmacen,enviarStock,recibirStock,cancelarStock,consultarCompras,proveedor,ordenar,recibirOrden,devolverOrden,cerrarOrden,pagarOrden,verRecetas,nuevoInsumo,comprarInsumo,perderInsumo,editarReceta,editarSubreceta,producir,quitarReceta,rentabilidad,empresa:()=>empresa.leer()};
 }
