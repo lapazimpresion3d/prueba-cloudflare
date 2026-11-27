@@ -1,5 +1,17 @@
 // Módulo de práctica local: no es un repositorio SaaS ni una autorización.
 import { obtenerEstablecimiento } from "./establecimientos.mjs";
+import { validarImagenPerfil } from "./perfil-local.mjs";
+export const LIMITE_CATALOGO_BYTES=300000;
+export const LIMITE_FOTO=45000;
+export function validarTamanoCatalogo(lista){
+  // UTF-8: encodeURIComponent devuelve caracteres escapados para cada byte no ASCII.
+  const bytes=encodeURIComponent(JSON.stringify(lista)).replace(/%[0-9A-F]{2}/g,"x").length;
+  if(bytes>LIMITE_CATALOGO_BYTES)throw Error("El catálogo supera el espacio de práctica. Reduce o elimina algunas fotos.");
+  return lista;
+}
+export function imagenOfertaSegura(valor){
+  return typeof valor==="string"&&(/^\/imagenes\/[a-z0-9_-]+\.webp$/i.test(valor)||valor.length<=LIMITE_FOTO&&/^data:image\/jpeg;base64,\/9j\/[A-Za-z0-9+/]+={0,2}$/.test(valor)&&valor.slice(23).length%4===0);
+}
 const PREFIJO = "lapaz:demo:catalogo:v1:";
 const tipos = new Set(["fisico","alimento","servicio"]);
 const MAX = 100;
@@ -21,8 +33,15 @@ export function validarOferta(datos,id,anterior=null) {
     if(!Number.isSafeInteger(datos.duracionMinutos)||datos.duracionMinutos<5||datos.duracionMinutos>1440) throw Error("Duración de 5 a 1440 minutos.");
     oferta.duracionMinutos=datos.duracionMinutos;
   }
-  // Conservar únicamente imágenes ya conocidas de la semilla, nunca URL aportada por el visitante.
-  if(anterior?.imagen) oferta.imagen=anterior.imagen;
+  // Una cadena vacía conserva la eliminación explícita al recargar o importar.
+  const imagen=datos.imagen===undefined?anterior?.imagen:datos.imagen;
+  if(imagen==="")oferta.imagen="";
+  else if(imagen!==undefined){
+    if(imagen===anterior?.imagen&&/^\/imagenes\/[a-z0-9_-]+\.webp$/i.test(imagen))oferta.imagen=imagen;
+    else if(typeof imagen==="string"&&imagen.length<=LIMITE_FOTO&&imagen.startsWith("data:image/jpeg;base64,"))oferta.imagen=validarImagenPerfil(imagen);
+    else if(imagen===anterior?.imagen&&imagenOfertaSegura(imagen))oferta.imagen=imagen;
+    else if(datos.imagen!==undefined)throw Error("Selecciona una foto local válida y optimizada.");
+  }
   return oferta;
 }
 export function centavosDesdeTexto(valor){
@@ -48,7 +67,7 @@ export function crearCatalogosLocales(almacen) {
     try{
       const raw=almacen?.getItem(key(id));
       if(raw){
-        if(raw.length>150000)throw Error("Catálogo demasiado grande.");
+        if(raw.length>310000)throw Error("Catálogo demasiado grande.");
         const v=JSON.parse(raw);
         if(v.version!==1||v.establecimiento!==id||!Array.isArray(v.catalogo)||v.catalogo.length>MAX)throw Error("Formato inválido.");
         const vistos=new Set();
@@ -59,10 +78,12 @@ export function crearCatalogosLocales(almacen) {
         });
       }
     }catch{lista=null;}
+    if(lista){try{validarTamanoCatalogo(lista);}catch{lista=null;}}
     if(!lista)lista=copiar(e.catalogo);
     memoria.set(id,lista);return copiar(lista);
   }
   function guardar(id,lista){
+    validarTamanoCatalogo(lista);
     memoria.set(id,copiar(lista));
     try{
       if(!almacen) return false;
