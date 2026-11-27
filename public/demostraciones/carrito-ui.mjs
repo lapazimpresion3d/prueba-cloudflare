@@ -1,3 +1,4 @@
+import {normalizarOpciones,claveLinea,textoLinea} from "./menu-comal-practica.mjs";
 import {clientesDemo,direccionesDemo,notasPedidoDemo,pagosDemo,mesasDemo,seleccionPedido} from "./clientes-practica.mjs";
 import {importe} from "./config.mjs";
 import {admitePedidos,modalidadesPedido,ofertaPedible,resumirCarrito,crearPedidosPractica,nombresEstado} from "./pedidos-practica.mjs";
@@ -20,7 +21,7 @@ export function iniciarCarrito(datos,plan,practica){
     const v=JSON.parse(almacen?.getItem(clave)||"null");
     if(Array.isArray(v)&&v.length<=30){
       const ids=new Set();
-      lineas=v.filter(l=>l&&typeof l.id==="string"&&!ids.has(l.id)&&Number.isSafeInteger(l.cantidad)&&l.cantidad>=1&&l.cantidad<=20&&ofertaPedible(datos.catalogo.find(p=>p.id===l.id))&&(ids.add(l.id),true));
+      for(const l of v){try{const p=datos.catalogo.find(p=>p.id===l?.id);if(!ofertaPedible(p)||!Number.isSafeInteger(l.cantidad)||l.cantidad<1||l.cantidad>20)continue;const o=normalizarOpciones(datos.id,p,datos.catalogo,l.opciones);const linea={id:l.id,cantidad:l.cantidad,...(o.seleccion?{opciones:o.seleccion}:{})};const k=claveLinea(linea);if(!ids.has(k)){ids.add(k);lineas.push(linea);}}catch{}}
     }
   }catch{}
   $("seccion-carrito").hidden=false;$("nav-carrito").hidden=false;$("nav-seguimiento").hidden=false;$("seccion-seguimiento").hidden=false;
@@ -63,12 +64,12 @@ export function iniciarCarrito(datos,plan,practica){
   document.body.classList.add("con-carrito-flotante");
   $("cerrar-aviso-carrito").addEventListener("click",()=>{clearTimeout(temporizadorAviso);$("aviso-flotante-carrito").hidden=true;});
   function persistir(){try{almacen?.setItem(clave,JSON.stringify(lineas));return !!almacen;}catch{return false;}}
-  function cambiar(id,delta){
+  function cambiar(id,delta,opciones){
     if(enviando||pendiente){const mensaje="Primero confirma o reintenta el pedido pendiente.";aviso(mensaje);return {ok:false,mensaje};}
-    const copia=lineas.map(x=>({...x})),i=copia.findIndex(l=>l.id===id);
-    if(i<0){if(delta<=0)return {ok:false,mensaje:"El producto ya no está en el carrito."};copia.push({id,cantidad:delta});}
+    const clave=claveLinea({id,opciones});const copia=lineas.map(x=>({...x})),i=copia.findIndex(l=>claveLinea(l)===clave);
+    if(i<0){if(delta<=0)return {ok:false,mensaje:"El producto ya no está en el carrito."};copia.push({id,cantidad:delta,...(opciones?{opciones}:{})});}
     else{copia[i].cantidad+=delta;if(copia[i].cantidad<=0)copia.splice(i,1);}
-    try{resumirCarrito(datos.id,datos.catalogo,copia,$("modalidad-pedido").value);lineas=copia;const guardado=persistir();render();aviso(guardado?"Carrito actualizado.":"Carrito temporal: el navegador no conserva la copia.");return {ok:true,guardado,cantidad:lineas.find(l=>l.id===id)?.cantidad||0};}
+    try{resumirCarrito(datos.id,datos.catalogo,copia,$("modalidad-pedido").value);lineas=copia;const guardado=persistir();render();aviso(guardado?"Carrito actualizado.":"Carrito temporal: el navegador no conserva la copia.");return {ok:true,guardado,cantidad:lineas.find(l=>claveLinea(l)===clave)?.cantidad||0};}
     catch(e){aviso(e.message);return {ok:false,mensaje:e.message};}
   }
   function render(){
@@ -77,9 +78,9 @@ export function iniciarCarrito(datos,plan,practica){
     catch(e){aviso(e.message);r={detalle:[],subtotal:0,cargo:0,total:0};}
     $("lineas-carrito").replaceChildren(...r.detalle.map(l=>{
       const fila=nodo("div",undefined,"linea-carrito"),info=nodo("div");
-      info.append(nodo("strong",l.nombre),nodo("p",importe(l.precioCentavos)+" × "+l.cantidad+" · "+importe(l.subtotal),"nota"));
+      info.append(nodo("strong",textoLinea(l)),nodo("p",importe(l.precioCentavos)+" × "+l.cantidad+" · "+importe(l.subtotal),"nota"));
       const controles=nodo("div",undefined,"controles-cantidad");
-      const menos=boton("−",()=>cambiar(l.id,-1)),mas=boton("+",()=>cambiar(l.id,1)),quitar=boton("Quitar",()=>cambiar(l.id,-l.cantidad));
+      const menos=boton("−",()=>cambiar(l.id,-1,l.opciones)),mas=boton("+",()=>cambiar(l.id,1,l.opciones)),quitar=boton("Quitar",()=>cambiar(l.id,-l.cantidad,l.opciones));
       menos.setAttribute("aria-label","Quitar una unidad de "+l.nombre);mas.setAttribute("aria-label","Agregar una unidad de "+l.nombre);mas.disabled=l.cantidad>=20;
       controles.append(menos,nodo("span",String(l.cantidad)),mas,quitar);fila.append(info,controles);return fila;
     }));
@@ -113,7 +114,7 @@ export function iniciarCarrito(datos,plan,practica){
     $("sin-pedidos").hidden=pedidos.length>0;render();
     $("lista-seguimiento").replaceChildren(...pedidos.map(p=>{
       const c=nodo("article",undefined,"pedido-resumen");
-      c.append(nodo("strong",p.folio),nodo("p",nombresEstado[p.estado],"estado-pedido"),nodo("p",p.detalle.map(l=>l.cantidad+" × "+l.nombre).join(" · ")),nodo("p","Total: "+importe(p.total)));
+      c.append(nodo("strong",p.folio),nodo("p",nombresEstado[p.estado],"estado-pedido"),nodo("p",p.detalle.map(l=>l.cantidad+" × "+textoLinea(l)).join(" · ")),nodo("p","Total: "+importe(p.total)));
       if(p.datosCliente?.cliente){const d=p.datosCliente;c.append(nodo("p","Cliente: "+d.cliente.nombre),nodo("p","Pago previsto: "+d.pago.nombre+(d.mesa?" · Mesa "+d.mesa:"")));if(d.entrega)c.append(nodo("p","Entrega: "+d.entrega.calle+" · "+d.entrega.colonia));}
       return c;
     }));
@@ -133,7 +134,7 @@ export function iniciarCarrito(datos,plan,practica){
      const r=resumirCarrito(datos.id,datos.catalogo,lineas,$("modalidad-pedido").value),d=datosCliente();
      if(!r.detalle.length)throw Error("Agrega al menos un producto.");
      const cliente=clientesDemo.find(x=>x.id===d.cliente),dir=direccionesDemo.find(x=>x.id===d.direccion),pago=pagosDemo.find(x=>x.id===d.pago),nota=notasPedidoDemo.find(x=>x.id===d.nota);
-     const detalle=r.detalle.map(l=>nodo("p",l.cantidad+" × "+l.nombre+" · "+importe(l.subtotal)));
+     const detalle=r.detalle.map(l=>nodo("p",l.cantidad+" × "+textoLinea(l)+" · "+importe(l.subtotal)));
      $("detalle-revision-demo").replaceChildren(nodo("p","Cliente: "+cliente.nombre),nodo("p","Teléfono: "+cliente.telefono),nodo("p","Modalidad: "+modos.find(m=>m.id===r.modalidad).nombre+(d.mesa?" · Mesa "+d.mesa:"")), ...(dir?[nodo("p","Entrega: "+dir.calle+" · "+dir.colonia)]:[]),nodo("p","Pago previsto: "+pago.nombre),nodo("p","Instrucciones: "+nota.nombre),...detalle,nodo("p","Subtotal: "+importe(r.subtotal)),nodo("p","Entrega: "+importe(r.cargo)),nodo("strong","Total: "+importe(r.total)));
      revision=JSON.stringify({r,d});dialogo.showModal();
     }catch(e){aviso(e.message);notificar(e.message,true);}
@@ -177,9 +178,10 @@ export function iniciarCarrito(datos,plan,practica){
   window.addEventListener("focus",()=>{if(!comprobando)detectar();});
   render();detectar();
   if(pendiente)aviso("Hay un pedido pendiente de confirmación. Reintenta para recuperar el resultado sin duplicarlo.");
-  return {agregar:(p,b)=>{
+  return {agregar:(p,b,opciones)=>{
     if(!ofertaPedible(p)){notificar("Este producto no está disponible.",true);return false;}
-    const resultado=cambiar(p.id,1);
+    let o;try{o=normalizarOpciones(datos.id,p,datos.catalogo,opciones);}catch(e){notificar(e.message,true);return false;}
+    const resultado=cambiar(p.id,1,o.seleccion);
     if(!resultado.ok){notificar(resultado.mensaje,true);return false;}
     confirmarBoton(b,resultado.cantidad);
     notificar(p.nombre+" agregado al carrito"+(resultado.guardado?".":". Copia temporal en memoria."));
