@@ -23,7 +23,7 @@ if(!negocio||!admiteCitas(id,plan)){
  $("cliente-cita").replaceChildren(new Option("Selecciona un cliente",""),...clientesDemo.map(x=>new Option(x.nombre,x.id)));
  $("nota-cita").replaceChildren(...notasCitaDemo.map(x=>new Option(x.nombre,x.id)));
  function contactoCita(){const x=clientesDemo.find(x=>x.id===$("cliente-cita").value);$("telefono-cita").value=x?.telefono||"";$("correo-cita").value=x?.correo||"";}
- $("cliente-cita").addEventListener("change",contactoCita);contactoCita();
+ $("cliente-cita").addEventListener("change",()=>{contactoCita();horas();});contactoCita();
  $("servicio").replaceChildren(...servicios.map(p=>new Option(p.nombre+" · "+p.duracionMinutos+" min · "+importe(p.precioCentavos),p.id)));
  if(servicios.some(p=>p.id===q.get("servicio")))$("servicio").value=q.get("servicio");
  $("recurso").replaceChildren(...recursos.map(r=>new Option(r.nombre,r.id)));
@@ -38,6 +38,8 @@ if(!negocio||!admiteCitas(id,plan)){
  function guardarPendiente(v){if(!almacen)throw Error("Habilita el almacenamiento para conservar la solicitud.");if(v)almacen.setItem(clavePendiente,JSON.stringify(v));else almacen.removeItem(clavePendiente);pendiente=v;}
  const citasActuales=()=>servidor?copiaRemota:repo.leer();
  function controles(){
+  if(pendiente?.datos.datosCliente){$("cliente-cita").value=pendiente.datos.datosCliente.cliente;$("nota-cita").value=pendiente.datos.datosCliente.nota;contactoCita();}
+  $("cliente-cita").required=!pendiente;
   $("modo-citas").textContent=servidor?"Práctica en servidor · sesión privada":"Práctica local · esta pestaña";
   $("activar-citas").disabled=comprobando||ocupado||creando||!!pendiente||configurado===false;
   $("estado-origen").textContent=comprobando?"Comprobando agenda…":configurado===false?"Servidor no configurado. Las citas locales solo se ven en esta pestaña.":configurado===null?"No se pudo comprobar el servidor. No se mezclan las agendas.":servidor?(expira===null&&listaValida?"La primera cita activará una sesión en servidor.":"Agenda privada en servidor; se comparte en este navegador."):"Agenda local: las citas de otras pestañas no aparecen aquí.";
@@ -63,7 +65,7 @@ if(!negocio||!admiteCitas(id,plan)){
   $("horas").replaceChildren(...slots.map(s=>{const b=el("button",horaCita(s.inicio));b.type="button";b.setAttribute("aria-pressed",String(elegido===s.inicio));b.disabled=creando||ocupado||!!pendiente;b.addEventListener("click",()=>{if(pendiente||creando||ocupado)return;elegido=s.inicio;horas();});return b;}));
   if(!slots.length)$("horas").append(el("p","No hay horarios disponibles para esta fecha y profesional.","nota"));
   const s=slots.find(s=>s.inicio===elegido);$("seleccion").textContent=s?"Horario elegido: "+horaCita(s.inicio)+"–"+horaCita(s.fin):"Selecciona un horario.";
-  $("crear").disabled=comprobando||creando||ocupado||(!pendiente&&!s)||(servidor&&!pendiente&&!listaValida);
+  $("crear").disabled=comprobando||creando||ocupado||(!pendiente&&(!s||!$("cliente-cita").value))||(servidor&&!pendiente&&!listaValida);
   $("crear").textContent=pendiente?"Reintentar cita pendiente":"Solicitar cita de práctica";
   if(pendiente)$("seleccion").textContent="Solicitud pendiente: "+pendiente.datos.fecha+" · "+horaCita(pendiente.datos.inicio)+". Reintenta sin modificarla.";
   controles();
