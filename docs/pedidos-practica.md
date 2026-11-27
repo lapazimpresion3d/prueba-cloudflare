@@ -13,3 +13,6 @@ sessionStorage por establecimiento. Pedidos compartidos entre planes compatibles
 30/30 pruebas lógicas con fuentes GitHub y aserciones equivalentes a los archivos de test; 9 combinaciones habilitadas y 11 no habilitadas en DOM simulado; flujo cliente → pedido → encargado → preparación → seguimiento en DOM simulado correcto. Sintaxis de módulos e IDs HTML verificados. No se ejecutaron navegador real, suite Node/SQLite integrada, despliegue de Cloudflare ni persistencia D1 para este módulo.
 ## Pendientes
 Confirmar Preview actualizado y persistencia de perfiles (propietario ya creó demo_perfiles). Incorporar API propia de pedidos, almacenamiento privado por sesión y establecimiento, cálculo de precios y modalidades desde servidor, idempotencia y concurrencia antes de sincronizar entre pestañas. Después citas y agenda de recursos, cocina, pagos y módulos restantes. No conectar /api/pedidos operativa, ni modificar main o sitio comercial. No vender P2 por esta prueba local.
+
+## Ampliación v0.9
+La práctica local permanece disponible. Existe modo servidor explícito con API aislada y migración 0003_pedidos pendiente. No se importan pedidos locales ni se sincroniza entre dispositivos. Ver docs/pedidos-servidor-demo.md.
