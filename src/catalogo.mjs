@@ -1,3 +1,4 @@
+import { leerJsonLimitado } from "./seguridad.mjs";
 const idNuevo = /^prod-[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/;
 const idOpcion = /^[\p{L}\p{N}_-]{1,80}$/u;
 const maxImporte = 1000000;
@@ -119,24 +120,6 @@ export async function servirFoto(request, db, url) {
   });
 }
 
-async function leerFicha(request) {
-  const lector = request.body?.getReader();
-  if (!lector) return null;
-  const decodificador = new TextDecoder();
-  let total = 0;
-  let texto = "";
-  while (true) {
-    const { done, value } = await lector.read();
-    if (done) break;
-    total += value.byteLength;
-    if (total > maxSolicitudProducto) {
-      await lector.cancel();
-      return null;
-    }
-    texto += decodificador.decode(value, { stream: true });
-  }
-  return JSON.parse(texto + decodificador.decode());
-}
 
 function opciones(lista, validar, tipo) {
   if (!Array.isArray(lista) || lista.length > 30) throw new Error("Puedes guardar hasta 30 opciones por grupo.");
@@ -190,7 +173,7 @@ function validarProducto(datos, ids, id, imagen) {
 
 export async function guardarProducto(request, db, menu, json) {
   if (!["POST", "PUT"].includes(request.method)) return json({ error: "Método no permitido." }, 405);
-  const datos = await leerFicha(request).catch(() => null);
+  const datos = await leerJsonLimitado(request, maxSolicitudProducto);
   const creando = request.method === "POST";
   if (typeof datos?.id !== "string" || typeof datos.archivado !== "boolean" ||
       !Number.isSafeInteger(datos.version) || datos.version < 0) {
