@@ -28,7 +28,7 @@ export const modulos = [
   {id:"caja", nombre:"Caja y cortes", desde:3, estado:"en_desarrollo", depende:["pos"], detalle:"Turnos, movimientos, cortes y arqueos."},
   {id:"inventario", nombre:"Inventario", desde:3, estado:"en_desarrollo", detalle:"Existencias y movimientos de productos e insumos."},
   {id:"reportes", nombre:"Reportes", desde:3, estado:"en_desarrollo", detalle:"Métricas y exportaciones por establecimiento."},
-  {id:"mesas", nombre:"Servicio y comandas por mesa", desde:3, estado:"disponible", giros:["restaurante"], depende:["cocina","qr_mesa"], detalle:"Agrupación de pedidos activos por mesa y entrega individual. Cuenta abierta pendiente; entrega con cobro conciliado."},
+  {id:"mesas", nombre:"Servicio y comandas por mesa", desde:3, estado:"disponible", giros:["restaurante"], depende:["cocina","qr_mesa"], detalle:"Agrupación de pedidos activos por mesa y entrega individual. Cuenta abierta en servidor, captura de comandas y cierre conciliado."},
   {id:"cotizaciones", nombre:"Cotizaciones", desde:3, estado:"en_desarrollo", giros:["taller","barberia","tienda"], detalle:"Propuestas, vigencia y aceptación."},
   {id:"ordenes_servicio", nombre:"Órdenes de servicio", desde:3, estado:"en_desarrollo", giros:["taller"], detalle:"Trabajos, refacciones, mano de obra e historial."},
   {id:"fidelizacion", nombre:"Fidelización", desde:4, estado:"en_desarrollo", depende:["clientes"], detalle:"Beneficios e historial de clientes."},
