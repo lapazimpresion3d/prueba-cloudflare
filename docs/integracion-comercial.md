@@ -39,3 +39,6 @@ Escaparate compartido con cinco perfiles y catálogos ficticios versionado en de
 
 ## Vista individual (ampliación)
 El escaparate admite ahora vista=negocio: /demostraciones/?negocio=cafe-mirador&plan=p1&vista=negocio. Es el destino relativo propuesto para enlaces directos de ejemplos desde el sitio comercial, sujeto a verificación del despliegue. No publica cambios de práctica ni acredita la funcionalidad completa del plan. El comparador sigue disponible desde esa vista.
+
+## Nueva entrada pública
+Usar ruta relativa /demostraciones/negocio/?negocio=cafe-mirador&plan=p1 para ejemplos limpios, después de verificar el despliegue. El selector /demostraciones/ es laboratorio y comparador; no confundir su interfaz con la página del cliente. El panel de práctica es accesible desde la presentación, sin opciones técnicas. No enlazar practica=1 desde el sitio comercial. Los paquetes superiores siguen sin demostrar sus módulos operativos. Ver docs/presentacion-publica-demos.md.
