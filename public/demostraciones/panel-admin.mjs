@@ -1,3 +1,4 @@
+import {cargarEjemplos,retirarEjemplos,recorridos} from "./ejemplos-operativos.mjs";
 import {perfilPanel,tituloAdmin,priorizarTareas} from "./perfil-panel.mjs";
 import {admiteCitas,crearCitasPractica,relojLocal} from "./citas-practica.mjs";
 import {admitePedidos,crearPedidosPractica} from "./pedidos-practica.mjs";
@@ -27,6 +28,10 @@ export function montarInicioAdmin({negocio,plan,catalogos,perfiles}){
  $("admin-indicadores").replaceChildren(...datos.map(([k,v])=>{const c=el("article");c.append(el("span",k),el("strong",String(v)));return c;}));
  $("admin-ayuda-texto").textContent=plan.id==="p1"?"Edita los productos o servicios y revisa cómo se ve tu página.":admitePos(negocio.id,plan.id)?"Para registrar una venta abre primero caja. Configura existencias solo en los artículos que quieras controlar.":"Prueba una solicitud desde la página del cliente y vuelve al panel para atenderla.";
  }
+ const aviso=$("ejemplos-aviso");$("cargar-ejemplos").hidden=plan.id==="p1";$("retirar-ejemplos").hidden=plan.id==="p1";
+ $("cargar-ejemplos").onclick=()=>{try{const v=cargarEjemplos(sessionStorage,localStorage,negocio.id,plan.id,catalogos.leer(negocio.id));aviso.textContent=v.resultados.join(" · ")+(v.creados?" · Abre los módulos y selecciona práctica local.":" · No se añadieron registros.");indicadores();}catch(e){aviso.textContent=e.message;}};
+ $("retirar-ejemplos").onclick=()=>{if(!confirm("¿Quitar únicamente bloques de ejemplo que no hayas modificado?"))return;try{const v=retirarEjemplos(sessionStorage,negocio.id,plan.id);aviso.textContent="Bloques retirados: "+v.retirados+". Conservados por cambios: "+v.conservados;indicadores();}catch(e){aviso.textContent=e.message;}};
+ $("recorridos-admin").replaceChildren(...recorridos(ids).map(t=>{const d=el("details"),s=el("summary",t.nombre),ol=el("ol");for(const [id,desc] of t.pasos){const li=el("li"),b=el("button","Abrir herramienta");b.type="button";b.onclick=()=>$(id).click();li.append(el("p",desc),b);ol.append(li);}d.append(s,ol);return d;}));
  indicadores();$("admin-resumen").addEventListener("click",indicadores);window.addEventListener("pageshow",indicadores);
  for(const n of nav.querySelectorAll("button:not(#admin-menu)"))n.addEventListener("click",()=>{if(matchMedia("(max-width: 780px)").matches)abrir(false);});
 }
