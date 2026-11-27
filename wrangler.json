@@ -17,6 +17,11 @@
         "binding": "DB",
         "database_name": "el-comal-disponibilidad",
         "database_id": "b6f56ef3-20f8-4409-8be8-9b0c8d5ffc78"
+      },
+      {
+        "binding": "DEMO_DB",
+        "database_name": "lapaz-demos-desarrollo",
+        "database_id": "89b84ed2-10be-42ce-9933-869675a5f009"
       }
     ]
   }
