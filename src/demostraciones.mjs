@@ -1,3 +1,5 @@
+import {terminalesListas} from "./terminales-demo.mjs";
+import {pagosMultiplesListos} from "./pagos-multiples-demo.mjs";
 import {atenderTerminales} from "./terminales-api.mjs";
 import {atenderPagosMultiples} from "./pagos-multiples-api.mjs";
 import {atenderCuentasDemo,cuentasListas} from "./cuentas-demo.mjs";
@@ -109,7 +111,7 @@ export async function atenderDemo(request,env,url,json){
   if(ruta==="/api/demo/contexto"){
     if(metodo!=="GET")return error(json,"Método no permitido.",405);
     const ctx=contextoDemo(url.searchParams.get("negocio"),url.searchParams.get("plan"));
-    return ctx?json({...ctx,persistenciaConfigurada:await esquemaListo(env),perfilConfigurado:await perfilListo(env),pedidosConfigurados:await esquemaListo(env)&&await pedidosListos(env.DEMO_DB),citasConfiguradas:await esquemaListo(env)&&await citasListas(env.DEMO_DB),reservacionesConfiguradas:await esquemaListo(env)&&await reservasListas(env.DEMO_DB),cuentasConfiguradas:await esquemaListo(env)&&await pedidosListos(env.DEMO_DB)&&await cuentasListas(env.DEMO_DB)}):error(json,"Establecimiento o plan desconocido.",404);
+    return ctx?json({...ctx,persistenciaConfigurada:await esquemaListo(env),perfilConfigurado:await perfilListo(env),pedidosConfigurados:await esquemaListo(env)&&await pedidosListos(env.DEMO_DB),citasConfiguradas:await esquemaListo(env)&&await citasListas(env.DEMO_DB),reservacionesConfiguradas:await esquemaListo(env)&&await reservasListas(env.DEMO_DB),cuentasConfiguradas:await esquemaListo(env)&&await pedidosListos(env.DEMO_DB)&&await cuentasListas(env.DEMO_DB),pagosMultiplesConfigurados:await esquemaListo(env)&&await pagosMultiplesListos(env.DEMO_DB),terminalesConfiguradas:await esquemaListo(env)&&await pagosMultiplesListos(env.DEMO_DB)&&await terminalesListas(env.DEMO_DB).catch(()=>false)}):error(json,"Establecimiento o plan desconocido.",404);
   }
   if(!["/api/demo/sesion","/api/demo/catalogo","/api/demo/perfil","/api/demo/pedidos","/api/demo/citas","/api/demo/reservaciones","/api/demo/cuentas","/api/demo/pagos-multiples","/api/demo/terminales"].includes(ruta))return error(json,"Ruta de demo no disponible.",404);
   if(ruta==="/api/demo/sesion"&&metodo!=="POST"||["/api/demo/catalogo","/api/demo/perfil"].includes(ruta)&&!["GET","PUT"].includes(metodo)||["/api/demo/pedidos","/api/demo/citas","/api/demo/reservaciones","/api/demo/cuentas"].includes(ruta)&&!["GET","POST","PATCH"].includes(metodo))return error(json,"Método no permitido.",405);
