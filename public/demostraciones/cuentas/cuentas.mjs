@@ -21,6 +21,7 @@ else{
  const diario=diarioOperacion(sessionStorage,"lapaz:demo:operacion:"+id);
  const aviso=s=>{$("aviso").textContent=s;};
  $("panel").href=links.administracion;
+ $("terminales-link").href="../terminales/?"+query;
  $("cocina").href="/demostraciones/cocina/?"+query+"&origen=servidor";
  $("servicio").href=$("cocina").href+"&vista=mesas";
  $("cobros").href="/demostraciones/pedidos/?"+query+"&origen=servidor";
