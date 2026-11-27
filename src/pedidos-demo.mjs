@@ -22,7 +22,7 @@ export async function atenderPedidosDemo(request,db,s,ctx,json){
   if(!uuid(datos?.solicitud))return error(json,"Identificador de solicitud inválido.",400);
   if(request.method==="POST"){
     if(!["original","personalizado"].includes(datos.catalogo)||!Array.isArray(datos.lineas)||!datos.lineas.length||datos.lineas.length>30||!Number.isSafeInteger(datos.totalEsperado)||datos.totalEsperado<0)return error(json,"Pedido inválido.",400);
-    const lineas=datos.lineas.map(l=>({id:l?.id,cantidad:l?.cantidad,precioEsperado:l?.precioEsperado}));
+    const lineas=datos.lineas.map(l=>({id:l?.id,cantidad:l?.cantidad,precioEsperado:l?.precioEsperado,...(l?.opciones!==undefined?{opciones:l.opciones}:{})}));
     if(lineas.some(l=>typeof l.id!=="string"||!/^[a-z0-9-]{1,80}$/.test(l.id)||!Number.isSafeInteger(l.cantidad)||l.cantidad<1||l.cantidad>20||!Number.isSafeInteger(l.precioEsperado)||l.precioEsperado<0))return error(json,"Líneas inválidas.",400);
     let seleccion,cliente;try{if(datos.datosCliente!==undefined){seleccion=seleccionPedido(datos.datosCliente,datos.modalidad,ctx.establecimiento.giro);cliente=datosPedidoDemo(seleccion,datos.modalidad,ctx.establecimiento.giro);}}catch(e){return error(json,e.message,400);}
     const firma=await huella({...(seleccion?{datosCliente:seleccion}:{}),catalogo:datos.catalogo,lineas,modalidad:datos.modalidad,totalEsperado:datos.totalEsperado});
