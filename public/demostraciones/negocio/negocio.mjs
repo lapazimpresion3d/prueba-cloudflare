@@ -1,3 +1,4 @@
+import {opcionesComal,normalizarOpciones} from "../menu-comal-practica.mjs";
 import {planes,importe} from "../config.mjs";
 import {obtenerEstablecimiento,filtrarCatalogo} from "../establecimientos.mjs";
 import {crearCatalogosLocales,imagenOfertaSegura} from "../catalogo-local.mjs";
@@ -56,7 +57,27 @@ if(!base||!plan||!t){
       cuerpo.append(el("p",p.categoria,"categoria"),el("h3",p.nombre),el("p",p.descripcion,"descripcion"),el("strong",importe(p.precioCentavos),"precio"));
       if(p.duracionMinutos)cuerpo.append(el("p",p.duracionMinutos+" min","nota"));
       if(p.disponible===false){card.classList.add("producto-agotado");cuerpo.append(el("p","Agotado · temporalmente no disponible","estado-agotado"));}
-      if(carrito&&carrito.puedeAgregar(p)){const b=el("button","Agregar al carrito","boton-agregar");b.type="button";b.addEventListener("click",()=>carrito.agregar(p,b));cuerpo.append(b);}
+      const opciones=opcionesComal(base.id,p,datos.catalogo);
+      if(opciones?.incluye.length)cuerpo.append(el("p","Incluye: "+opciones.incluye.join(" · "),"nota"));
+      if(carrito&&carrito.puedeAgregar(p)){
+       const b=el("button","Agregar al carrito","boton-agregar");b.type="button";
+       if(opciones){
+        const bloque=el("details",undefined,"personalizar-producto"),lista=el("div",undefined,"opciones-producto");
+        bloque.append(el("summary","Personalizar producto"),lista);
+        const camposIngredientes=[],camposExtras=[];
+        let variante=null;
+        if(opciones.requiereVariante){const label=el("label",opciones.etiqueta),select=el("select");select.replaceChildren(...opciones.variantes.map(v=>new Option(v.nombre+(v.centavos?" (+"+importe(v.centavos)+")":""),v.id)));label.append(select);lista.append(label);variante=select;}
+        for(const i of opciones.ingredientes){const label=el("label"),ch=el("input");ch.type="checkbox";ch.checked=i.incluido===true;ch.disabled=i.obligatorio===true;label.append(ch,el("span",i.nombre+(i.obligatorio?" (incluido)":"")));lista.append(label);camposIngredientes.push({id:i.id,ch});}
+        for(const e of opciones.extras){const label=el("label"),ch=el("input");ch.type="checkbox";label.append(ch,el("span",e.nombre+" (+"+importe(e.centavos)+")"));lista.append(label);camposExtras.push({id:e.id,ch});}
+        if(opciones.extras.length)lista.append(el("p","Máximo "+opciones.maxExtras+" extras por unidad","nota"));
+        const total=el("p",undefined,"precio-personalizado"),estado=el("p",undefined,"nota");lista.append(total,estado);
+        const seleccion=()=>({omitir:camposIngredientes.filter(x=>!x.ch.checked).map(x=>x.id),extras:camposExtras.filter(x=>x.ch.checked).map(x=>x.id),variante:variante?.value||""});
+        function actualizar(){try{const v=normalizarOpciones(base.id,p,datos.catalogo,seleccion());total.textContent="Precio por unidad: "+importe(v.precio);estado.textContent="";b.disabled=false;}catch(e){estado.textContent=e.message;b.disabled=true;}}
+        lista.addEventListener("change",actualizar);
+        b.addEventListener("click",()=>carrito.agregar(p,b,seleccion()));cuerpo.append(bloque);actualizar();
+       }else b.addEventListener("click",()=>carrito.agregar(p,b));
+       cuerpo.append(b);
+      }
       if(citas&&serviciosCita([p]).length){const a=el("a","Reservar cita","boton-agregar");a.href=urlCitas+"&servicio="+encodeURIComponent(p.id);cuerpo.append(a);}
       card.append(imagen,cuerpo);return card;
     }));
