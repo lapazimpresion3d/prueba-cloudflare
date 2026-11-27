@@ -24,6 +24,8 @@ if(!base||!plan||!t){
   document.title=datos.nombre+" · Demostración";
   const textos={logo:t.sigla,nombre:datos.nombre,distintivo:t.distintivo,titulo:practica?datos.marca.lema:t.titulo,entrada:t.entrada,accion:t.accion,"nav-catalogo":t.catalogo,"titulo-catalogo":t.catalogo,"titulo-nosotros":t.seccion,descripcion:datos.marca.descripcion,historia:t.texto,horario:datos.horario,ubicacion:datos.ubicacion,"contacto-texto":datos.contacto||"Información de contacto de ejemplo.","pie-nombre":datos.nombre,"detalle-marca":datos.marca.icono};
   for(const [id,txt] of Object.entries(textos))$(id).textContent=txt;
+  if(datos.logo){const img=el("img");img.src=datos.logo;img.alt="";$("logo").replaceChildren(img);}
+  if(datos.portada){const img=el("img",undefined,"portada-practica");img.src=datos.portada;img.alt="";$("arte").append(img);}
   const arte=el("div",undefined,"arte-emblema");
   const simbolo=el("div",undefined,"arte-vector");
   if(practica&&datos.marca.icono!==base.marca.icono)simbolo.textContent=datos.marca.icono;
