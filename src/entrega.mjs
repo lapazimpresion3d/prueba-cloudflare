@@ -1,3 +1,4 @@
+import { leerJsonLimitado } from "./seguridad.mjs";
 const reglasIniciales = { modo: "confirmar", minimoCentavos: 0, colonias: [] };
 const maximoCentavos = 100000000;
 
@@ -35,7 +36,7 @@ function validarEntrega(datos) {
 export async function administrarEntrega(request, db, json) {
   if (request.method === "GET") return json(await leerEntrega(db));
   if (request.method !== "PUT") return json({ error: "Método no permitido." }, 405);
-  const datos = await request.json().catch(() => null);
+  const datos = await leerJsonLimitado(request);
   let reglas;
   try {
     reglas = validarEntrega(datos);
