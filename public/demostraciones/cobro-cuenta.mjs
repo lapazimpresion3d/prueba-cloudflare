@@ -6,7 +6,7 @@ export function versionCuenta(pedidos){
 }
 export function prepararCobroCuenta(c,pedidos,d,fecha=Date.now()){
  if(c.cerrado!==null||d.version!==versionCuenta(pedidos))throw Error("La cuenta cambió o está cerrada. Actualiza.");
- if(!cuentaIdValida(d.operacion))throw Error("Operación inválida.");
+ if(!cuentaIdValida(d.operacion)||pedidos.some(p=>p.historialCobros?.some(e=>e.operacion===d.operacion||e.cobro?.grupo?.id===d.operacion)))throw Error("Operación inválida.");
  if(d.accion==="cobrar"){
   const pendientes=pedidos.filter(p=>p.estado!=="cancelado"&&p.total>0&&!p.cobro).sort((a,b)=>a.solicitud.localeCompare(b.solicitud));
   const total=pendientes.reduce((n,p)=>n+p.total,0);
