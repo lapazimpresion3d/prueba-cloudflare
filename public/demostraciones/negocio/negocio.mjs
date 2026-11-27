@@ -1,6 +1,6 @@
 import {planes,importe} from "../config.mjs";
 import {obtenerEstablecimiento,filtrarCatalogo} from "../establecimientos.mjs";
-import {crearCatalogosLocales} from "../catalogo-local.mjs";
+import {crearCatalogosLocales,imagenOfertaSegura} from "../catalogo-local.mjs";
 import {crearPerfilesLocales} from "../perfil-local.mjs";
 import {presentacionDe,enlacesDemo,simbolos} from "../presentaciones.mjs";
 import {ilustracionPortada} from "../ilustraciones.mjs";
@@ -43,7 +43,7 @@ if(!base||!plan||!t){
     $("productos").replaceChildren(...lista.map(p=>{
       const card=el("article",undefined,"producto");
       const imagen=el("div",undefined,"imagen-producto");
-      if(p.imagen&&/^\/imagenes\/[a-z0-9_-]+\.webp$/i.test(p.imagen)){const img=el("img");img.src=p.imagen;img.alt=p.nombre;img.loading="lazy";img.addEventListener("error",()=>imagen.replaceChildren(el("span",(Object.hasOwn(t.iconos,p.categoria)?t.iconos[p.categoria]:datos.marca.icono))));imagen.append(img);}
+      if(imagenOfertaSegura(p.imagen)){const img=el("img");img.src=p.imagen;img.alt=p.nombre;img.loading="lazy";img.addEventListener("error",()=>imagen.replaceChildren(el("span",(Object.hasOwn(t.iconos,p.categoria)?t.iconos[p.categoria]:datos.marca.icono))));imagen.append(img);}
       else{imagen.append(el("span",(Object.hasOwn(t.iconos,p.categoria)?t.iconos[p.categoria]:datos.marca.icono)));imagen.setAttribute("aria-hidden","true");}
       const cuerpo=el("div",undefined,"producto-texto");
       cuerpo.append(el("p",p.categoria,"categoria"),el("h3",p.nombre),el("p",p.descripcion,"descripcion"),el("strong",importe(p.precioCentavos),"precio"));
