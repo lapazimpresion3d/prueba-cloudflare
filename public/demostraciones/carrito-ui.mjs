@@ -109,7 +109,7 @@ export function iniciarCarrito(datos,plan,practica,mesa=null){
     $("nota-seguimiento").textContent="Aquí el cliente consulta el estado de sus pedidos."+(servidor?" Actualización cada 20 segundos en esta página visible.":" La práctica local permanece en esta pestaña.")+(mesa?" Se muestran solo los pedidos de Mesa "+mesa+". Los contadores de origen corresponden al negocio completo.":"");
   }
   let estadosVistos=new Map(),origenVisto=null,consultaAutomatica=false;
-  async function seguimiento(avisar=false){
+  async function seguimiento(){
     const n=++consultando,modo=servidor;
     let pedidos;try{if(modo&&configurado!==true)throw Error("No se ha comprobado la agenda de pedidos del servidor.");if(modo&&expira===null&&!pendiente&&preferencia!=="servidor")pedidos=[];else if(modo){const v=await remoto.leerEstado();if(n!==consultando||!servidor)return;expira=v.expira;totalRemoto=v.pedidos.length;pedidos=v.pedidos;}else pedidos=repo.leer();}catch(e){if(n===consultando){totalRemoto=null;render();$("lista-seguimiento").replaceChildren();$("sin-pedidos").hidden=true;$("aviso-seguimiento").textContent=e.message+" Activa la práctica en servidor o actualiza."; }return;}
     if(n!==consultando||modo!==servidor)return;
@@ -184,7 +184,7 @@ export function iniciarCarrito(datos,plan,practica,mesa=null){
   $("actualizar-seguimiento").addEventListener("click",()=>{if(!comprobando)detectar();});
   window.addEventListener("pageshow",e=>{if(e.persisted&&!comprobando)detectar();});
   window.addEventListener("focus",()=>{if(!comprobando)detectar();});
-  setInterval(async()=>{if(document.hidden||comprobando||enviando||conectando||consultaAutomatica||pendiente||$("revision-pedido-demo").open||servidor&&expira===null)return;consultaAutomatica=true;try{await seguimiento(true);}finally{consultaAutomatica=false;}},20000);
+  setInterval(async()=>{if(document.hidden||comprobando||enviando||conectando||consultaAutomatica||pendiente||$("revision-pedido-demo").open||servidor&&expira===null)return;consultaAutomatica=true;try{await seguimiento();}finally{consultaAutomatica=false;}},20000);
   render();detectar();
   if(pendiente)aviso("Hay un pedido pendiente de confirmación. Reintenta para recuperar el resultado sin duplicarlo.");
   return {agregar:(p,b,opciones)=>{
