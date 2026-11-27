@@ -155,3 +155,8 @@ Ver docs/demostraciones-multicomercio.md.
 El Comal cuenta con código de menú, catálogo, pedidos, agenda de mesas, cocina, cobros, seguimiento, envío, paginación y seguridad de entrada; 0018 historial de cobros versionado, aplicación remota no confirmada. Pruebas previas parciales; no se acredita estabilidad comercial ni aislamiento multicomercio.
 Siguiente trabajo: verificar escaparate en navegador y preview; en paralelo cerrar auditoría de dependencias y diseñar ADR, modelo de datos y contratos de módulos/planes/plantillas. Implementar primero núcleo y aislamiento para operaciones reales, después generalizar módulos y conectarlos al escaparate. No cambiar main ni datos remotos.
 Documentos vigentes: docs/arquitectura-multicomercio.md, docs/auditoria-multicomercio-2026-11-26.md. Referencias históricas: docs/auditoria-multirrestaurante-2026-11-26.md, docs/auditoria-etapa-0-2026-11-26.md, docs/estabilizacion-nucleo-2026-11-26.md, docs/seguridad-nucleo-2026-11-26.md, docs/respaldo-d1.md. En caso de conflicto prevalece este ROADMAP.
+
+### Ampliación v0.7 — Catálogo visual de práctica
+- [x] Edición, eliminación y restauración de fotos de productos/servicios con optimización local, presupuesto agregado y persistencia en tabla demo_catalogos existente. Acceso al guardado remoto desde el panel de práctica.
+- [x] Propietario reportó creación de demo_perfiles; confirmar flags en Preview actualizado.
+- [ ] Validar P1 en navegador real, carga/recuperación de imágenes, independencia de las sesiones y suite integrada. 24 comprobaciones lógicas correctas; 20 combinaciones y 20 filtros simulados correctos. Ver docs/catalogo-imagenes-demo.md.
