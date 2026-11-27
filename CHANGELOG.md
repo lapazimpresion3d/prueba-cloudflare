@@ -86,3 +86,7 @@
 ## v0.9 — Pedidos privados en servidor
 - Migración demo_pedidos, API GET/POST/PATCH, cálculo de importes del catálogo, reintento idempotente, estado condicionado e interfaces de práctica remota.
 - 7 pruebas lógicas y 13 casos de API simulada; sentencias SQL comprobadas en SQLite local. Migración remota, despliegue y navegador pendientes. Sin cambios en main ni D1 operativa.
+
+## v0.10 — Citas de servicios y agenda de práctica
+- Barbería y taller: selección de servicio/profesional/fecha/hora, validación de solapamiento y descanso, folio, estados y panel filtrable.
+- 14 pruebas lógicas y flujo DOM simulado correctos. Persistencia local, no D1 de citas ni calendario real. Pendientes navegador, Preview y pruebas integradas.
