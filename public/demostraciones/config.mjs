@@ -30,7 +30,7 @@ export const modulos = [
   {id:"inventario", nombre:"Inventario", desde:3, estado:"disponible", depende:["pos"], detalle:"Control unitario opcional por producto y sucursal, SKU, entradas, salidas, mínimos y ventas POS. Insumos y recetas pendientes."},
   {id:"almacen", nombre:"Almacenes y traspasos", desde:3, estado:"disponible", depende:["inventario"], detalle:"Traspasos de práctica entre sucursales, tránsito, recepción con diferencias, kardex y CSV."},
   {id:"compras", nombre:"Proveedores y compras", desde:3, estado:"disponible", depende:["inventario"], detalle:"Proveedores de ejemplo, costos pactados, órdenes, recepción parcial, devoluciones y saldo por pagar simulado."},
-  {id:"reportes", nombre:"Reportes", desde:3, estado:"en_desarrollo", detalle:"Métricas y exportaciones por establecimiento."},
+  {id:"reportes", nombre:"Reportes", desde:3, estado:"disponible", depende:["pos"], detalle:"Indicadores POS, costos conocidos, inventario, compras y exportaciones de práctica."},
   {id:"mesas", nombre:"Servicio y comandas por mesa", desde:3, estado:"disponible", giros:["restaurante"], depende:["cocina","qr_mesa"], detalle:"Agrupación de pedidos activos por mesa y entrega individual. Cuenta abierta en servidor, captura de comandas y cierre conciliado."},
   {id:"cotizaciones", nombre:"Cotizaciones", desde:3, estado:"disponible", giros:["taller","barberia","tienda"], depende:["pos"], detalle:"Presupuestos de práctica, vigencia, aceptación y órdenes de trabajo."},
   {id:"ordenes_servicio", nombre:"Órdenes de servicio", desde:3, estado:"disponible", giros:["taller","barberia","tienda"], depende:["cotizaciones"], detalle:"Trabajos y estados, anticipos simulados y conversión al POS sin anticipos activos."},
