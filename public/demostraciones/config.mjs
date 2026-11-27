@@ -24,7 +24,7 @@ export const modulos = [
   {id:"administracion", nombre:"Panel administrativo", desde:1, estado:"en_desarrollo", detalle:"Edición autorizada y persistente en servidor pendiente. Hay un editor de práctica local del catálogo."},
   {id:"cocina", nombre:"Cocina", desde:2, estado:"disponible", giros:["restaurante","cafeteria"], depende:["pedidos"], detalle:"Comandas activas, preparación y pedido listo, sincronizados en la sesión de práctica."},
   {id:"pagos", nombre:"Registro de pagos", desde:2, estado:"disponible", giros:["restaurante","cafeteria","tienda"], depende:["pedidos"], detalle:"Cobros simulados, efectivo, transferencias y conciliación por pedido; no procesa dinero real."},
-  {id:"pos", nombre:"Punto de venta", desde:3, estado:"en_desarrollo", detalle:"Captura interna y ventas, sin teléfono del cliente."},
+  {id:"pos", nombre:"Punto de venta", desde:3, estado:"disponible", detalle:"Ventas de mostrador ficticias, productos y servicios, cobro simulado y ticket local. Sin caja real ni sincronización con cocina."},
   {id:"caja", nombre:"Caja y cortes", desde:3, estado:"en_desarrollo", depende:["pos"], detalle:"Turnos, movimientos, cortes y arqueos."},
   {id:"inventario", nombre:"Inventario", desde:3, estado:"en_desarrollo", detalle:"Existencias y movimientos de productos e insumos."},
   {id:"reportes", nombre:"Reportes", desde:3, estado:"en_desarrollo", detalle:"Métricas y exportaciones por establecimiento."},
