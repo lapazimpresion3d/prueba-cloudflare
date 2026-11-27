@@ -13,7 +13,9 @@ async function cargar(){const v=await api();$("form").hidden=false;
  guardar.onclick=()=>operar(()=>api("POST",{accion:"configurar",terminal_id:t.terminal_id,nombre:nombre.value,proveedor:t.proveedor,conectada:t.conectada}));
  conectar.onclick=()=>operar(()=>api("POST",{accion:"configurar",terminal_id:t.terminal_id,nombre:t.nombre,proveedor:t.proveedor,conectada:t.conectada?0:1}));
  c.append(nombre,guardar,conectar);return c;}));
- $("operaciones").replaceChildren(...v.operaciones.map(o=>{const c=el("article");c.className="cuenta-mesa";c.append(el("h3",o.estado+" · "+importe(o.importe_centavos)),el("p","Operación: "+o.operacion_id),el("p","Cuenta: "+o.cuenta_id),el("p","Terminal: "+o.terminal_id),el("p",new Date(o.creado).toLocaleString("es-MX")),el("p",o.conciliada?"Abono activo localizado":"Sin abono activo conciliado"));
+ $("operaciones").replaceChildren(...v.operaciones.map(o=>{const c=el("article");c.className="cuenta-mesa";c.append(el("h3",o.estado+" · "+importe(o.importe_centavos)),el("p","Operación: "+o.operacion_id),el("p","Cuenta: "+o.cuenta_id),el("p","Terminal: "+o.terminal_id),el("p",new Date(o.creado).toLocaleString("es-MX")),el("p",o.conciliada?"Abono activo localizado":o.registrado?"Abono histórico anulado":o.estado==="aprobado"?"Aprobación pendiente de conciliación":"Sin abono activo conciliado"));
+ if(o.estado==="aprobado"&&!o.registrado&&o.recuperable){const b=el("button","Recuperar abono");b.onclick=()=>operar(()=>api("PATCH",{accion:"conciliar",operacion_id:o.operacion_id}));c.append(b);}
+ if(o.estado==="pendiente"&&o.recuperable){const b=el("button","Simular aprobación");b.onclick=()=>{if(confirm("¿Aprobar solicitud ficticia?"))operar(()=>api("PATCH",{accion:"resolver",operacion_id:o.operacion_id,estado:"aprobado"}));};c.append(b);}
  if(o.estado==="pendiente"){const b=el("button","Cancelar solicitud ficticia");b.onclick=()=>{if(confirm("¿Cancelar esta solicitud de práctica?"))operar(()=>api("PATCH",{accion:"resolver",operacion_id:o.operacion_id,estado:"cancelado"}));};c.append(b);}return c;}));
  if(!v.operaciones.length)$("operaciones").append(el("p","Sin operaciones registradas."));
 }
