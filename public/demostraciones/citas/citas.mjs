@@ -36,7 +36,7 @@ if(!negocio||!admiteCitas(id,plan)){
  let elegido=null,creando=false,servidor=false,ocupado=false,lectura=0,copiaRemota=[],listaValida=false,expira=null,pendiente=null,preferencia=null,configurado=null,comprobando=true;
  let remotoDisponible=false,remotoConsultado=false;
  try{preferencia=["local","servidor"].includes(q.get("origen"))?q.get("origen"):almacen?.getItem(claveModo);servidor=preferencia==="servidor";const v=JSON.parse(almacen?.getItem(clavePendiente)||"null");if(v?.datos?.solicitud&&Number.isSafeInteger(v.expira)){pendiente=v;servidor=true;}}catch{}
- if(guardia.restringida){preferencia="local";servidor=false;pendiente=null;$("activar-citas").hidden=true;$("restaurar").hidden=true;}
+ if(!pendiente||guardia.restringida){preferencia="local";servidor=false;}if(guardia.restringida){pendiente=null;$("activar-citas").hidden=true;$("restaurar").hidden=true;}
  function modo(){if(guardia.restringida)return;preferencia=servidor?"servidor":"local";try{almacen?.setItem(claveModo,preferencia);}catch{}}
  function guardarPendiente(v){if(!almacen)throw Error("Habilita el almacenamiento para conservar la solicitud.");if(v)almacen.setItem(clavePendiente,JSON.stringify(v));else almacen.removeItem(clavePendiente);pendiente=v;}
  const citasActuales=()=>servidor?copiaRemota:repo.leer();
@@ -49,7 +49,7 @@ if(!negocio||!admiteCitas(id,plan)){
   $("cantidad-local").textContent=String(repo.leer().length);
   $("cantidad-remota").textContent=remotoConsultado?String(copiaRemota.length):"—";
   $("citas-locales").textContent="Ver agenda local";
-  $("activar-citas").textContent="Consultar agenda de la sesión compartida";$("activar-citas").closest("details").hidden=guardia.restringida;
+  $("activar-citas").textContent="Consultar agenda de la sesión compartida";
   const origen="&origen="+(servidor?"servidor":"local");
   $("cambiar-vista").href=base+(admin?"":"&vista=agenda")+origen;
   $("ir-agenda").href=base+"&vista=agenda"+origen;
@@ -97,7 +97,7 @@ if(!negocio||!admiteCitas(id,plan)){
   if(!servidor){render();return;}
   if(expira===null&&!pendiente&&!admin){await iniciarAgenda();return;}
   try{const v=await remoto.leer();if(n!==lectura||!servidor)return;copiaRemota=v.citas;expira=v.expira;listaValida=true;remotoDisponible=true;remotoConsultado=true;}
-  catch(e){if(n!==lectura)return;copiaRemota=[];listaValida=false;remotoConsultado=false;remotoDisponible=false;aviso(e.message+" Actualiza o activa la sesión.");}
+  catch(e){if(n!==lectura)return;copiaRemota=[];listaValida=false;remotoConsultado=false;remotoDisponible=false;aviso(e.message+" Actualiza para consultar la agenda.");}
   render();
  }
  async function abrirRemoto(){if(guardia.restringida)return;
@@ -109,7 +109,7 @@ if(!negocio||!admiteCitas(id,plan)){
  $("activar-citas").addEventListener("click",abrirRemoto);
  // El encargado detecta la sesión ya existente incluso en otra pestaña.
  // Nunca migrar ni borrar citas locales. Si hay ambas, las dos se indican con sus conteos.
- async function iniciarAgenda(){if(guardia.restringida){servidor=false;comprobando=false;configurado=false;listaValida=true;render();$("restaurar").hidden=true;return;}
+ async function iniciarAgenda(){if(guardia.restringida||!pendiente){servidor=false;preferencia="local";comprobando=false;configurado=false;listaValida=true;render();if(guardia.restringida)$("restaurar").hidden=true;return;}
  const n=++lectura;comprobando=true;render();
  try{
   configurado=await remoto.disponibilidad();

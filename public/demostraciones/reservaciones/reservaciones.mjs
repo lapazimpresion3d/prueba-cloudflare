@@ -14,7 +14,7 @@ else{
  const guardia=guardiaOperacion(id,plan,admin?q:new URLSearchParams(),localStorage),repo=limitarRepositorio(crearReservasLocales(almacen),guardia,{cambiar:d=>permisoAgenda("mesas",d)});
  let preferencia=null,pendiente=null,servidor=false,configurado=null,expira=null,remotas=[],validas=false,totalRemoto=null,bloqueado=false,slots=[];
  try{preferencia=["local","servidor"].includes(q.get("origen"))?q.get("origen"):almacen?.getItem(clave);pendiente=JSON.parse(almacen?.getItem(clavePendiente)||"null");if(pendiente&&!pendiente.datos?.solicitud)pendiente=null;}catch{}
- servidor=!!pendiente||preferencia==="servidor";if(guardia.restringida){servidor=false;preferencia="local";pendiente=null;$("remoto").hidden=true;}
+ preferencia=pendiente?"servidor":"local";servidor=!!pendiente;if(guardia.restringida){servidor=false;preferencia="local";pendiente=null;$("remoto").hidden=true;}
  function locales(){return repo.leer();}
  function copiaLocal(){try{return locales();}catch(e){aviso(e.message);return [];}}
  function guardarModo(){if(guardia.restringida)return;preferencia=servidor?"servidor":"local";try{almacen?.setItem(clave,preferencia);}catch{}}
@@ -36,7 +36,7 @@ else{
  if(admin)for(const m of mesasComal){const card=el("article"),a=el("a","Abrir menú de "+m.nombre);a.href=enlaceMesa(location.origin,plan,m.id);card.append(el("h3",m.nombre),el("p","Capacidad: "+m.capacidad+" personas"),a);if(plan==="p4"&&location.origin==="https://desarrollo-taqueria-el-comal.lapazimpresion3d.workers.dev"){const img=el("img");img.src=qrMesa(m.id);img.alt="QR de "+m.nombre;const dl=el("a","Guardar QR SVG");dl.href=img.src;dl.download="el-comal-mesa-"+m.id+".svg";card.append(img,dl);}else card.append(el("p","QR imprimible disponible en el Preview P4. En este entorno usa el enlace."));$("qr-lista").append(card);}
  function render(){
   const lr=copiaLocal(),r=servidor?remotas:lr;
-  $("modo").textContent=textoDemostracion({ocupado:bloqueado,verificado:configurado!==null,servidor,locales:lr.length});$("remoto").closest("details").hidden=guardia.restringida;
+  $("modo").textContent=textoDemostracion({ocupado:bloqueado,verificado:configurado!==null,servidor,locales:lr.length});
   $("num-local").textContent=String(lr.length);$("num-remoto").textContent=totalRemoto===null?"—":String(totalRemoto);
   $("remoto").disabled=bloqueado||!!pendiente||configurado!==true;$("local").disabled=bloqueado||!!pendiente;$("actualizar").disabled=bloqueado;
   $("descartar").hidden=!pendiente||admin;$("descartar").disabled=bloqueado;
@@ -60,7 +60,7 @@ else{
  function actualizarMesas(anterior){const s=slots.find(x=>String(x.inicio)===$("hora").value);$("mesa").replaceChildren(...(s?s.mesas.map(id=>new Option("Mesa "+id+" · "+mesasComal.find(m=>m.id===id).capacidad+" personas",id)):[new Option("Selecciona horario","")]));if(s?.mesas.includes(anterior))$("mesa").value=anterior;$("detalle").textContent=slots.length?"Elige horario y mesa disponible.":"Sin horarios disponibles para esta fecha y cantidad.";}
  for(const k of ["fecha","personas","hora","mesa","identidad","nota"])$(k).addEventListener("change",()=>{if(k==="hora")actualizarMesas("");render();});
  $("filtro").addEventListener("change",render);
- async function detectar(){if(guardia.restringida){servidor=false;configurado=false;render();return;}if(bloqueado)return;bloqueado=true;render();try{configurado=(await api("contexto?"+apiq)).reservacionesConfiguradas===true;validas=false;totalRemoto=null;remotas=[];expira=null;if(configurado){try{await leerRemotas();if(!pendiente&&preferencia!=="servidor"&&preferencia!=="local")servidor=copiaLocal().length===0;}catch(e){if(e.status!==401)throw e;if(!admin&&!pendiente&&preferencia!=="local"&&!copiaLocal().length){servidor=true;validas=true;}}}else if(!pendiente&&preferencia!=="servidor")servidor=false;}catch(e){configurado=null;validas=false;aviso(e.message);}finally{bloqueado=false;render();}}
+ async function detectar(){if(guardia.restringida||!pendiente){servidor=false;preferencia="local";configurado=false;render();return;}if(bloqueado)return;bloqueado=true;render();try{configurado=(await api("contexto?"+apiq)).reservacionesConfiguradas===true;validas=false;totalRemoto=null;remotas=[];expira=null;if(configurado){try{await leerRemotas();if(!pendiente&&preferencia!=="servidor"&&preferencia!=="local")servidor=copiaLocal().length===0;}catch(e){if(e.status!==401)throw e;if(!admin&&!pendiente&&preferencia!=="local"&&!copiaLocal().length){servidor=true;validas=true;}}}else if(!pendiente&&preferencia!=="servidor")servidor=false;}catch(e){configurado=null;validas=false;aviso(e.message);}finally{bloqueado=false;render();}}
  $("actualizar").addEventListener("click",detectar);window.addEventListener("focus",detectar);window.addEventListener("pageshow",e=>{if(e.persisted)detectar();});
  $("local").addEventListener("click",()=>{if(bloqueado||pendiente)return;servidor=false;guardarModo();render();});
  $("remoto").addEventListener("click",async()=>{if(guardia.restringida||bloqueado||pendiente)return;bloqueado=true;render();try{await iniciarRemoto();servidor=true;guardarModo();aviso("Sesión privada activa.");}catch(e){aviso(e.message);}finally{bloqueado=false;render();}});

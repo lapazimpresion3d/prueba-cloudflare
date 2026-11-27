@@ -1,4 +1,4 @@
-import {textoDemostracion} from "./modo-demostracion.mjs";
+import {origenDemostracion,textoDemostracion} from "./modo-demostracion.mjs";
 import {estadoCobro,nombresCobro} from "./cobros-practica.mjs";
 import {zonasEntregaDemo,horarioEntregaDemo} from "./entrega-practica.mjs";
 import {nuevosListos} from "./cocina-practica.mjs";
@@ -19,7 +19,7 @@ export function iniciarCarrito(datos,plan,practica,mesa=null,visita=null){
   const remoto=crearPedidosRemotos(datos.id,plan),claveModo="lapaz:demo:pedidos:modo:"+datos.id,clavePendiente=clave+":pendiente";
   let lineas=[],enviando=false,servidor=false,conectando=false,pendiente=null,consultando=0,preferencia=null,comprobando=true,configurado=null,expira=null,totalRemoto=null,visitaAbierta=false;
   try{preferencia=almacen?.getItem(claveModo);servidor=preferencia==="servidor";const p=JSON.parse(almacen?.getItem(clavePendiente)||"null");if(p?.datos?.solicitud&&Array.isArray(p.datos.lineas)){pendiente=p;servidor=true;}else if(p?.solicitud&&Array.isArray(p.lineas)){pendiente={datos:p,expira:null};servidor=true;}}catch{}
-  if(visita){preferencia="servidor";servidor=true;}
+  preferencia=origenDemostracion({visita:!!visita,pendiente:!!pendiente});servidor=preferencia==="servidor";
   function guardarPendiente(p){if(!almacen)throw Error("No se puede conservar el identificador del pedido. Habilita el almacenamiento de la pestaña.");if(p)almacen.setItem(clavePendiente,JSON.stringify(p));else almacen.removeItem(clavePendiente);pendiente=p;}
   function guardarModo(){preferencia=servidor?"servidor":"local";try{almacen?.setItem(claveModo,preferencia);}catch{}}
   try{
@@ -127,13 +127,13 @@ export function iniciarCarrito(datos,plan,practica,mesa=null,visita=null){
     $("modalidad-pedido").disabled=enviando||!!pendiente||!!mesa;
     mostrarDatos();
     $("modo-pedidos").textContent="Demostración privada";
-    $("activar-pedidos").closest("details").hidden=!!visita;$("activar-pedidos").hidden=!!visita;$("activar-pedidos").disabled=!!visita||comprobando||enviando||conectando||!!pendiente||configurado===false;
+    $("activar-pedidos").hidden=!!visita;$("activar-pedidos").disabled=!!visita||comprobando||enviando||conectando||!!pendiente||configurado===false;
     $("pedidos-locales").hidden=!!visita;$("pedidos-locales").disabled=!!visita||comprobando||enviando||conectando||!!pendiente||(!servidor&&preferencia==="local");
     $("estado-origen-pedidos").textContent=textoDemostracion({ocupado:comprobando,verificado:configurado!==null,servidor,locales:repo.leer().length});
     $("conteo-local-pedidos").textContent=String(repo.leer().length);$("conteo-remoto-pedidos").textContent=totalRemoto===null?"—":String(totalRemoto);
     $("descartar-pedido").hidden=!pendiente;$("descartar-pedido").disabled=comprobando||enviando||conectando;
     $("abrir-pedidos").href="/demostraciones/pedidos/?"+new URLSearchParams({negocio:datos.id,plan,origen:servidor?"servidor":"local"});
-    $("nota-seguimiento").textContent="Aquí el cliente consulta el estado de sus pedidos."+(servidor?" Actualización cada 20 segundos en esta página visible.":" La práctica local permanece en esta pestaña.")+(visita?" Se muestran solo las comandas de esta visita. Regresa al panel para cerrar la cuenta.":mesa?" Se muestran solo los pedidos de Mesa "+mesa+". Los contadores de origen corresponden al negocio completo.":"");
+    $("nota-seguimiento").textContent="Aquí el cliente consulta el estado de sus pedidos."+(servidor?" Actualización cada 20 segundos en esta página visible.":"")+(visita?" Se muestran solo las comandas de esta visita. Regresa al panel para cerrar la cuenta.":mesa?" Se muestran solo los pedidos de Mesa "+mesa+".":"");
   }
   let estadosVistos=new Map(),origenVisto=null,consultaAutomatica=false;
   async function seguimiento(){
@@ -205,7 +205,7 @@ export function iniciarCarrito(datos,plan,practica,mesa=null,visita=null){
   async function detectar(){
     if(enviando||conectando)return;
     const n=++consultando;comprobando=true;render();
-    try{const v=await detectarPedidos(remoto,{preferencia,locales:repo.leer().length,personalizado:practica,pendiente:!!pendiente});if(n!==consultando)return;configurado=v.configurado;servidor=visita?true:v.servidor;expira=v.estado?.expira??null;totalRemoto=v.estado?.pedidos.length??null;if(visita){visitaAbierta=!!v.estado?.cuentas?.some(x=>x.cuenta_id===visita.cuenta&&x.mesa===mesa&&x.cerrado===null);if(!visitaAbierta&&!pendiente)aviso("Cuenta cerrada o no disponible en esta sesión. Regresa a cuentas de mesa.");}}
+    try{preferencia=origenDemostracion({visita:!!visita,pendiente:!!pendiente});if(preferencia==="local"){configurado=false;servidor=false;expira=null;totalRemoto=null;return;}const v=await detectarPedidos(remoto,{preferencia,locales:repo.leer().length,personalizado:practica,pendiente:!!pendiente});if(n!==consultando)return;configurado=v.configurado;servidor=visita?true:v.servidor;expira=v.estado?.expira??null;totalRemoto=v.estado?.pedidos.length??null;if(visita){visitaAbierta=!!v.estado?.cuentas?.some(x=>x.cuenta_id===visita.cuenta&&x.mesa===mesa&&x.cerrado===null);if(!visitaAbierta&&!pendiente)aviso("Cuenta cerrada o no disponible en esta sesión. Regresa a cuentas de mesa.");}}
     catch(e){if(n!==consultando)return;configurado=null;totalRemoto=null;aviso(e.message);}
     finally{if(n===consultando){comprobando=false;render();await seguimiento();}}
   }
