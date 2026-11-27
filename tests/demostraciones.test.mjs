@@ -46,7 +46,7 @@ test("catálogos separados, IDs locales, datos tipados y filtros",()=>{
   assert.equal(filtrarCatalogo(taller,{busqueda:"diagnostico"})[0].id,"diagnostico");
   assert.equal(filtrarCatalogo(cafe,{busqueda:"cafe",tipo:"fisico"})[0].id,"cafe-grano");
   assert.equal(filtrarCatalogo(tienda,{tipo:"alimento"}).length,0);
-  assert.equal(filtrarCatalogo(comal,{categoria:"Tacos"}).length,3);
+  assert.equal(filtrarCatalogo(comal,{categoria:"Tacos"}).length,4);
   assert.equal(filtrarCatalogo(barberia,{busqueda:"taco"}).length,0);
   for(const e of establecimientos){
     assert.equal(new Set(e.catalogo.map(p=>p.id)).size,e.catalogo.length);
