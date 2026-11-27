@@ -1,6 +1,6 @@
 import {planes,capacidades,importe} from "./config.mjs";
 import {establecimientos,obtenerEstablecimiento,filtrarCatalogo} from "./establecimientos.mjs";
-import {crearCatalogosLocales,centavosDesdeTexto} from "./catalogo-local.mjs";
+import {crearCatalogosLocales,centavosDesdeTexto,imagenOfertaSegura} from "./catalogo-local.mjs";
 import {crearPerfilesLocales,perfilPlano,validarImagenPerfil} from "./perfil-local.mjs";
 import {optimizarImagenPerfil} from "./imagenes-perfil.mjs";
 import {enlacesDemo} from "./presentaciones.mjs";
@@ -25,7 +25,7 @@ let editando=null;
 let contextoServidor=null, consultaContexto=0, ocupada=false;
 const revisiones=new Map(), revisionesPerfil=new Map();
 let perfilActivo=false, perfilOcupado=false, imagenPendiente=0, generacionImagen=0;
-let practicaActiva=false;
+let practicaActiva=false, fotoPendiente=false, fotoGeneracion=0;
 const catalogoActual=()=>({...negocio,catalogo:catalogos.leer(negocio.id)});
 const campo=n=>$("form-oferta").elements.namedItem(n);
 
@@ -68,7 +68,7 @@ function renderCatalogo(){
   $("resultado").textContent=lista.length ? lista.length+" elementos de ejemplo" : "No hay elementos que coincidan con los filtros.";
   $("catalogo").replaceChildren(...lista.map(p=>{
     const card=crear("article",undefined,"producto");
-    if(p.imagen){const img=crear("img");img.src=p.imagen;img.alt=p.nombre;img.loading="lazy";card.append(img);}
+    if(imagenOfertaSegura(p.imagen)){const img=crear("img");img.src=p.imagen;img.alt=p.nombre;img.loading="lazy";card.append(img);}
     card.append(crear("span",tipos[p.tipo]+" · "+p.categoria,"tipo"),crear("h3",p.nombre),crear("p",p.descripcion),crear("div",importe(p.precioCentavos,negocio.configuracion.moneda),"precio"));
     if(p.duracionMinutos)card.append(crear("p","Duración de referencia: "+p.duracionMinutos+" min"));
     if(p.disponible===false)card.append(crear("span","No disponible","etiqueta otro_plan"));
@@ -103,7 +103,7 @@ function renderVista(){
   $("seccion-capacidades").hidden=vistaNegocio||vistaAdmin;
   $("cabecera-admin").hidden=!vistaAdmin;$("acciones-comparador").hidden=vistaAdmin;
   $("estado").hidden=vistaAdmin;$("perfil").hidden=vistaAdmin;$("seccion-catalogo").hidden=vistaAdmin;
-  $("editor-servidor").hidden=vistaAdmin;$("enlace-original").hidden=vistaAdmin;
+  $("editor-servidor").hidden=false;$("enlace-original").hidden=vistaAdmin;
   if(vistaAdmin){$("titulo-barra").textContent="Panel de demostración";$("nombre-admin").textContent=perfiles.leer(negocio.id).nombre;$("admin-catalogo").setAttribute("aria-pressed",String(editorAbierto));$("admin-perfil").setAttribute("aria-pressed",String(perfilAbierto));}
   $("vista-cliente").hidden=vistaNegocio;$("vista-comparador").hidden=!vistaNegocio;
   $("abrir-editor").hidden=vistaNegocio||editorAbierto;$("editor").hidden=vistaNegocio||!editorAbierto;
@@ -117,7 +117,7 @@ function ajustarDuracion(){
   $("campo-duracion").hidden=!servicio;campo("duracion").disabled=!servicio;campo("duracion").required=servicio;
 }
 function reiniciarFormulario(){
-  editando=null;$("form-oferta").reset();$("titulo-form-oferta").textContent="Agregar elemento";
+  editando=null;fotoGeneracion++;fotoPendiente=false;$("form-oferta").reset();mostrarFotoProducto();$("aviso-producto").textContent="JPG, PNG o WebP de hasta 8 MB. Se reduce automáticamente." ;$("titulo-form-oferta").textContent="Agregar elemento";
   $("cancelar-edicion").hidden=true;ajustarDuracion();
 }
 function mensajeGuardado(persistido){
@@ -131,6 +131,7 @@ function renderEditor(){
     const fila=crear("div",undefined,"fila-editor");
     const info=crear("div");info.append(crear("strong",p.nombre),crear("p",p.categoria+" · "+importe(p.precioCentavos)+(p.disponible===false?" · No disponible":"")));
     const editar=crear("button","Editar");editar.type="button";editar.addEventListener("click",()=>{
+      fotoGeneracion++;fotoPendiente=false;$("archivo-producto").value="";campo("imagen").value=p.imagen??"";mostrarFotoProducto();
       editando=p.id;campo("nombre").value=p.nombre;campo("categoria").value=p.categoria;campo("tipo").value=p.tipo;
       campo("precio").value=(p.precioCentavos/100).toFixed(2);campo("descripcion").value=p.descripcion;
       campo("duracion").value=p.duracionMinutos??"";campo("disponible").checked=p.disponible!==false;
@@ -193,12 +194,31 @@ $("restaurar-perfil").addEventListener("click",()=>{
   const guardado=perfiles.restaurar(negocio.id);cargarPerfil();renderPerfil();renderVista();
   $("aviso-perfil").textContent=guardado?"Identidad original restaurada.":"Restaurada en memoria; no se conserva al recargar.";
 });
+function mostrarFotoProducto(){
+  const img=$("prev-producto"),valor=campo("imagen").value;
+  img.hidden=!imagenOfertaSegura(valor);
+  if(img.hidden)img.removeAttribute("src");else img.src=valor;
+}
+$("archivo-producto").addEventListener("change",async e=>{
+  const file=e.currentTarget.files?.[0];if(!file)return;
+  const n=++fotoGeneracion;fotoPendiente=true;
+  $("aviso-producto").textContent="Optimizando foto…";
+  try{
+    const foto=await optimizarImagenPerfil(file,"producto");
+    if(n!==fotoGeneracion)return;
+    if(!imagenOfertaSegura(foto))throw Error("La foto no tiene el formato requerido.");
+    campo("imagen").value=foto;mostrarFotoProducto();$("aviso-producto").textContent="Foto lista. Guarda el elemento para aplicarla.";
+  }catch(e){if(n===fotoGeneracion)$("aviso-producto").textContent=e.message;}
+  finally{if(n===fotoGeneracion){fotoPendiente=false;$("archivo-producto").value="";}}
+});
+$("quitar-producto").addEventListener("click",()=>{fotoGeneracion++;fotoPendiente=false;$("archivo-producto").value="";campo("imagen").value="";mostrarFotoProducto();$("aviso-producto").textContent="Foto eliminada de la edición. Guarda el elemento para aplicar."});
 $("cancelar-edicion").addEventListener("click",reiniciarFormulario);
 campo("tipo").addEventListener("change",ajustarDuracion);
 $("form-oferta").addEventListener("submit",e=>{
   e.preventDefault();
   try{
-    const datos={nombre:campo("nombre").value,categoria:campo("categoria").value,tipo:campo("tipo").value,
+    if(fotoPendiente)throw Error("Espera a que termine la optimización.");
+    const datos={imagen:campo("imagen").value,nombre:campo("nombre").value,categoria:campo("categoria").value,tipo:campo("tipo").value,
       precioCentavos:centavosDesdeTexto(campo("precio").value),descripcion:campo("descripcion").value,
       disponible:campo("disponible").checked,duracionMinutos:Number(campo("duracion").value)};
     trasCambio(editando?catalogos.editar(negocio.id,editando,datos):catalogos.crear(negocio.id,datos));
@@ -239,7 +259,7 @@ async function consultarContexto(){
   }finally{if(n===consultaContexto)actualizarBotonesServidor();}
 }
 async function operarServidor(accion){
-  if(ocupada||perfilOcupado)return;
+  if(ocupada||perfilOcupado||fotoPendiente)return;
   const id=negocio.id,p=plan.id;
   if(!contextoServidor?.persistenciaConfigurada||contextoServidor.establecimiento.id!==id||contextoServidor.plan.id!==p)return;
   if(accion==="cargar"&&!confirm("¿Reemplazar el catálogo local de "+negocio.nombre+" por la copia del servidor?"))return;
