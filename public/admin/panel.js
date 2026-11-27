@@ -1180,11 +1180,14 @@ function tarjetaPedido(pedido) {
       const boton = document.createElement("button");
       boton.type = "button";
       boton.textContent = accion.id === "cancelado" ? "Cancelar pedido" : "Marcar " + accion.etiqueta.toLowerCase();
-      if (accion.requiereCobro) {
+      const bloqueo = accion.requiereEnvio ? "Primero confirma el costo de envío." :
+        accion.requiereCobro ? "Primero registra el pago por el total." :
+        accion.requiereAnularCobro ? "Corrige el registro del cobro antes de cancelar. Esto no devuelve dinero." : "";
+      if (bloqueo) {
         boton.disabled = true;
-        boton.title = "Primero registra el pago recibido.";
+        boton.title = bloqueo;
         const aviso = document.createElement("small");
-        aviso.textContent = "Para marcar entregado, primero registra el pago recibido.";
+        aviso.textContent = bloqueo;
         acciones.appendChild(aviso);
       }
       boton.addEventListener("click", () => cambiarEstadoPedido(pedido, accion, boton));
@@ -1237,13 +1240,13 @@ function editorMetodoCobro(pedido) {
 function controlCobro(pedido, importe) {
   const bloque = document.createElement("div");
   bloque.className = "control-cobro";
-  const envioPendiente = pedido.detalle.servicio === "domicilio" && !pedido.detalle.entrega;
+  const envioPendiente = pedido.detalle.servicio === "domicilio" && pedido.detalle.entrega?.envioCentavos == null;
   const total = pedido.totalCentavos + (pedido.detalle.entrega?.envioCentavos ?? 0);
   const sinCosto = !envioPendiente && total === 0;
   const estado = document.createElement("p");
   const transferenciaPendiente = pedido.transferenciaReportada && pedido.estado !== "cancelado";
   estado.textContent = pedido.cobro
-    ? `Pagado · ${importe(pedido.cobro.importeCentavos)} · ${nombreMetodoCobro(pedido.cobro.metodo)}` :
+    ? `${envioPendiente || pedido.cobro.importeCentavos !== total ? "Cobro por conciliar" : "Pagado"} · ${importe(pedido.cobro.importeCentavos)} · ${nombreMetodoCobro(pedido.cobro.metodo)}` :
     sinCosto ? "Pedido sin costo" :
     transferenciaPendiente ? "Transferencia reportada por el cliente · Verifica si recibiste el pago." :
     envioPendiente ? "Envío por cotizar." :
@@ -1259,15 +1262,18 @@ function controlCobro(pedido, importe) {
         guardarCobro(pedido, { accion: "corregir", registrado: pedido.cobro.registrado }, corregir);
       }
     });
-    bloque.append(editorMetodoCobro(pedido), corregir);
-    return bloque;
+    bloque.append(editorMetodoCobro(pedido));
+    if (pedido.estado !== "entregado") bloque.append(corregir);
+    if (!envioPendiente || pedido.estado === "cancelado") return bloque;
   }
   if (pedido.estado === "cancelado") return bloque;
-  if (envioPendiente || (pedido.detalle.entrega?.origen === "manual" && !transferenciaPendiente)) {
+  if (envioPendiente || (pedido.estado !== "entregado" && pedido.detalle.entrega?.origen === "manual" && !transferenciaPendiente)) {
     const formularioEnvio = document.createElement("form");
     const previo = pedido.detalle.entrega?.envioCentavos ?? null;
+    const sugerido = pedido.cobro ? pedido.cobro.importeCentavos - pedido.totalCentavos : null;
     const envio = campoCatalogo(formularioEnvio, "Costo de envío (MXN)", "number",
-      previo === null ? "" : previo / 100, { required: true, min: "0", max: "1000000", step: "0.01" });
+      previo === null ? (sugerido !== null && sugerido >= 0 ? sugerido / 100 : "") : previo / 100,
+      { required: true, min: "0", max: "1000000", step: "0.01" });
     const guardarEnvio = document.createElement("button");
     guardarEnvio.type = "submit";
     guardarEnvio.textContent = "Publicar costo de envío";
@@ -1288,7 +1294,7 @@ function controlCobro(pedido, importe) {
     });
     bloque.append(noLocalizada);
   }
-  if (sinCosto) return bloque;
+  if (sinCosto || envioPendiente || pedido.cobro) return bloque;
 
   const editor = document.createElement("details");
   const titulo = document.createElement("summary");
@@ -1358,7 +1364,7 @@ function actualizarPaginasHistorial() {
   const pagina = historialActual.cursores.length;
   const hayAnterior = pagina > 1;
   const haySiguiente = historialActual.siguiente !== null;
-  paginasHistorial.hidden = vistaPedidos.value === "activos" || (!hayAnterior && !haySiguiente);
+  paginasHistorial.hidden = !hayAnterior && !haySiguiente;
   anteriorHistorial.disabled = !hayAnterior;
   siguienteHistorial.disabled = !haySiguiente;
   paginaHistorial.textContent = "Página " + pagina;
@@ -1375,19 +1381,17 @@ async function cargarPedidos(pagina = historialActual) {
   const parametros = new URLSearchParams({ vista });
   const estado = vista === "activos" ? estadoActivos.value : "";
   if (estado) parametros.set("estado", estado);
-  if (historial) {
-    parametros.set("pagina", "1");
-    const antes = pagina.cursores.at(-1);
-    if (antes !== null) parametros.set("antes", antes);
-    if (pagina.folio) parametros.set("folio", pagina.folio);
-    if (vista === "historial" && pagina.metodo) parametros.set("metodo", pagina.metodo);
-    anteriorHistorial.disabled = siguienteHistorial.disabled = true;
-  }
+  parametros.set("pagina", "1");
+  const cursor = pagina.cursores.at(-1);
+  if (cursor !== null) parametros.set(historial ? "antes" : "despues", cursor);
+  if (historial && pagina.folio) parametros.set("folio", pagina.folio);
+  if (vista === "historial" && pagina.metodo) parametros.set("metodo", pagina.metodo);
+  anteriorHistorial.disabled = siguienteHistorial.disabled = true;
   try {
     const resultado = await solicitar("pedidos?" + parametros);
     if (version !== versionPedidos || panel.hidden) return;
-    const pedidos = historial ? resultado.pedidos : resultado;
-    if (historial) historialActual = { ...pagina, siguiente: resultado.siguiente };
+    const pedidos = resultado.pedidos;
+    historialActual = { ...pagina, siguiente: resultado.siguiente };
     const firma = JSON.stringify(pedidos);
     if (firma !== firmaListaPedidos) {
       listaPedidos.replaceChildren(...pedidos.map(tarjetaPedido));
