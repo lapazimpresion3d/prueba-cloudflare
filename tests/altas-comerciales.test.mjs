@@ -5,7 +5,7 @@ import {readFileSync} from "node:fs";
 import {crearAltasComerciales} from "../src/altas-comerciales.mjs";
 async function fixture(){
  const sql=new DatabaseSync(":memory:");sql.exec("PRAGMA foreign_keys=ON");
- for(const f of ["0001_identidad.sql","0002_sesiones.sql","0003_altas.sql"])sql.exec(readFileSync(new URL("../migrations-comercios/"+f,import.meta.url),"utf8"));
+ for(const f of ["0001_identidad.sql","0002_sesiones.sql","0003_altas.sql","0004_administracion.sql"])sql.exec(readFileSync(new URL("../migrations-comercios/"+f,import.meta.url),"utf8"));
  const db={prepare(q){return {first:async()=>sql.prepare(q).get()??null,bind(...a){return {q,a}}}},async batch(stm){sql.exec("BEGIN");try{const r=stm.map(({q,a})=>{const p=sql.prepare(q);return /RETURNING/i.test(q)?{results:p.all(...a)}:{results:[],meta:p.run(...a)}});sql.exec("COMMIT");return r}catch(e){sql.exec("ROLLBACK");throw e}}};
  const req=(s="owner",email=s+"@example.com",origin="https://example.com")=>new Request("https://example.com/alta",{method:"POST",headers:{Origin:origin,"X-Test-Subject":s,"X-Test-Email":email}});
  const a=await crearAltasComerciales({COMMERCE_DB:db},{habilitado:true,verificarIdentidad:async r=>({emisor:"issuer",sujeto:r.headers.get("X-Test-Subject"),email:r.headers.get("X-Test-Email"),emailVerified:true}),autenticar:async r=>({actor:sql.prepare("SELECT id FROM usuarios WHERE sujeto=?").get(r.headers.get("X-Test-Subject"))?.id})});
