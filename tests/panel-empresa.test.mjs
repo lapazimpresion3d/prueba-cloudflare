@@ -24,3 +24,19 @@ test("panel privado cerrado por defecto y control de vigencia",async()=>{
  await assert.rejects(crearPanelPrivado({sesiones:{autenticar:async()=>null},nucleo,suscripciones,habilitado:true})(r,"a"),/Autenticación/);
  const f=crearPanelPrivado({sesiones,nucleo,suscripciones:{consultar:async()=>({vigente:true,plan:"p1",estado:"prueba",usuarios:1,sucursales:1})},habilitado:true});assert.equal((await f(r,"a")).plan,"p1");
 });
+
+test("migración local, roles y sucursales activas",()=>{
+ const c=contextoEmpresa("taqueria-el-comal","p4"),m=new Map(),s={getItem:k=>m.get(k),setItem:(k,v)=>m.set(k,v),removeItem:k=>m.delete(k)},a=almacenEmpresa(c,s);
+ m.set(c.clave,JSON.stringify({sucursal:2,personal:["propietario","cajero","administrador"]}));
+ const d=a.leer();assert.deepEqual(d.asignaciones,[null,2,null]);
+ assert.throws(()=>a.guardar({...d,activas:[1,3],sucursal:1}));
+ assert.throws(()=>a.guardar({...d,asignaciones:[null,null,null]}));
+ assert.throws(()=>a.guardar({...d,activas:[2,3]}));
+ assert.deepEqual(a.guardar({...d,activas:[1,2]}).activas,[1,2]);
+});
+test("consulta privada de sucursal conserva contexto autorizado",async()=>{
+ const r=new Request("https://example.test/?actor=intruso"),sesiones={autenticar:async()=>({actor:"real"})};
+ const nucleo={autorizar:async(_,c)=>{assert.equal(c.permiso,"empresa.ver");if(c.sucursal!=="s1")throw Error("Denegado");}};
+ const suscripciones={consultar:async(_,e,s)=>{assert.equal(e,"a");assert.equal(s,"s1");return {vigente:true,plan:"p3"};}};
+ const f=crearPanelPrivado({sesiones,nucleo,suscripciones,habilitado:true});assert.equal((await f(r,"a","s1")).sucursal,"s1");await assert.rejects(f(r,"a","s2"),/Denegado/);
+});

@@ -26,7 +26,7 @@ const vistaAdmin=params.get("vista")==="administracion";
 let vistaNegocio=false;
 const redirigirNegocio=params.get("vista")==="negocio"&&obtenerEstablecimiento(params.get("negocio"))&&planes.some(p=>p.id===params.get("plan"));
 if(redirigirNegocio)location.replace(enlacesDemo(negocio.id,plan.id).negocio);
-let editorAbierto=vistaAdmin, perfilAbierto=false;
+let editorAbierto=false, perfilAbierto=false;
 let editando=null;
 let contextoServidor=null, consultaContexto=0, ocupada=false;
 const revisiones=new Map(), revisionesPerfil=new Map();
@@ -116,7 +116,7 @@ function renderTodo(reiniciarCategoria){
 function renderVista(){
   $("introduccion").hidden=$("selector-negocios").hidden=$("selector-planes").hidden=vistaNegocio||vistaAdmin;
   $("seccion-capacidades").hidden=vistaNegocio||vistaAdmin;
-  $("cabecera-admin").hidden=!vistaAdmin;$("acciones-comparador").hidden=vistaAdmin;
+  $("empresa-contexto").hidden=!vistaAdmin||editorAbierto||perfilAbierto;$("admin-resumen").setAttribute("aria-pressed",String(vistaAdmin&&!editorAbierto&&!perfilAbierto));$("cabecera-admin").hidden=!vistaAdmin;$("acciones-comparador").hidden=vistaAdmin;
   $("estado").hidden=vistaAdmin;$("perfil").hidden=vistaAdmin;$("seccion-catalogo").hidden=vistaAdmin;
   $("editor-servidor").hidden=false;$("enlace-original").hidden=vistaAdmin;
   if(vistaAdmin){$("titulo-barra").textContent="Panel de demostración";$("nombre-admin").textContent=perfiles.leer(negocio.id).nombre;$("admin-catalogo").setAttribute("aria-pressed",String(editorAbierto));$("admin-perfil").setAttribute("aria-pressed",String(perfilAbierto));}
@@ -166,6 +166,7 @@ $("vista-cliente").addEventListener("click",()=>{location.href=enlacesDemo(negoc
 $("vista-comparador").addEventListener("click",()=>{vistaNegocio=false;renderTodo(false);});
 $("abrir-editor").addEventListener("click",()=>{perfilAbierto=false;editorAbierto=true;renderVista();actualizarBotonesServidor();campo("nombre").focus();});
 $("cerrar-editor").addEventListener("click",()=>{editorAbierto=false;reiniciarFormulario();renderVista();$(vistaAdmin?"admin-catalogo":"abrir-editor").focus();});
+$("admin-resumen").addEventListener("click",()=>{if(editorAbierto){$("cerrar-editor").click();}if(perfilAbierto){$("cerrar-perfil").click();}$("admin-resumen").focus();});
 $("admin-catalogo").addEventListener("click",()=>{perfilAbierto=false;editorAbierto=true;renderVista();campo("nombre").focus();});
 $("admin-perfil").addEventListener("click",()=>{editorAbierto=false;reiniciarFormulario();perfilAbierto=true;cargarPerfil();$("aviso-perfil").textContent="";renderVista();$("form-perfil").elements.namedItem("nombre").focus();});
 function cargarPerfil(){

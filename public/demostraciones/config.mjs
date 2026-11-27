@@ -55,3 +55,6 @@ export function capacidades(establecimiento, planId, registro = modulos) {
 export function importe(centavos, moneda = "MXN") {
   return new Intl.NumberFormat("es-MX",{style:"currency",currency:moneda}).format(centavos/100);
 }
+
+// Límites iniciales provisionales; los contratos versionados conservan sus propios valores.
+export const limitesPlanes=Object.freeze(Object.fromEntries(Object.entries({p1:[1,1],p2:[3,1],p3:[5,2],p4:[10,3]}).map(([k,v])=>[k,Object.freeze(v)])));

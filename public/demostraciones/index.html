@@ -31,6 +31,7 @@
       <p>Prueba a editar los productos y la información de tu negocio. Los cambios de práctica no se publican ni constituyen administración privada real. No utilices datos personales.</p>
       <nav class="acciones-demo" aria-label="Panel administrativo">
         <a id="admin-ver-negocio" class="accion-admin" href="./negocio/">Ver página del cliente (práctica)</a>
+        <button type="button" id="admin-resumen">Resumen de empresa</button>
         <button type="button" id="admin-catalogo">Catálogo</button>
         <a id="admin-pedidos" class="accion-admin" href="./pedidos/" hidden>Administrar pedidos</a>
         <a id="admin-citas" class="accion-admin" href="./citas/" hidden>Agenda de citas</a>
@@ -51,7 +52,8 @@
         <label>Paquete de práctica <select id="empresa-plan"></select></label>
         <label>Sucursal ilustrativa <select id="empresa-sucursal"></select></label>
       </div>
-      <p id="empresa-limites"></p>
+      <p id="empresa-limites"></p><p id="empresa-uso" role="status"></p>
+      <details><summary>Sucursales de práctica</summary><p class="nota">Activa o desactiva sucursales ficticias. La principal permanece activa.</p><ul id="empresa-sucursales"></ul></details>
       <details><summary>Personal y roles de práctica</summary>
         <p class="nota">Los roles son ficticios y no conceden permisos reales.</p>
         <ul id="empresa-personal"></ul>
