@@ -173,3 +173,7 @@ Documentos vigentes: docs/arquitectura-multicomercio.md, docs/auditoria-multicom
 - [x] Citas y agenda local para barbería/taller P2+, horarios por recurso, descansos, duración, conflicto, estados, cancelación y filtros. 14 pruebas lógicas y flujo DOM simulado correctos.
 - [x] Propietario reportó creación de demo_pedidos; sigue pendiente comprobación de Preview y pedidos remotos.
 - [ ] Persistencia de citas con reserva atómica, agenda editable y mesas. Ver docs/citas-practica.md.
+
+### v0.11 — Agenda privada en servidor
+- [x] API de citas, control de solapamiento en INSERT, reintento idempotente, estados condicionados y modo local/remoto explícito.
+- [ ] Ejecutar 0004_citas.sql solo en DEMO_DB y validar Preview/navegador. Agenda editable y mesas pendientes. Ver docs/citas-servidor-demo.md.
