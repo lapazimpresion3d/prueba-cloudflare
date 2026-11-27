@@ -28,7 +28,7 @@ if(!negocio||!admitePedidos(id,plan)){
   $("motivo-cobro").replaceChildren(new Option("Selecciona motivo",""),...motivosAnulacion.map(x=>new Option(x,x)));
   function actualizarCobro(){
     const o=objetivoCobro;if(!o)return;
-    const transferencia=$("metodo-cobro").value==="transferencia";
+    const transferencia=$("metodo-cobro").value!=="efectivo";
     $("campo-referencia-cobro").hidden=!transferencia;
     try{const v=centavosCobro($("recibido-cobro").value);$("cambio-cobro").textContent=transferencia?(v===o.p.total?"Importe exacto":"Debe coincidir con el total"):v>=o.p.total?"Cambio: "+importe(v-o.p.total):"Faltan: "+importe(o.p.total-v);}catch(e){$("cambio-cobro").textContent=e.message;}
   }
