@@ -90,3 +90,8 @@
 ## v0.10 — Citas de servicios y agenda de práctica
 - Barbería y taller: selección de servicio/profesional/fecha/hora, validación de solapamiento y descanso, folio, estados y panel filtrable.
 - 14 pruebas lógicas y flujo DOM simulado correctos. Persistencia local, no D1 de citas ni calendario real. Pendientes navegador, Preview y pruebas integradas.
+
+## v0.11 — Agenda privada de citas en servidor
+- Migración demo_citas e índice, API privada de citas con conflicto de intervalos atómico, precio/duración recalculados, estados e idempotencia.
+- 7 pruebas lógicas, 12 casos de controlador simulado y 17 comprobaciones SQL locales correctos. Suite integrada y despliegue pendientes.
+- Recursos y horarios fijos de ejemplo; no se modificó D1 remota, main ni sitio comercial.
