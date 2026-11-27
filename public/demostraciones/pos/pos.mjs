@@ -1,3 +1,4 @@
+import {leerDirectorio} from "../directorio-clientes.mjs";
 import {nombreRolEmpleado} from "../empresa-practica.mjs";
 import {estadoExistencia} from "../inventario-practica.mjs";
 import {comprobanteVenta} from "../comprobantes-practica.mjs";
@@ -23,7 +24,7 @@ try{
  function empleados(){const d=store.empresa(),s=Number($("sucursal").value);$("empleado").replaceChildren(...d.personal.flatMap((r,i)=>d.asignaciones[i]===null||d.asignaciones[i]===s?[opt("Empleado "+(i+1)+" · "+nombreRolEmpleado(d,i),i)]:[]));}
  empleados();
  if(d.activas.includes(Number(q.get("sucursal")))){$("sucursal").value=q.get("sucursal");empleados();}if([...$("empleado").options].some(o=>o.value===q.get("empleado")))$("empleado").value=q.get("empleado");
- $("cliente").replaceChildren(opt("Público general",""),...clientesDemo.map(c=>opt(c.nombre,c.id)));
+ $("cliente").replaceChildren(opt("Público general",""),...leerDirectorio(sessionStorage,id).filter(c=>c.activo).map(c=>opt(c.nombre,c.id)));
  $("categoria").replaceChildren(opt("Todas",""),...[...new Set(catalogo.map(p=>p.categoria))].map(c=>opt(c,c)));
  $("metodo").replaceChildren(...Object.entries(metodosCobroDemo).map(([k,v])=>opt(v,k)));
  $("referencia").replaceChildren(...Array.from({length:60},(_,i)=>{const s="DEMO-"+String(100001+i);return opt(s,s);}));

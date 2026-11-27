@@ -20,7 +20,7 @@ export const modulos = [
   {id:"reservaciones", nombre:"Reservaciones de mesas", desde:2, estado:"disponible", giros:["restaurante"], detalle:"Cinco mesas, horarios, capacidad y agenda privada; servidor opcional."},
   {id:"qr_mesa", nombre:"Pedidos por QR de mesa", desde:2, estado:"disponible", giros:["restaurante"], depende:["pedidos"], detalle:"Enlaces individuales por mesa y QR del Preview P4; no son credenciales de acceso."},
   {id:"agendas", nombre:"Agendas de empleados", desde:2, estado:"disponible", giros:["barberia","taller"], depende:["citas"], detalle:"Agenda de práctica por profesional con horarios y descansos de ejemplo, modo servidor opcional; configuración editable pendiente."},
-  {id:"clientes", nombre:"Gestión de clientes", desde:2, estado:"en_desarrollo", detalle:"Registros y permisos por establecimiento."},
+  {id:"clientes", nombre:"Gestión de clientes", desde:2, estado:"disponible", detalle:"Directorio ficticio, historial de operaciones compatibles y permisos de práctica."},
   {id:"administracion", nombre:"Panel administrativo", desde:1, estado:"en_desarrollo", detalle:"Edición autorizada y persistente en servidor pendiente. Hay un editor de práctica local del catálogo."},
   {id:"cocina", nombre:"Cocina", desde:2, estado:"disponible", giros:["restaurante","cafeteria"], depende:["pedidos"], detalle:"Comandas activas, preparación y pedido listo, sincronizados en la sesión de práctica."},
   {id:"pagos", nombre:"Registro de pagos", desde:2, estado:"disponible", giros:["restaurante","cafeteria","tienda"], depende:["pedidos"], detalle:"Cobros simulados, efectivo, transferencias y conciliación por pedido; no procesa dinero real."},
@@ -34,7 +34,7 @@ export const modulos = [
   {id:"mesas", nombre:"Servicio y comandas por mesa", desde:3, estado:"disponible", giros:["restaurante"], depende:["cocina","qr_mesa"], detalle:"Agrupación de pedidos activos por mesa y entrega individual. Cuenta abierta en servidor, captura de comandas y cierre conciliado."},
   {id:"cotizaciones", nombre:"Cotizaciones", desde:3, estado:"disponible", giros:["taller","barberia","tienda"], depende:["pos"], detalle:"Presupuestos de práctica, vigencia, aceptación y órdenes de trabajo."},
   {id:"ordenes_servicio", nombre:"Órdenes de servicio", desde:3, estado:"disponible", giros:["taller","barberia","tienda"], depende:["cotizaciones"], detalle:"Trabajos y estados, anticipos simulados y conversión al POS sin anticipos activos."},
-  {id:"fidelizacion", nombre:"Fidelización", desde:4, estado:"en_desarrollo", depende:["clientes"], detalle:"Beneficios e historial de clientes."},
+  {id:"fidelizacion", nombre:"Fidelización", desde:4, estado:"disponible", depende:["clientes","pos"], detalle:"Cupones y puntos de práctica en POS."},
   {id:"costos", nombre:"Costos y administración avanzada", desde:4, estado:"en_desarrollo", detalle:"Costos, compras y reportes profesionales."},
   {id:"recetas", nombre:"Recetas e insumos", desde:4, estado:"disponible", depende:["inventario"], detalle:"Insumos, recetas por producto o servicio, rendimiento, merma, costo promedio de entradas manuales y consumo POS."},
   {id:"automatizaciones", nombre:"Automatizaciones", desde:4, estado:"en_desarrollo", detalle:"Flujos especializados y notificaciones."}

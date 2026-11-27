@@ -13,13 +13,14 @@ import {admiteCuentas} from "./cuentas-practica.mjs";
 import {enlacesDemo} from "./presentaciones.mjs";
 import {crearPerfilesLocales} from "./perfil-local.mjs";
 import {logoDemo} from "./identidad.mjs";
-export function rutaAdmin(ruta,vista){if(ruta==="citas")return vista==="agenda"?"admin-citas":null;if(ruta==="reservaciones")return vista==="empresa"?"admin-mesas":null;if(ruta==="cocina")return vista==="mesas"?"admin-comandas":"admin-cocina";return ({pos:"admin-pos",caja:"admin-caja",comprobantes:"admin-comprobantes",inventario:"admin-inventario",almacen:"admin-almacen",compras:"admin-compras",recetas:"admin-recetas",pedidos:"admin-pedidos",cuentas:"admin-cuentas",terminales:"admin-terminales",cotizaciones:"admin-cotizaciones",fidelizacion:"admin-fidelizacion"})[ruta]??null;}
+export function rutaAdmin(ruta,vista){if(ruta==="citas")return vista==="agenda"?"admin-citas":null;if(ruta==="reservaciones")return vista==="empresa"?"admin-mesas":null;if(ruta==="cocina")return vista==="mesas"?"admin-comandas":"admin-cocina";return ({pos:"admin-pos",caja:"admin-caja",comprobantes:"admin-comprobantes",inventario:"admin-inventario",almacen:"admin-almacen",compras:"admin-compras",recetas:"admin-recetas",pedidos:"admin-pedidos",cuentas:"admin-cuentas",terminales:"admin-terminales",cotizaciones:"admin-cotizaciones",fidelizacion:"admin-fidelizacion",clientes:"admin-clientes"})[ruta]??null;}
 export function enlacesAdmin(id,plan,contexto={}){
  if(!obtenerEstablecimiento(id)||!planes.some(p=>p.id===plan))return {};
  const inicio=enlacesDemo(id,plan).administracion,links={"admin-resumen":inicio,"admin-catalogo":inicio+"&seccion=productos","admin-empresa":inicio+"&seccion=personal","admin-perfil":inicio+"&seccion=perfil"};
  const ruta=(key,path,extra={})=>{const q=new URLSearchParams({negocio:id,plan,...extra});for(const k of ["sucursal","empleado"])if(/^\d{1,2}$/.test(String(contexto[k]??"")))q.set(k,contexto[k]);links[key]="/demostraciones/"+path+"/?"+q;};
  if(admitePos(id,plan))for(const k of ["pos","caja","comprobantes","inventario","almacen","compras"])ruta("admin-"+k,k);
  if(admiteCotizaciones(id,plan))ruta("admin-cotizaciones","cotizaciones");
+ if(plan!=="p1")ruta("admin-clientes","clientes");
  if(plan==="p4"){ruta("admin-recetas","recetas");ruta("admin-fidelizacion","fidelizacion");}
  if(admitePedidos(id,plan))ruta("admin-pedidos","pedidos");
  if(admiteCitas(id,plan))ruta("admin-citas","citas",{vista:"agenda"});
