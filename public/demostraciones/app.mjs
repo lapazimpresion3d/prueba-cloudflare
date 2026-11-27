@@ -61,6 +61,7 @@ function guardarURL(){
   $("admin-pos").hidden=!admitePos(negocio.id,plan.id);$("admin-pos").href="/demostraciones/pos/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
   $("admin-pedidos").hidden=!admitePedidos(negocio.id,plan.id);$("admin-pedidos").href="/demostraciones/pedidos/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
   $("admin-cocina").hidden=!admiteCocina(negocio.id,plan.id);$("admin-cocina").href="/demostraciones/cocina/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
+  $("admin-terminales").hidden=!admiteCuentas(negocio.id,plan.id);$("admin-terminales").href="/demostraciones/terminales/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
   $("admin-cuentas").hidden=!admiteCuentas(negocio.id,plan.id);$("admin-cuentas").href="/demostraciones/cuentas/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
   $("admin-comandas").hidden=!admiteComandas(negocio.id,plan.id);$("admin-comandas").href="/demostraciones/cocina/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id,vista:"mesas"});
   $("admin-mesas").hidden=!admiteMesas(negocio.id,plan.id);$("admin-mesas").href="/demostraciones/reservaciones/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id,vista:"empresa"});

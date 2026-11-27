@@ -28,15 +28,15 @@ export function enlacesAdmin(id,plan,contexto={}){
 }
 const el=(tag,t,cls)=>{const n=document.createElement(tag);if(t!==undefined)n.textContent=t;if(cls)n.className=cls;return n;};
 export function montarNavegacion(){
- const q=new URLSearchParams(location.search),id=q.get("negocio"),plan=q.get("plan"),ruta=location.pathname.split("/").filter(Boolean).at(-1),activo=rutaAdmin(ruta,q.get("vista")),e=obtenerEstablecimiento(id),p=planes.find(x=>x.id===plan);if(!activo||!e||!p||!enlacesAdmin(id,plan)[activo])return;
+ const q=new URLSearchParams(location.search),id=q.get("negocio"),plan=q.get("plan"),ruta=location.pathname.split("/").filter(Boolean).filter(x=>x!=="index.html").at(-1),activo=rutaAdmin(ruta,q.get("vista")),e=obtenerEstablecimiento(id),p=planes.find(x=>x.id===plan);if(!activo||!e||!p||!enlacesAdmin(id,plan)[activo])return;
  const main=document.querySelector("main"),header=document.querySelector("body>header");if(!main||!header)return;
  let perfil;try{perfil=crearPerfilesLocales(sessionStorage).leer(id);}catch{perfil=e;}
  const shell=el("div",undefined,"admin-shell"),side=el("aside",undefined,"admin-sidebar"),nav=el("nav");nav.id="modulo-admin-nav";nav.setAttribute("aria-label","Panel administrativo");
  const img=el("img",undefined,"admin-logo");img.src=perfil.logo||logoDemo(id);img.alt="";side.append(img,el("strong",perfil.nombre),el("p",p.nombre,"admin-plan"),el("p","Modo demostración","nota"));
  const menu=el("button","Menú de administración","admin-menu-toggle");menu.type="button";menu.setAttribute("aria-controls",nav.id);
- function abrir(v){nav.hidden=!v;menu.setAttribute("aria-expanded",String(v));}abrir(!matchMedia("(max-width: 780px)").matches);menu.onclick=()=>abrir(nav.hidden);side.append(menu,nav);
+ function abrir(v){nav.hidden=!v;menu.setAttribute("aria-expanded",String(v));}const media=matchMedia("(max-width: 780px)");abrir(!media.matches);media.addEventListener("change",e=>abrir(!e.matches));menu.onclick=()=>abrir(nav.hidden);side.append(menu,nav);
  function contexto(){return {sucursal:document.getElementById("sucursal")?.value||q.get("sucursal"),empleado:document.getElementById("empleado")?.value||q.get("empleado")};}
- const grupos=gruposAdmin.map(([g,items])=>[g,[...items]]);grupos[2][1].push(["admin-terminales","Terminales de cobro","Simulación"]);
+ const grupos=gruposAdmin;
  for(const [g,items] of grupos){const div=el("div",undefined,"admin-grupo");div.append(el("h2",g));for(const [key,nombre] of items){const href=enlacesAdmin(id,plan,contexto())[key];if(!href)continue;const a=el("a",tituloAdmin(e.giro,key,nombre));a.href=href;if(key===activo)a.setAttribute("aria-current","page");a.addEventListener("click",()=>{a.href=enlacesAdmin(id,plan,contexto())[key];});div.append(a);}if(div.children.length>1)nav.append(div);}
  const extra=el("div",undefined,"admin-grupo admin-enlaces");for(const [label,url] of [["← Volver al negocio",enlacesDemo(id,plan,true).negocio],["Otras demostraciones","/demostraciones/ejemplos/"]]){const a=el("a",label);a.href=url;extra.append(a);}nav.append(extra);
  document.body.classList.add("modo-modulo-admin");main.before(shell);shell.append(side,main);

@@ -10,7 +10,7 @@ export function montarComprobante(root,id,plan){
  const pares=lista=>{const box=el("dl");for(const [a,b] of lista){box.append(el("dt",a),el("dd",b));}return box;};paper.append(pares(c.datos));if(c.productos.length){const sec=el("section");for(const p of c.productos){const item=el("div");item.append(el("strong",p.nombre),el("p",p.cantidad+" × "+p.unitario+" = "+p.importe));for(const o of p.opciones)item.append(el("p",o));sec.append(item);}paper.append(sec);}paper.append(pares(c.totales),el("p",c.nota),el("p",f.pie));}
  ancho.onchange=logo.onchange=pie.oninput=dibujar;
  save.onclick=()=>{try{f=formatos.guardar(leer());status.textContent="Formato guardado para este negocio y paquete.";}catch(e){status.textContent=e.message;}};
- print.onclick=()=>{if(!c)return;const style=el("style");style.textContent="@page { size: "+leer().ancho+"mm auto; margin: 0; }";document.head.append(style);try{window.print();}finally{style.remove();}};
+ print.onclick=()=>{if(!c)return;const style=el("style");style.textContent="@page { size: auto; margin: 0; }";document.head.append(style);try{window.print();}finally{style.remove();}};
  download.onclick=()=>{if(!c)return;const blob=new Blob([textoComprobante(c,identidadComprobante(id,localStorage),leer())],{type:"text/plain;charset=utf-8"}),url=URL.createObjectURL(blob),a=el("a");a.href=url;a.download=archivoComprobante(c);a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
  return {mostrar(v){c=v;dibujar();},limpiar(){c=null;paper.replaceChildren();}};
 }
