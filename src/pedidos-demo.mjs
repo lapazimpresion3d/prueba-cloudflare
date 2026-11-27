@@ -1,3 +1,4 @@
+import {datosPedidoDemo,seleccionPedido} from "../public/demostraciones/clientes-practica.mjs";
 import {admitePedidos,resumirCarrito,transicionesPedido} from "../public/demostraciones/pedidos-practica.mjs";
 import {leerJsonLimitado} from "./seguridad.mjs";
 const error=(json,m,status)=>json({error:m},status);
@@ -23,7 +24,8 @@ export async function atenderPedidosDemo(request,db,s,ctx,json){
     if(!["original","personalizado"].includes(datos.catalogo)||!Array.isArray(datos.lineas)||!datos.lineas.length||datos.lineas.length>30||!Number.isSafeInteger(datos.totalEsperado)||datos.totalEsperado<0)return error(json,"Pedido inválido.",400);
     const lineas=datos.lineas.map(l=>({id:l?.id,cantidad:l?.cantidad,precioEsperado:l?.precioEsperado}));
     if(lineas.some(l=>typeof l.id!=="string"||!/^[a-z0-9-]{1,80}$/.test(l.id)||!Number.isSafeInteger(l.cantidad)||l.cantidad<1||l.cantidad>20||!Number.isSafeInteger(l.precioEsperado)||l.precioEsperado<0))return error(json,"Líneas inválidas.",400);
-    const firma=await huella({catalogo:datos.catalogo,lineas,modalidad:datos.modalidad,totalEsperado:datos.totalEsperado});
+    let seleccion,cliente;try{if(datos.datosCliente!==undefined){seleccion=seleccionPedido(datos.datosCliente,datos.modalidad,ctx.establecimiento.giro);cliente=datosPedidoDemo(seleccion,datos.modalidad,ctx.establecimiento.giro);}}catch(e){return error(json,e.message,400);}
+    const firma=await huella({...(seleccion?{datosCliente:seleccion}:{}),catalogo:datos.catalogo,lineas,modalidad:datos.modalidad,totalEsperado:datos.totalEsperado});
     const previo=await buscar(datos.solicitud);
     if(previo)return previo.huella===firma?json({pedido:leerFila(previo),repetido:true}):error(json,"Esta solicitud ya corresponde a otro pedido.",409);
     let catalogo=ctx.establecimiento.catalogo,revision=0;
@@ -34,7 +36,7 @@ export async function atenderPedidosDemo(request,db,s,ctx,json){
     }
     let resumen;try{resumen=resumirCarrito(id,catalogo,lineas,datos.modalidad);}catch(e){return error(json,e.message,400);}
     if(resumen.total!==datos.totalEsperado||resumen.detalle.some((l,i)=>l.precioCentavos!==lineas[i].precioEsperado))return error(json,"Los precios del catálogo guardado cambiaron. Revisa y recupera el catálogo antes de pedir.",409);
-    const fecha=Date.now(),pedido={...resumen,folio:"DEMO-"+datos.solicitud,solicitud:datos.solicitud,estado:"recibido",creado:fecha,historial:[{estado:"recibido",fecha}]};
+    const fecha=Date.now(),pedido={...resumen,...(cliente?{datosCliente:cliente}:{}),folio:"DEMO-"+datos.solicitud,solicitud:datos.solicitud,estado:"recibido",creado:fecha,historial:[{estado:"recibido",fecha}]};
     // El límite y la revisión del catálogo se verifican dentro del mismo INSERT atómico.
     const fila=await db.prepare("INSERT INTO demo_pedidos (sesion_id,establecimiento_id,solicitud_id,huella,estado,creado,datos_json) SELECT ?,?,?,?,'recibido',?,? WHERE EXISTS (SELECT 1 FROM demo_sesiones WHERE id=? AND expira>?) AND (SELECT count(*) FROM demo_pedidos WHERE sesion_id=? AND establecimiento_id=?)<30 AND (?=0 OR EXISTS (SELECT 1 FROM demo_catalogos WHERE sesion_id=? AND establecimiento_id=? AND revision=?)) ON CONFLICT(sesion_id,establecimiento_id,solicitud_id) DO NOTHING RETURNING datos_json").bind(s.id,id,datos.solicitud,firma,fecha,JSON.stringify(pedido),s.id,ahora(),s.id,id,revision,s.id,id,revision).first();
     if(fila)return json({pedido:leerFila(fila),repetido:false},201);
