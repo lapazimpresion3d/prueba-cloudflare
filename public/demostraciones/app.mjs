@@ -25,6 +25,7 @@ let editando=null;
 let contextoServidor=null, consultaContexto=0, ocupada=false;
 const revisiones=new Map(), revisionesPerfil=new Map();
 let perfilActivo=false, perfilOcupado=false, imagenPendiente=0, generacionImagen=0;
+const generacionesArchivo={logo:0,portada:0};
 let practicaActiva=false, fotoPendiente=false, fotoGeneracion=0;
 const catalogoActual=()=>({...negocio,catalogo:catalogos.leer(negocio.id)});
 const campo=n=>$("form-oferta").elements.namedItem(n);
@@ -110,6 +111,7 @@ function renderVista(){
   $("abrir-perfil").hidden=vistaNegocio||perfilAbierto;$("editor-perfil").hidden=vistaNegocio||!perfilAbierto;
   if(vistaNegocio||vistaAdmin)$("legado").hidden=true;
   if(editorAbierto&&!vistaNegocio)renderEditor();
+  actualizarBotonesServidor();
   document.title=(vistaAdmin?"Panel · "+perfiles.leer(negocio.id).nombre:"Demostraciones comerciales")+" | Lapazimpresion3d";
 }
 function ajustarDuracion(){
@@ -124,14 +126,14 @@ function mensajeGuardado(persistido){
   $("aviso-editor").textContent=persistido?"Cambio guardado en esta pestaña.":"Cambio guardado temporalmente en memoria; se perderá al recargar.";
 }
 function trasCambio(persistido){
-  mensajeGuardado(persistido);reiniciarFormulario();categorias();renderCatalogo();renderEditor();
+  mensajeGuardado(persistido);reiniciarFormulario();categorias();renderCatalogo();renderEditor();actualizarBotonesServidor();
 }
 function renderEditor(){
   $("lista-editor").replaceChildren(...catalogos.leer(negocio.id).map(p=>{
     const fila=crear("div",undefined,"fila-editor");
     const info=crear("div");info.append(crear("strong",p.nombre),crear("p",p.categoria+" · "+importe(p.precioCentavos)+(p.disponible===false?" · No disponible":"")));
     const editar=crear("button","Editar");editar.type="button";editar.addEventListener("click",()=>{
-      fotoGeneracion++;fotoPendiente=false;$("archivo-producto").value="";campo("imagen").value=p.imagen??"";mostrarFotoProducto();
+      fotoGeneracion++;fotoPendiente=false;$("archivo-producto").value="";campo("imagen").value=p.imagen??"";mostrarFotoProducto();actualizarBotonesServidor();
       editando=p.id;campo("nombre").value=p.nombre;campo("categoria").value=p.categoria;campo("tipo").value=p.tipo;
       campo("precio").value=(p.precioCentavos/100).toFixed(2);campo("descripcion").value=p.descripcion;
       campo("duracion").value=p.duracionMinutos??"";campo("disponible").checked=p.disponible!==false;
@@ -169,17 +171,18 @@ function mostrarImagen(tipo){
 for(const tipo of ["logo","portada"]){
   $("archivo-"+tipo).addEventListener("change",async e=>{
     const archivo=e.currentTarget.files?.[0];if(!archivo)return;
-    const actual=++generacionImagen;imagenPendiente++;
+    const contexto=generacionImagen, actual=++generacionesArchivo[tipo];imagenPendiente++;
+    const vigente=()=>contexto===generacionImagen&&actual===generacionesArchivo[tipo];
     $("aviso-imagenes").textContent="Optimizando imagen…";
     try{
       const valor=validarImagenPerfil(await optimizarImagenPerfil(archivo,tipo));
-      if(actual!==generacionImagen)return;
+      if(!vigente())return;
       $("form-perfil").elements.namedItem(tipo).value=valor;mostrarImagen(tipo);
       $("aviso-imagenes").textContent="Imagen lista. Aplica la personalización para conservarla.";
-    }catch(error){if(actual===generacionImagen)$("aviso-imagenes").textContent=error.message;}
-    finally{imagenPendiente--;e.target.value="";}
+    }catch(error){if(vigente())$("aviso-imagenes").textContent=error.message;}
+    finally{imagenPendiente--;if(vigente())e.target.value="";}
   });
-  $("quitar-"+tipo).addEventListener("click",()=>{generacionImagen++;$("form-perfil").elements.namedItem(tipo).value="";mostrarImagen(tipo);});
+  $("quitar-"+tipo).addEventListener("click",()=>{generacionesArchivo[tipo]++;$("archivo-"+tipo).value="";$("form-perfil").elements.namedItem(tipo).value="";mostrarImagen(tipo);});
 }
 $("form-perfil").addEventListener("submit",e=>{
   e.preventDefault();
@@ -201,7 +204,7 @@ function mostrarFotoProducto(){
 }
 $("archivo-producto").addEventListener("change",async e=>{
   const file=e.currentTarget.files?.[0];if(!file)return;
-  const n=++fotoGeneracion;fotoPendiente=true;
+  const n=++fotoGeneracion;fotoPendiente=true;actualizarBotonesServidor();
   $("aviso-producto").textContent="Optimizando foto…";
   try{
     const foto=await optimizarImagenPerfil(file,"producto");
@@ -209,10 +212,10 @@ $("archivo-producto").addEventListener("change",async e=>{
     if(!imagenOfertaSegura(foto))throw Error("La foto no tiene el formato requerido.");
     campo("imagen").value=foto;mostrarFotoProducto();$("aviso-producto").textContent="Foto lista. Guarda el elemento para aplicarla.";
   }catch(e){if(n===fotoGeneracion)$("aviso-producto").textContent=e.message;}
-  finally{if(n===fotoGeneracion){fotoPendiente=false;$("archivo-producto").value="";}}
+  finally{if(n===fotoGeneracion){fotoPendiente=false;$("archivo-producto").value="";actualizarBotonesServidor();}}
 });
-$("quitar-producto").addEventListener("click",()=>{fotoGeneracion++;fotoPendiente=false;$("archivo-producto").value="";campo("imagen").value="";mostrarFotoProducto();$("aviso-producto").textContent="Foto eliminada de la edición. Guarda el elemento para aplicar."});
-$("cancelar-edicion").addEventListener("click",reiniciarFormulario);
+$("quitar-producto").addEventListener("click",()=>{fotoGeneracion++;fotoPendiente=false;$("archivo-producto").value="";campo("imagen").value="";mostrarFotoProducto();actualizarBotonesServidor();$("aviso-producto").textContent="Foto eliminada de la edición. Guarda el elemento para aplicar."});
+$("cancelar-edicion").addEventListener("click",()=>{reiniciarFormulario();actualizarBotonesServidor();});
 campo("tipo").addEventListener("change",ajustarDuracion);
 $("form-oferta").addEventListener("submit",e=>{
   e.preventDefault();
@@ -238,9 +241,9 @@ async function peticion(ruta,opciones={}){
 }
 function actualizarBotonesServidor(){
   const configurado=contextoServidor?.establecimiento.id===negocio.id&&contextoServidor?.plan.id===plan.id&&contextoServidor.persistenciaConfigurada===true;
-  $("demo-sesion").disabled=ocupada||perfilOcupado||!configurado;
-  $("demo-cargar").disabled=ocupada||perfilOcupado||!configurado||!practicaActiva;
-  $("demo-guardar").disabled=ocupada||perfilOcupado||!configurado||!practicaActiva||!revisiones.has(negocio.id);
+  $("demo-sesion").disabled=ocupada||perfilOcupado||fotoPendiente||!configurado;
+  $("demo-cargar").disabled=ocupada||perfilOcupado||fotoPendiente||!configurado||!practicaActiva;
+  $("demo-guardar").disabled=ocupada||perfilOcupado||fotoPendiente||!configurado||!practicaActiva||!revisiones.has(negocio.id);
   actualizarPerfilRemoto();
 }
 async function consultarContexto(){
