@@ -1,4 +1,10 @@
 # Registro de cambios
+## 2026-11-26 — Núcleo inicial de demos en servidor
+- API /api/demo/registro y contexto, cinco establecimientos y cuatro planes; sin acceso a DB estable.
+- Sesión temporal de práctica, copia por establecimiento y revisión, validación, límite y caducidad; binding DEMO_DB opcional y esquema separado no aplicado.
+- Interfaz conectar/cargar/guardar, conserva modo local. 17 comprobaciones lógicas y 7 rutas simuladas correctas; 16 comprobaciones SQLite con esquema reducido. Suite integrada y despliegue pendientes.
+- Ver docs/nucleo-demos-servidor.md. Sin modificar main, sitio comercial ni datos remotos.
+
 ## 2026-11-26 — Vista individual y editor de práctica de las cinco demostraciones
 - Vista de negocio directa con retorno al comparador y enlace por establecimiento/plan.
 - Editor reutilizable: alta, edición, baja, disponibilidad, precios en centavos, duración de servicios y restauración. Persistencia local por establecimiento en la sesión de pestaña, sin API ni D1.
