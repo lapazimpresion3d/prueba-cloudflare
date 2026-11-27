@@ -24,3 +24,13 @@ Conectar práctica, cargar copia, guardar copia actual. Conserva editor anterior
 
 ## Siguiente
 Validar preview, configurar D1 aislada y ejecutar node --test tests/*.test.mjs. Después, núcleo persistente de establecimientos/sucursales y cuentas con permisos, editor permanente y módulo de páginas/catálogos. La sesión de práctica es una vía separada, no reemplaza el núcleo comercial.
+
+## Preparación manual y refuerzo del esquema
+El esquema 0001_practica.sql ahora incluye demo_identidad (lapaz-demo-practica, versión 1). El servidor solo habilita persistencia si existe esta marca, además de un binding dedicado y el secreto requerido. La marca no sustituye comprobar el ID real del recurso. El esquema es idempotente; aplicar únicamente en la D1 de demos. La consulta de contexto puede leer la marca de DEMO_DB, nunca requiere la DB operativa.
+Pasos para el propietario:
+1. En https://dash.cloudflare.com/ abrir D1 SQL Database, Create database, nombre sugerido lapaz-demos-desarrollo. Copiar Database ID (UUID). No utilizar el-comal-disponibilidad.
+2. Abrir la consola de la nueva D1 y ejecutar el SQL de https://github.com/lapazimpresion3d/prueba-cloudflare/blob/desarrollo/migrations-demo/0001_practica.sql. Verificar SELECT clave,version FROM demo_identidad; debe retornar lapaz-demo-practica,1. Verificar cuatro tablas demo_*. Si la consola no admite varias sentencias juntas, ejecutar una por una en el orden del archivo.
+3. Compartir solo el nombre y Database ID para incorporar DEMO_DB a previews.d1_databases en desarrollo, preservando el binding DB. No compartir tokens ni contraseñas.
+4. Configurar DEMO_RATE_SECRET como secreto en el Preview desarrollo (mínimo 32 caracteres aleatorios); no agregar a GitHub. Para un Preview existente, Wrangler: npx wrangler preview secret put DEMO_RATE_SECRET --name desarrollo (desde el repositorio autenticado, Wrangler compatible). Las modificaciones a secretos de Previews Base no se aplican retroactivamente a Previews activos. Ver https://developers.cloudflare.com/workers/previews/configuration/.
+5. Confirmar despliegue y comprobar contexto, conexión, carga/guardado y aislamiento con dos navegadores. No activar publicidad hasta aprobar pruebas.
+Validación nueva: 20/20 comprobaciones de lógica JS, 11/11 rutas simuladas, 17 aserciones SQLite con DDL exacto verificado por hash, incluidas marca, idempotencia, revisiones, aislamiento, expiración y límites. No prueba remota ni navegador.
