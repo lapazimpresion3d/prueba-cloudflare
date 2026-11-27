@@ -9,7 +9,8 @@ function d1(){
   const sql=new DatabaseSync(":memory:");
   sql.exec("PRAGMA foreign_keys=ON;"+readFileSync(new URL("../migrations-demo/0001_practica.sql",import.meta.url),"utf8"));
   sql.exec(readFileSync(new URL("../migrations-demo/0002_perfiles.sql",import.meta.url),"utf8"));
-  const wrap=(q,args=[])=>({bind:(...v)=>wrap(q,v),first:async()=>sql.prepare(q).get(...args)??null,run:async()=>sql.prepare(q).run(...args)});
+  sql.exec(readFileSync(new URL("../migrations-demo/0003_pedidos.sql",import.meta.url),"utf8"));
+  const wrap=(q,args=[])=>({bind:(...v)=>wrap(q,v),first:async()=>sql.prepare(q).get(...args)??null,all:async()=>({results:sql.prepare(q).all(...args)}),run:async()=>sql.prepare(q).run(...args)});
   return {sql,prepare:q=>wrap(q),batch:async ss=>{sql.exec("BEGIN");try{for(const s of ss)await s.run();sql.exec("COMMIT");}catch(e){sql.exec("ROLLBACK");throw e;}}};
 }
 const base="https://demo.example";
@@ -130,4 +131,41 @@ test("catálogo remoto conserva fotografía y eliminación explícita sin compar
   assert.equal((await (await llamar(env,ruta,"GET",a)).json()).catalogo[0].imagen,"");
   catalogo[0].imagen="https://example.invalid/x";
   assert.equal((await llamar(env,ruta,"PUT",a,{revision:2,catalogo})).status,400);
+});
+
+test("pedidos remotos: plan, origen, precios, idempotencia, aislamiento y transición",async()=>{
+  const env=envDemo(),ruta="/api/demo/pedidos?negocio=cafe-mirador&plan=p2",otra="/api/demo/pedidos?negocio=mundo-mascotas&plan=p2";
+  const a=await iniciar(env,"192.0.2.1"),b=await iniciar(env,"192.0.2.2");
+  const solicitud="b7a48289-b63a-4ec4-8e19-c376f91aef77",pedido={solicitud,catalogo:"original",modalidad:"domicilio",lineas:[{id:"espresso",cantidad:2,precioEsperado:4500}],totalEsperado:12500};
+  assert.equal((await llamar(env,ruta)).status,401);
+  assert.equal((await llamar(env,ruta.replace("p2","p1"),"POST",a,pedido)).status,403);
+  assert.equal((await llamar(env,ruta,"POST",a,pedido,"https://otro.example")).status,403);
+  assert.equal((await llamar(env,ruta,"POST",a,{...pedido,totalEsperado:1})).status,409);
+  const creado=await llamar(env,ruta,"POST",a,pedido);assert.equal(creado.status,201);assert.equal((await creado.json()).pedido.total,12500);
+  const repetido=await llamar(env,ruta,"POST",a,pedido);assert.equal(repetido.status,200);assert.equal((await repetido.json()).repetido,true);
+  assert.equal((await llamar(env,ruta,"POST",a,{...pedido,modalidad:"local"})).status,409);
+  assert.equal((await (await llamar(env,ruta,"GET",b)).json()).pedidos.length,0);
+  assert.equal((await (await llamar(env,otra,"GET",a)).json()).pedidos.length,0);
+  assert.equal((await llamar(env,ruta,"PATCH",b,{solicitud,esperado:"recibido",destino:"preparando"})).status,404);
+  assert.equal((await llamar(env,ruta,"PATCH",a,{solicitud,esperado:"recibido",destino:"entregado"})).status,409);
+  assert.equal((await llamar(env,ruta,"PATCH",a,{solicitud,esperado:"recibido",destino:"preparando"})).status,200);
+  assert.equal((await llamar(env,ruta,"PATCH",a,{solicitud,esperado:"recibido",destino:"cancelado"})).status,409);
+  assert.equal((await (await llamar(env,ruta,"GET",a)).json()).pedidos[0].estado,"preparando");
+  env.DEMO_DB.sql.exec("UPDATE demo_sesiones SET expira=0");assert.equal((await llamar(env,ruta,"GET",a)).status,401);
+  env.DEMO_DB.sql.exec("DELETE FROM demo_sesiones");assert.equal(env.DEMO_DB.sql.prepare("SELECT count(*) AS n FROM demo_pedidos").get().n,0);
+});
+test("catálogo personalizado guardado y límite de 30 pedidos por negocio",async()=>{
+  const env=envDemo(),ruta="/api/demo/pedidos?negocio=cafe-mirador&plan=p2",a=await iniciar(env);
+  const body={solicitud:"b7a48289-b63a-4ec4-8e19-c376f91aef77",catalogo:"personalizado",modalidad:"local",lineas:[{id:"espresso",cantidad:1,precioEsperado:1234}],totalEsperado:1234};
+  assert.equal((await llamar(env,ruta,"POST",a,body)).status,409);
+  const catalogo=seed("cafe-mirador");catalogo[0].precioCentavos=1234;
+  assert.equal((await llamar(env,path,"PUT",a,{revision:0,catalogo})).status,200);
+  assert.equal((await llamar(env,ruta,"POST",a,body)).status,201);
+  for(let i=1;i<30;i++)assert.equal((await llamar(env,ruta,"POST",a,{...body,solicitud:"b7a48289-b63a-4ec4-8e19-"+String(i).padStart(12,"0")})).status,201);
+  assert.equal((await llamar(env,ruta,"POST",a,{...body,solicitud:"b7a48289-b63a-4ec4-8e19-000000000031"})).status,409);
+  assert.equal((await (await llamar(env,ruta,"GET",a)).json()).pedidos.length,30);
+  env.DEMO_DB.sql.exec("DROP TABLE demo_pedidos");
+  const ctx=await (await llamar(env,"/api/demo/contexto?negocio=cafe-mirador&plan=p2")).json();
+  assert.equal(ctx.pedidosConfigurados,false);assert.equal(ctx.persistenciaConfigurada,true);assert.equal(ctx.perfilConfigurado,true);
+  assert.equal((await llamar(env,ruta,"GET",a)).status,503);
 });
