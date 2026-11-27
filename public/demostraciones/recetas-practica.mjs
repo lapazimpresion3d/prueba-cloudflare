@@ -1,3 +1,4 @@
+import {opcionesComal} from "./menu-comal-practica.mjs";
 // Insumos medidos en unidades base enteras (g, ml, pieza); valor en centavos.
 const entero=(n,max=100000000)=>Number.isSafeInteger(n)&&n>=0&&n<=max;
 const unidades={g:1,kg:1000,ml:1,l:1000,pza:1};
@@ -13,11 +14,48 @@ const costoSalida=(p,n)=>{if(!entero(n)||n>p.stock)throw Error("Insumo insuficie
 export function mermaInsumo(r,a,id,n,fecha){const p=ins(r,a.sucursal,id);if(!p||!n)throw Error("Merma inválida.");mover(r,p,a,-n,-costoSalida(p,n),"merma",fecha);return p;}
 export function guardarReceta(r,a,catalogo,id,d){
  if(!catalogo.some(p=>p.id===id)||!Array.isArray(d.componentes)||!d.componentes.length||d.componentes.length>30||!entero(d.rendimiento,1000)||!d.rendimiento||!entero(d.indirecto,100000000)||!entero(d.merma,99)||new Set(d.componentes.map(x=>x.id)).size!==d.componentes.length||d.componentes.some(x=>!ins(r,a.sucursal,x.id)||!entero(x.cantidad)||!x.cantidad))throw Error("Receta inválida.");
- const v={id,sucursal:a.sucursal,rendimiento:d.rendimiento,indirecto:d.indirecto,merma:d.merma,componentes:d.componentes.map(x=>({id:x.id,cantidad:x.cantidad}))},i=r.recetas.findIndex(x=>x.id===id&&x.sucursal===a.sucursal);if(i<0){if(r.recetas.length>=300)throw Error("Límite de recetas.");r.recetas.push(v);}else r.recetas[i]=v;return v;
+ const v={id,sucursal:a.sucursal,rendimiento:d.rendimiento,indirecto:d.indirecto,merma:d.merma,componentes:d.componentes.map(x=>({id:x.id,cantidad:x.cantidad})),ajustes:validarAjustes(r,a,catalogo,id,d)},i=r.recetas.findIndex(x=>x.id===id&&x.sucursal===a.sucursal);if(i<0){if(r.recetas.length>=300)throw Error("Límite de recetas.");r.recetas.push(v);}else r.recetas[i]=v;return v;
 }
 export function cantidadesReceta(v,n=1){return v.componentes.map(x=>({id:x.id,cantidad:Math.ceil(x.cantidad*n*100/(v.rendimiento*(100-v.merma)))}));}
 export function costoReceta(r,v){const componentes=cantidadesReceta(v).map(x=>{const p=ins(r,v.sucursal,x.id);return {...x,nombre:p.nombre,unidad:p.unidad,costo:p.stock?Math.round(p.valor*x.cantidad/p.stock):null};});const costo=componentes.some(x=>x.costo===null)?null:componentes.reduce((s,x)=>s+x.costo,Math.ceil(v.indirecto/v.rendimiento));return {componentes,costo};}
-export function consumoRecetas(r,a,detalle){const m=new Map();let indirecto=0;for(const l of detalle){const v=receta(r,a.sucursal,l.id);if(!v)continue;for(const x of cantidadesReceta(v,l.cantidad))m.set(x.id,(m.get(x.id)||0)+x.cantidad);indirecto+=Math.ceil(v.indirecto*l.cantidad/v.rendimiento);}const consumo=[...m].map(([id,cantidad])=>{const p=ins(r,a.sucursal,id);return {id,cantidad,costo:costoSalida(p,cantidad)};});return {consumo,costo:consumo.reduce((s,x)=>s+x.costo,indirecto)};}
+// Ajustes por porción vendida, en unidades base. Omisión elimina un componente completo.
+export function validarAjustes(r,a,catalogo,id,d){
+ const o=opcionesComal("taqueria-el-comal",catalogo.find(p=>p.id===id),catalogo),aj=d.ajustes??{};
+ if(!aj||typeof aj!=="object"||Array.isArray(aj))throw Error("Ajustes inválidos.");
+ const resultado={omitir:{},extras:{},variantes:{}};
+ for(const tipo of Object.keys(resultado)){
+ const origen=aj[tipo]??{},opciones=tipo==="omitir"?o?.ingredientes.filter(x=>!x.obligatorio&&x.incluido):o?.[tipo];
+ if(!origen||typeof origen!=="object"||Array.isArray(origen))throw Error("Ajustes inválidos.");
+ for(const [k,v] of Object.entries(origen)){
+ if(!opciones?.some(x=>x.id===k))throw Error("Opción desconocida.");
+ if(tipo==="omitir"){if(!d.componentes.some(x=>x.id===v)||Object.values(resultado.omitir).includes(v))throw Error("Vincula una materia prima distinta de la receta.");resultado.omitir[k]=v;}
+ else {if(!Array.isArray(v)||!v.length||v.length>30||new Set(v.map(x=>x.id)).size!==v.length||v.some(x=>!ins(r,a.sucursal,x.id)||!Number.isSafeInteger(x.delta)||!x.delta||Math.abs(x.delta)>100000000||tipo==="extras"&&x.delta<0))throw Error("Ajuste de cantidad inválido.");resultado[tipo][k]=v.map(x=>({id:x.id,delta:x.delta}));}
+ }}
+ return resultado;
+}
+export function consumoRecetas(r,a,detalle,{negocio="",catalogo=[]}={}){
+ const m=new Map(),partidas=[];let indirecto=0,completo=true;
+ function agregar(l,expandido=false){
+ const v=receta(r,a.sucursal,l.id),o=opcionesComal(negocio,catalogo.find(p=>p.id===l.id),catalogo),sel=l.opciones??{omitir:[],extras:[],variante:o?.variantes[0]?.id??""};
+ if(negocio==="taqueria-el-comal"&&l.id==="combo-el-comal"){
+ const bebida=o?.variantes.find(x=>x.id===sel.variante)?.productoId;
+ if(!bebida)throw Error("Bebida del combo no disponible.");if(!receta(r,a.sucursal,"pastor")&&!receta(r,a.sucursal,bebida)){completo=false;return;}
+ // El combo consume las recetas de sus componentes, nunca una receta paralela.
+ for(const [id,n] of [["pastor",3],[bebida,1]]){if(!receta(r,a.sucursal,id))throw Error("Configura primero la receta de "+id+" para vender el combo con control de costos.");agregar({id,cantidad:l.cantidad*n},true);}return;
+ }
+ if(!v){completo=false;return;}
+ const cantidades=new Map(cantidadesReceta(v,l.cantidad).map(x=>[x.id,x.cantidad])),aj=v.ajustes??{};
+ for(const k of sel.omitir??[]){const id=aj.omitir?.[k];if(!id){completo=false;continue;}cantidades.delete(id);}
+ for(const [tipo,keys] of [["extras",sel.extras??[]],["variantes",sel.variante?[sel.variante]:[]]])for(const k of keys){
+ const reglas=aj[tipo]?.[k];if(!reglas){if(tipo==="extras"||o?.variantes[0]?.id!==k)completo=false;continue;}
+ for(const x of reglas){const n=(cantidades.get(x.id)??0)+x.delta*l.cantidad;if(n<0||!entero(n))throw Error("La personalización produce una cantidad inválida.");cantidades.set(x.id,n);}
+ }
+ for(const [id,cantidad] of cantidades)if(cantidad)m.set(id,(m.get(id)||0)+cantidad);
+ indirecto+=Math.ceil(v.indirecto*l.cantidad/v.rendimiento);partidas.push({id:l.id,cantidad:l.cantidad,expandido,opciones:sel});
+ }
+ for(const l of detalle)agregar(l);
+ const consumo=[...m].map(([id,cantidad])=>{const p=ins(r,a.sucursal,id);return {id,cantidad,costo:costoSalida(p,cantidad)};});return {consumo,costo:consumo.reduce((s,x)=>s+x.costo,indirecto),completo,partidas};
+}
 export function registrarRecetas(r,a,consumo,fecha,ref,reversa=false){for(const x of consumo){const p=ins(r,a.sucursal,x.id);if(!p)throw Error("Insumo ausente.");mover(r,p,a,reversa?x.cantidad:-x.cantidad,reversa?x.costo:-x.costo,reversa?"cancelacion":"venta",fecha,ref);}}
 export function consultarRecetas(r,s,catalogo){return {insumos:r.insumos.filter(x=>x.sucursal===s),recetas:r.recetas.filter(x=>x.sucursal===s).map(v=>{const c=costoReceta(r,v),precio=catalogo.find(p=>p.id===v.id)?.precioCentavos??null;return {...v,detalleCosto:c.componentes,costo:c.costo,precio,margen:c.costo===null||!precio?null:(precio-c.costo)/precio*100};}),movimientos:r.movimientos.filter(x=>x.sucursal===s),subrecetas:(r.subrecetas??[]).filter(x=>x.sucursal===s),lotes:(r.lotes??[]).filter(x=>x.sucursal===s)};}
 
