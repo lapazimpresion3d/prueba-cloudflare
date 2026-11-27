@@ -187,3 +187,6 @@ Documentos vigentes: docs/arquitectura-multicomercio.md, docs/auditoria-multicom
 - [x] Galería de cinco ejemplos sin laboratorio; aviso de práctica visible, categorías destacadas corregidas y ajustes móviles. Revisión identificable en verificación técnica.
 - [x] Tres pruebas de presentación, cinco tarjetas/enlaces/páginas y quince filtros simulados correctos.
 - [ ] Validación real de Preview y criterios de publicación de docs/publicacion-p1.md; destino estable y aprobación explícita pendientes.
+
+## v0.11.7 — Ejemplos por giro y configurador adicional
+La galería deja de tener selector global. Café Mirador P1, Barbería Elite P2, Mundo Mascotas P3, El Comal P4 y Auto Servicio Bahía P3 son ejemplos representativos, no restricciones de venta. Los módulos pendientes se distinguen de los disponibles. El regreso desde cada negocio abre la galería fija. El área independiente /demostraciones/configurar/ conserva las 20 combinaciones con enlaces al editor de identidad y catálogo de práctica existente; no crea una sexta entidad ni cambia ejemplos originales. Las rutas individuales P1 anteriores siguen válidas para publicación selectiva. No publicar P3/P4 como completos. Pruebas DOM simuladas: 5/5 enlaces fijos, 20/20 combinaciones configurables, valores inválidos y regreso correctos. Navegador real pendiente. Sin cambios D1, main ni sitio comercial.
