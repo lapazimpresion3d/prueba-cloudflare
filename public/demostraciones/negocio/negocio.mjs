@@ -1,3 +1,4 @@
+import {admiteMesas,mesasComal} from "../mesas-practica.mjs";
 import {opcionesComal,normalizarOpciones} from "../menu-comal-practica.mjs";
 import {planes,importe} from "../config.mjs";
 import {obtenerEstablecimiento,filtrarCatalogo} from "../establecimientos.mjs";
@@ -40,7 +41,10 @@ if(!base||!plan||!t){
   const destacados=destacadosDisponibles(t,datos.catalogo);
   $("destacados").hidden=!destacados.length;
   $("destacados").replaceChildren(...destacados.map((d,i)=>{const a=el("a");a.href="#catalogo";a.append(el("span",String(i+1).padStart(2,"0"),"numero"),el("strong",d.nombre));a.addEventListener("click",()=>{$("categoria").value=d.categoria;$("buscar").value="";render();});return a;}));
-  const carrito=iniciarCarrito(datos,plan.id,practica);
+  const mesas=admiteMesas(base.id,plan.id),codigo=q.get("mesa"),mesa=mesas&&mesasComal.some(m=>m.id===codigo)?codigo:null;
+  $("nav-reservaciones").hidden=!mesas;$("nav-reservaciones").href="/demostraciones/reservaciones/?"+new URLSearchParams({negocio:base.id,plan:plan.id});
+  if(codigo!==null){$("aviso-mesa-demo").hidden=false;$("texto-mesa-demo").textContent=mesa?"Estás pidiendo desde Mesa "+mesa+".":"El enlace no identifica una mesa válida."; $("salir-mesa-demo").href=enlacesDemo(base.id,plan.id,practica).negocio+"#carrito";}
+  const carrito=iniciarCarrito(datos,plan.id,practica,mesa);
   const citas=admiteCitas(base.id,plan.id),urlCitas="/demostraciones/citas/?"+new URLSearchParams({negocio:base.id,plan:plan.id,...(practica?{practica:"1"}:{})});
   $("nav-citas").hidden=!citas;$("nav-citas").href=urlCitas;
   const cats=[...new Set(datos.catalogo.map(p=>p.categoria))];
