@@ -1,5 +1,5 @@
 # Hoja de ruta — Plataforma para restaurantes
-Estado: Etapa 0 en curso. La demo El Comal conserva su identidad; el producto reutilizable será independiente. Trabajar solo en desarrollo; no fusionar ni publicar main sin autorización.
+Estado: Etapa 0 y estabilización del núcleo en curso. La demo El Comal conserva su identidad; el producto reutilizable será independiente. Trabajar solo en desarrollo; no fusionar ni publicar main sin autorización.
 ## Prioridad inmediata
 - [x] Confirmar ramas y commits de partida.
 - [x] Revisar módulos críticos y 17 migraciones versionadas.
@@ -7,7 +7,8 @@ Estado: Etapa 0 en curso. La demo El Comal conserva su identidad; el producto re
 - [ ] Completar inventario y pruebas automatizadas del Worker.
 - [ ] Confirmar bindings, aislamiento de demo y migraciones remotas.
 - [ ] Respaldo D1 independiente y restauración en entorno separado.
-- [ ] Corregir política de entrega/cotización/cobros, idempotencia persistente y cola de activos; pruebas de regresión.
+- [x] Implementar primera consolidación de entrega/cotización/cobros, token persistente en la misma pestaña y paginación de activos/cocina.
+- [ ] Aplicar 0018 en desarrollo tras respaldo; completar pruebas de regresión, concurrencia, recuperación y seguridad.
 - [ ] Auditar autenticación, acceso, privacidad y concurrencia; probar en preview.
 ## Plan maestro (no implementado)
 1. Multirrestaurante y configuración por establecimiento.
