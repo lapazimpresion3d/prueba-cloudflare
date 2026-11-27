@@ -36,3 +36,6 @@ Registrar por combinación: ID de negocio, giro, plan, commit, entorno, URL HTTP
 
 ## Estado actual
 Escaparate compartido con cinco perfiles y catálogos ficticios versionado en desarrollo; pruebas de lógica previas 7/7. Despliegue, navegador y URLs nuevas pendientes de verificar. No se ha cambiado el código funcional, el sitio comercial, las suscripciones ni D1 en esta coordinación. Los enlaces preexistentes en el sitio comercial se observaron en código, no se verificaron en vivo. No se registran URLs nuevas como publicadas.
+
+## Vista individual (ampliación)
+El escaparate admite ahora vista=negocio: /demostraciones/?negocio=cafe-mirador&plan=p1&vista=negocio. Es el destino relativo propuesto para enlaces directos de ejemplos desde el sitio comercial, sujeto a verificación del despliegue. No publica cambios de práctica ni acredita la funcionalidad completa del plan. El comparador sigue disponible desde esa vista.
