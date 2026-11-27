@@ -8,7 +8,7 @@ export const menuComalPractica=[
     "tipo": "alimento",
     "precioCentavos": 8500,
     "descripcion": "Elige la bebida de tu combo.",
-    "imagen": "/imagenes/pastor.webp"
+    "imagen": "/imagenes/combo-el-comal.webp"
   },
   {
     "id": "pastor",
