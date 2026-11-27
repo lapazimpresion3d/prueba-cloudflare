@@ -1,3 +1,4 @@
+import {cotizarEntregaDemo,entregaConfirmada} from "./entrega-practica.mjs";
 import {normalizarOpciones,claveLinea} from "./menu-comal-practica.mjs";
 import {datosPedidoDemo} from "./clientes-practica.mjs";
 // Flujo de práctica exclusivamente local. No accede a /api/pedidos ni a datos reales.
@@ -17,11 +18,11 @@ export function modalidadesPedido(id){
   const e=obtenerEstablecimiento(id);
   if(!e)return [];
   if(e.giro==="tienda")return [{id:"recoger",nombre:"Recoger en tienda",cargo:0},{id:"domicilio",nombre:"Entrega a domicilio (ejemplo)",cargo:4000}];
-  if(["cafeteria","restaurante"].includes(e.giro))return [{id:"local",nombre:"Consumir en el local",cargo:0},{id:"recoger",nombre:"Recoger en mostrador",cargo:0},{id:"domicilio",nombre:"Entrega a domicilio (ejemplo)",cargo:3500}];
+  if(["cafeteria","restaurante"].includes(e.giro))return [{id:"local",nombre:"Consumir en el local",cargo:0},{id:"recoger",nombre:"Recoger en mostrador",cargo:0},{id:"domicilio",nombre:"Entrega a domicilio (ejemplo)",cargo:e.giro==="restaurante"?0:3500}];
   return [];
 }
 export function ofertaPedible(p){return !!p&&["alimento","fisico"].includes(p.tipo)&&p.disponible!==false&&Number.isSafeInteger(p.precioCentavos)&&p.precioCentavos>=0&&p.precioCentavos<=MAX_TOTAL;}
-export function resumirCarrito(id,catalogo,lineas,modalidad){
+export function resumirCarrito(id,catalogo,lineas,modalidad,{direccion="",horario="actual",ms=Date.now()}={}){
   if(!Array.isArray(lineas)||lineas.length>MAX_LINEAS||!Array.isArray(catalogo))throw Error("Carrito inválido.");
   const modo=modalidadesPedido(id).find(m=>m.id===modalidad);
   if(!modo)throw Error("Elige una modalidad disponible.");
@@ -34,9 +35,16 @@ export function resumirCarrito(id,catalogo,lineas,modalidad){
     const linea={id:p.id,nombre:p.nombre,cantidad:l.cantidad,precioCentavos:o.precio,subtotal:o.precio*l.cantidad,...(o.seleccion?{opciones:o.seleccion,personalizacion:o.detalles}:{})};
     const clave=claveLinea(linea);if(vistos.has(clave))throw Error("Partida repetida.");vistos.add(clave);return linea;
   });
-  const subtotal=detalle.reduce((sum,p)=>sum+p.subtotal,0),cargo=detalle.length?modo.cargo:0,total=subtotal+cargo;
+  const subtotal=detalle.reduce((sum,p)=>sum+p.subtotal,0);
+  const cotizacion=id==="taqueria-el-comal"&&modalidad==="domicilio"?cotizarEntregaDemo(direccion,subtotal,horario,ms):null;
+  const cargo=detalle.length?(cotizacion?cotizacion.envioCentavos??0:modo.cargo):0,total=subtotal+cargo;
   if(!Number.isSafeInteger(total)||total>MAX_TOTAL)throw Error("El pedido supera el límite de práctica.");
-  return {detalle,modalidad:modo.id,subtotal,cargo,total};
+  return {detalle,modalidad:modo.id,subtotal,cargo,total,...(cotizacion?{cotizacion}:{})};
+}
+// No guardar cotizaciones incompletas ni aceptar el precio de envío del navegador.
+export function resumirPedidoConfirmado(id,catalogo,lineas,modalidad,datosCliente,horario="actual",ms=Date.now()){
+ const {cotizacion,...r}=resumirCarrito(id,catalogo,lineas,modalidad,{direccion:datosCliente?.direccion,horario,ms});
+ return cotizacion?{...r,entrega:entregaConfirmada(cotizacion)}:r;
 }
 export function transicionesPedido(estado){return Object.hasOwn(transiciones,estado)?[...transiciones[estado]]:[];}
 function pedidoValido(p,id){
@@ -45,7 +53,8 @@ function pedidoValido(p,id){
   if(!p.detalle.every(l=>l.personalizacion===undefined||Array.isArray(l.personalizacion)&&l.personalizacion.length<=20&&l.personalizacion.every(x=>typeof x==="string"&&x.length<=120)))return false;
   if(new Set(p.detalle.map(claveLinea)).size!==p.detalle.length)return false;
   const modo=modalidadesPedido(id).find(m=>m.id===p.modalidad);
-  if(!modo||p.cargo!==modo.cargo||p.subtotal!==p.detalle.reduce((sum,l)=>sum+l.subtotal,0)||p.total!==p.subtotal+p.cargo||!Number.isSafeInteger(p.total)||p.total>MAX_TOTAL)return false;
+  const cargoValido=id==="taqueria-el-comal"&&p.modalidad==="domicilio"?(p.entrega?Number.isSafeInteger(p.entrega.envioCentavos)&&p.entrega.envioCentavos>=0&&p.cargo===p.entrega.envioCentavos&&Number.isSafeInteger(p.entrega.minimoCentavos)&&p.subtotal>=p.entrega.minimoCentavos&&p.entrega.colonia===p.datosCliente?.entrega?.colonia&&["actual","simulado"].includes(p.entrega.horario):p.cargo===3500):p.cargo===modo?.cargo;
+  if(!modo||!cargoValido||p.subtotal!==p.detalle.reduce((sum,l)=>sum+l.subtotal,0)||p.total!==p.subtotal+p.cargo||!Number.isSafeInteger(p.total)||p.total>MAX_TOTAL)return false;
   return p.historial.every((h,i)=>h&&Number.isSafeInteger(h.fecha)&&(i===0?h.estado==="recibido":transicionesPedido(p.historial[i-1].estado).includes(h.estado)))&&p.historial.at(-1).estado===p.estado;
 }
 export function crearPedidosPractica(almacen,id,plan,{ahora=()=>Date.now(),folio=()=>crypto.randomUUID()}={}){
@@ -68,8 +77,8 @@ export function crearPedidosPractica(almacen,id,plan,{ahora=()=>Date.now(),folio
     catch{throw Error("El navegador no permite guardar esta práctica. No se creó ni cambió el pedido.");}
     memoria=v;
   }
-  function crear(catalogo,lineas,modalidad,datosCliente){
-    const resumen=resumirCarrito(id,catalogo,lineas,modalidad);
+  function crear(catalogo,lineas,modalidad,datosCliente,horario="actual"){
+    const resumen=resumirPedidoConfirmado(id,catalogo,lineas,modalidad,datosCliente,horario,ahora());
     if(!resumen.detalle.length)throw Error("Agrega al menos un producto.");
     const pedidos=leer();
     if(pedidos.length>=MAX_PEDIDOS)throw Error("Límite de 30 pedidos de práctica. Restablece el historial desde el panel.");
