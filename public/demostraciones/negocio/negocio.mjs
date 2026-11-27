@@ -56,7 +56,7 @@ if(!base||!plan||!t){
       cuerpo.append(el("p",p.categoria,"categoria"),el("h3",p.nombre),el("p",p.descripcion,"descripcion"),el("strong",importe(p.precioCentavos),"precio"));
       if(p.duracionMinutos)cuerpo.append(el("p",p.duracionMinutos+" min","nota"));
       if(p.disponible===false){card.classList.add("producto-agotado");cuerpo.append(el("p","Agotado · temporalmente no disponible","estado-agotado"));}
-      if(carrito&&carrito.puedeAgregar(p)){const b=el("button","Agregar al carrito","boton-agregar");b.type="button";b.addEventListener("click",()=>carrito.agregar(p));cuerpo.append(b);}
+      if(carrito&&carrito.puedeAgregar(p)){const b=el("button","Agregar al carrito","boton-agregar");b.type="button";b.addEventListener("click",()=>carrito.agregar(p,b));cuerpo.append(b);}
       if(citas&&serviciosCita([p]).length){const a=el("a","Reservar cita","boton-agregar");a.href=urlCitas+"&servicio="+encodeURIComponent(p.id);cuerpo.append(a);}
       card.append(imagen,cuerpo);return card;
     }));
