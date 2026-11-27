@@ -1,4 +1,7 @@
 # Registro de cambios
+## 2026-11-27 — Aceptación financiera
+- GitHub Actions ejecución 45990031779: SQLite 9/9, JavaScript 129/131. Dos fallos por fixtures de comandas entregadas sin cuenta; corregidos en 687e60e, con una prueba negativa adicional. Segunda ejecución pendiente de confirmación. D1 remoto y navegador pendientes; mantener Point simulado.
+
 ## 2026-11-27 — Cobros múltiples y auditoría de práctica
 - Núcleo de abonos, propinas, división, subcuentas, anulaciones, reasignación y comprobantes; API y panel de cuentas. Migraciones 0007–0009 pendientes de verificación remota.
 - Conciliación del resumen de pedidos y protección de rutas POST/PATCH. Ver docs/auditoria-cobros-demo-2026-11-27.md. No se certifica D1 ni navegador; sin cambios a main.
