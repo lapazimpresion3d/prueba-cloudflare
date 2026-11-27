@@ -1,3 +1,4 @@
+import {reasignarDivision} from "../public/demostraciones/reasignacion.mjs";
 import {partidasCuenta} from "../public/demostraciones/division-cuentas.mjs";
 import {movimientoIndividual,subcuentas} from "../public/demostraciones/subcuentas.mjs";
 // Adaptador D1 aislado. No habilitar en rutas públicas hasta conciliar el cierre
@@ -29,7 +30,7 @@ export async function leerPlanCobro(db,s,id){
 export async function guardarMovimiento(db,s,id,d){
  if(!await pagosMultiplesListos(db))throw Error("Falta configurar la conciliación de pagos múltiples.");
  const {plan,filas,pedidos,personas}=await contexto(db,s,id);
- const nuevo=d.accion==='anular'?anularMovimiento(plan,d):movimientoIndividual(plan,d,partidasCuenta(pedidos),personas);
+ const nuevo=d.accion==='reasignar'?reasignarDivision(plan,d,partidasCuenta(pedidos),personas):d.accion==='anular'?anularMovimiento(plan,d):movimientoIndividual(plan,d,partidasCuenta(pedidos),personas);
  if(nuevo===plan)return {plan,resumen:resumenPlanCobro(plan),subcuentas:subcuentas(plan),repetido:true};
  // Compare-and-swap de revisión y fotografía exacta de comandas en una sola sentencia.
  const sql=`INSERT INTO demo_planes_cobro(sesion_id,cuenta_id,revision,datos_json)
