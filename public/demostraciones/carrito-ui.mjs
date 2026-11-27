@@ -91,7 +91,7 @@ export function iniciarCarrito(datos,plan,practica){
     $("subtotal-carrito-flotante").textContent=importe(r.subtotal);
     $("carrito-flotante").setAttribute("aria-label","Ver carrito, "+cantidad+" productos, subtotal "+importe(r.subtotal));
     $("enviar-pedido").disabled=comprobando||enviando||conectando||(!pendiente&&!r.detalle.length)||(servidor&&configurado!==true)||(!servidor&&configurado===null&&preferencia!=="local");
-    $("enviar-pedido").textContent=pendiente?"Reintentar pedido pendiente":"Crear pedido de práctica";
+    $("enviar-pedido").textContent=pendiente?"Reintentar pedido pendiente":"Revisar pedido";
     $("vaciar-carrito").disabled=enviando||!!pendiente||!r.detalle.length;
     $("modalidad-pedido").disabled=enviando||!!pendiente;
     if(pendiente){const op=modos.find(m=>m.id===pendiente.datos.modalidad);if(op)$("modalidad-pedido").value=op.id;const d=pendiente.datos.datosCliente;if(d){for(const [k,v] of [["cliente-pedido",d.cliente],["pago-pedido",d.pago],["nota-pedido",d.nota],["mesa-pedido",d.mesa],["direccion-pedido",d.direccion]])$(k).value=v||"";}}
@@ -122,20 +122,40 @@ export function iniciarCarrito(datos,plan,practica){
   $("vaciar-carrito").addEventListener("click",()=>{if(enviando||pendiente)return;lineas=[];persistir();aviso("Carrito vacío.");render();});
   $("activar-pedidos").addEventListener("click",async()=>{if(comprobando||enviando||conectando||pendiente)return;conectando=true;render();try{await remoto.conectar();const v=await remoto.leerEstado();expira=v.expira;configurado=true;servidor=true;guardarModo();aviso("Sesión en servidor activada. Los pedidos locales no se importan.");await seguimiento();}catch(e){aviso(e.message);}finally{conectando=false;render();}});
   $("pedidos-locales").addEventListener("click",()=>{if(comprobando||enviando||pendiente||conectando)return;servidor=false;guardarModo();aviso("Práctica local activa.");render();seguimiento();});
+  let revision=null;
+  const dialogo=$("revision-pedido-demo");
+  $("editar-revision-demo").addEventListener("click",()=>{revision=null;dialogo.close();});
+  dialogo.addEventListener("close",()=>{revision=null;});
   $("enviar-pedido").addEventListener("click",async()=>{
+    if(pendiente){await enviar();return;}
+    if(comprobando||enviando||conectando)return;
+    try{
+     const r=resumirCarrito(datos.id,datos.catalogo,lineas,$("modalidad-pedido").value),d=datosCliente();
+     if(!r.detalle.length)throw Error("Agrega al menos un producto.");
+     const cliente=clientesDemo.find(x=>x.id===d.cliente),dir=direccionesDemo.find(x=>x.id===d.direccion),pago=pagosDemo.find(x=>x.id===d.pago),nota=notasPedidoDemo.find(x=>x.id===d.nota);
+     const detalle=r.detalle.map(l=>nodo("p",l.cantidad+" × "+l.nombre+" · "+importe(l.subtotal)));
+     $("detalle-revision-demo").replaceChildren(nodo("p","Cliente: "+cliente.nombre),nodo("p","Teléfono: "+cliente.telefono),nodo("p","Modalidad: "+modos.find(m=>m.id===r.modalidad).nombre+(d.mesa?" · Mesa "+d.mesa:"")), ...(dir?[nodo("p","Entrega: "+dir.calle+" · "+dir.colonia)]:[]),nodo("p","Pago previsto: "+pago.nombre),nodo("p","Instrucciones: "+nota.nombre),...detalle,nodo("p","Subtotal: "+importe(r.subtotal)),nodo("p","Entrega: "+importe(r.cargo)),nodo("strong","Total: "+importe(r.total)));
+     revision=JSON.stringify({r,d});dialogo.showModal();
+    }catch(e){aviso(e.message);notificar(e.message,true);}
+  });
+  $("confirmar-revision-demo").addEventListener("click",async()=>{
+   try{const r=resumirCarrito(datos.id,datos.catalogo,lineas,$("modalidad-pedido").value),d=datosCliente();if(!revision||revision!==JSON.stringify({r,d}))throw Error("El pedido cambió. Revísalo de nuevo.");revision=null;dialogo.close();await enviar();}
+   catch(e){revision=null;dialogo.close();aviso(e.message);notificar(e.message,true);}
+  });
+  async function enviar(){
     if(comprobando||enviando||conectando||servidor&&configurado!==true||!servidor&&configurado===null&&preferencia!=="local")return;enviando=true;render();
     try{
-      let p;
+      let p;const clienteNuevo=pendiente?null:datosCliente();
       if(servidor){
         if(pendiente&&pendiente.expira===null)throw Error("Reintento anterior sin sesión identificada. Consulta el historial antes de descartarlo.");
         if(!pendiente&&expira===null)await remoto.conectar();
         const v=await remoto.leerEstado();expira=v.expira;totalRemoto=v.pedidos.length;
         if(pendiente&&pendiente.expira!==expira)throw Error("La sesión del pedido pendiente caducó. No se reenviará a otra sesión.");
-        if(!pendiente){const resumen=resumirCarrito(datos.id,datos.catalogo,lineas,$("modalidad-pedido").value);if(!resumen.detalle.length)throw Error("Agrega al menos un producto.");guardarPendiente({expira,datos:prepararSolicitudPedido(resumen,practica,crypto.randomUUID(),datosCliente())});}guardarModo();
+        if(!pendiente){const resumen=resumirCarrito(datos.id,datos.catalogo,lineas,$("modalidad-pedido").value);if(!resumen.detalle.length)throw Error("Agrega al menos un producto.");guardarPendiente({expira,datos:prepararSolicitudPedido(resumen,practica,crypto.randomUUID(),clienteNuevo)});}guardarModo();
         const resultado=await remoto.crear(pendiente.datos);p=resultado.pedido;
         if(!p||p.solicitud!==pendiente.datos.solicitud)throw Error("No se pudo confirmar el pedido. Reintenta con el mismo identificador.");
         guardarPendiente(null);
-      }else{p=repo.crear(datos.catalogo,lineas,$("modalidad-pedido").value,datosCliente());guardarModo();}
+      }else{p=repo.crear(datos.catalogo,lineas,$("modalidad-pedido").value,clienteNuevo);guardarModo();}
       lineas=[];persistir();await seguimiento();aviso("Pedido de práctica "+(servidor?"guardado en servidor":"creado localmente")+". "+p.folio+" · No se envió a un negocio real.");
       $("seccion-seguimiento").scrollIntoView({block:"start"});
     }catch(e){
@@ -143,7 +163,7 @@ export function iniciarCarrito(datos,plan,practica){
       if(pendiente&&[400,403,409,413,415].includes(e.status)){try{guardarPendiente(null);}catch{}}
       aviso(e.message+(pendiente?" Reintenta el mismo pedido; no se creará uno nuevo.":""));
     }finally{enviando=false;render();}
-  });
+  }
   async function detectar(){
     if(enviando||conectando)return;
     const n=++consultando;comprobando=true;render();
