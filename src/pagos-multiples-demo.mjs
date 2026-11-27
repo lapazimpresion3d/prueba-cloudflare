@@ -2,11 +2,11 @@ import {partidasCuenta} from "../public/demostraciones/division-cuentas.mjs";
 import {movimientoIndividual,subcuentas} from "../public/demostraciones/subcuentas.mjs";
 // Adaptador D1 aislado. No habilitar en rutas públicas hasta conciliar el cierre
 // y los cobros anteriores. No procesa dinero ni modifica demo_pedidos.
-import {crearPlanCobro,agregarMovimiento,resumenPlanCobro} from "../public/demostraciones/pagos-multiples.mjs";
+import {crearPlanCobro,anularMovimiento,resumenPlanCobro} from "../public/demostraciones/pagos-multiples.mjs";
 import {cuentaIdValida} from "../public/demostraciones/cuentas-practica.mjs";
 const ahora=()=>Math.floor(Date.now()/1000);
 export async function pagosMultiplesListos(db){
- try{return (await db.prepare("SELECT count(*) AS n FROM sqlite_master WHERE (type='table' AND name='demo_planes_cobro') OR (type='trigger' AND name IN ('demo_pago_multiple_no_nueva_comanda','demo_pago_multiple_no_editar_comanda','demo_pago_multiple_cierre'))").first())?.n===4;}catch{return false;}
+ try{return (await db.prepare("SELECT count(*) AS n FROM sqlite_master WHERE (type='table' AND name='demo_planes_cobro') OR (type='trigger' AND name IN ('demo_pago_multiple_no_nueva_comanda','demo_pago_multiple_no_editar_comanda','demo_pago_multiple_cierre','demo_pago_multiple_anulaciones_v1'))").first())?.n===5;}catch{return false;}
 }
 async function contexto(db,s,id,permitirCerrada=false){
  if(!cuentaIdValida(id))throw Error("Cuenta inválida.");
@@ -29,7 +29,7 @@ export async function leerPlanCobro(db,s,id){
 export async function guardarMovimiento(db,s,id,d){
  if(!await pagosMultiplesListos(db))throw Error("Falta configurar la conciliación de pagos múltiples.");
  const {plan,filas,pedidos,personas}=await contexto(db,s,id);
- const nuevo=movimientoIndividual(plan,d,partidasCuenta(pedidos),personas);
+ const nuevo=d.accion==='anular'?anularMovimiento(plan,d):movimientoIndividual(plan,d,partidasCuenta(pedidos),personas);
  if(nuevo===plan)return {plan,resumen:resumenPlanCobro(plan),subcuentas:subcuentas(plan),repetido:true};
  // Compare-and-swap de revisión y fotografía exacta de comandas en una sola sentencia.
  const sql=`INSERT INTO demo_planes_cobro(sesion_id,cuenta_id,revision,datos_json)
