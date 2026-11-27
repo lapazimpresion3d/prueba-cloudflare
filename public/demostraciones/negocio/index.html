@@ -29,11 +29,13 @@
   </section>
   <section id="seccion-carrito" class="bloque bloque-pedido" hidden aria-labelledby="titulo-carrito">
     <div id="carrito" class="encabezado"><div><p class="sobrelinea">PEDIDOS DE PRÁCTICA</p><h2 id="titulo-carrito">Tu carrito</h2></div><button id="vaciar-carrito" class="boton-pedido" type="button">Vaciar</button></div>
-    <p class="nota">Pedidos ficticios. No se envían a un negocio real, no se cobran importes ni se solicitan datos personales.</p>
+    <p class="nota">Pedidos ficticios. Selecciona datos de ejemplo. No se envían mensajes ni se cobran importes.</p>
     <div class="controles-cantidad"><strong id="modo-pedidos" role="status">Práctica local</strong><button id="activar-pedidos" type="button" class="boton-pedido">Activar práctica en servidor</button><button id="pedidos-locales" type="button" class="boton-pedido">Usar práctica local</button></div>
     <p class="nota" id="estado-origen-pedidos" role="status"></p><button id="descartar-pedido" type="button" class="boton-pedido" hidden>Descartar reintento</button><p id="carrito-vacio">Aún no has agregado productos.</p><div id="lineas-carrito"></div>
     <div class="resumen-pedido">
       <label>Modalidad <select id="modalidad-pedido"></select></label>
+      <fieldset class="datos-pedido-demo"><legend>Datos del cliente</legend><p class="nota">Selecciona una identidad ficticia; no uses datos personales reales.</p><label>Nombre del cliente<select id="cliente-pedido" required></select></label><label>Teléfono<input id="telefono-pedido" readonly></label><label>Forma de pago (simulada)<select id="pago-pedido" required></select></label><label>Instrucciones (opcional)<select id="nota-pedido"></select></label>
+      <label id="campo-mesa" hidden>Mesa<select id="mesa-pedido"></select></label><div id="campos-entrega" hidden><label>Dirección de entrega<select id="direccion-pedido"></select></label><p id="detalle-direccion" class="nota"></p></div></fieldset>
       <p>Subtotal <strong id="pedido-subtotal"></strong></p><p>Entrega <strong id="pedido-cargo"></strong></p><p class="total-pedido">Total <strong id="pedido-total"></strong></p>
       <button id="enviar-pedido" class="principal" type="button" disabled>Crear pedido de práctica</button>
       <p id="aviso-carrito" role="status" aria-live="polite"></p>
