@@ -22,7 +22,8 @@ if(redirigirNegocio)location.replace(enlacesDemo(negocio.id,plan.id).negocio);
 let editorAbierto=vistaAdmin, perfilAbierto=false;
 let editando=null;
 let contextoServidor=null, consultaContexto=0, ocupada=false;
-const revisiones=new Map();
+const revisiones=new Map(), revisionesPerfil=new Map();
+let perfilActivo=false, perfilOcupado=false;
 let practicaActiva=false;
 const catalogoActual=()=>({...negocio,catalogo:catalogos.leer(negocio.id)});
 const campo=n=>$("form-oferta").elements.namedItem(n);
@@ -94,7 +95,7 @@ function renderCapacidades(){
 function renderTodo(reiniciarCategoria){
   renderSelectores();renderPerfil();if(reiniciarCategoria)categorias();renderCatalogo();renderCapacidades();
   $("seccion-catalogo").hidden=false;renderVista();
-  $("estado").textContent=negocio.nombre+" · "+plan.nombre;guardarURL();if(!vistaAdmin)consultarContexto();
+  $("estado").textContent=negocio.nombre+" · "+plan.nombre;guardarURL();consultarContexto();
 }
 function renderVista(){
   $("introduccion").hidden=$("selector-negocios").hidden=$("selector-planes").hidden=vistaNegocio||vistaAdmin;
@@ -193,9 +194,10 @@ async function peticion(ruta,opciones={}){
 }
 function actualizarBotonesServidor(){
   const configurado=contextoServidor?.establecimiento.id===negocio.id&&contextoServidor?.plan.id===plan.id&&contextoServidor.persistenciaConfigurada===true;
-  $("demo-sesion").disabled=ocupada||!configurado;
-  $("demo-cargar").disabled=ocupada||!configurado||!practicaActiva;
-  $("demo-guardar").disabled=ocupada||!configurado||!practicaActiva||!revisiones.has(negocio.id);
+  $("demo-sesion").disabled=ocupada||perfilOcupado||!configurado;
+  $("demo-cargar").disabled=ocupada||perfilOcupado||!configurado||!practicaActiva;
+  $("demo-guardar").disabled=ocupada||perfilOcupado||!configurado||!practicaActiva||!revisiones.has(negocio.id);
+  actualizarPerfilRemoto();
 }
 async function consultarContexto(){
   const n=++consultaContexto,id=negocio.id,p=plan.id;contextoServidor=null;actualizarBotonesServidor();
@@ -203,15 +205,17 @@ async function consultarContexto(){
     const ctx=await peticion(rutaServidor("contexto",id,p));
     if(n!==consultaContexto)return;
     if(ctx.establecimiento?.id!==id||ctx.plan?.id!==p||!Array.isArray(ctx.capacidades))throw Error("Contexto inválido.");
-    contextoServidor=ctx;renderCapacidades();if(vistaNegocio)$("legado").hidden=true;
+    contextoServidor=ctx;renderCapacidades();if(vistaNegocio||vistaAdmin)$("legado").hidden=true;
+    $("perfil-remoto-aviso").textContent=ctx.perfilConfigurado?"Puedes activar una sesión para guardar tu identidad.":"Guardado remoto de identidad aún no disponible. Puedes personalizar localmente.";
     if(!ocupada)$("demo-servidor-aviso").textContent=ctx.persistenciaConfigurada?"Servicio configurado. Conecta para consultar o guardar una copia.":"Persistencia en servidor pendiente de configuración. La práctica local sigue disponible.";
   }catch{
     if(n!==consultaContexto)return;
     $("demo-servidor-aviso").textContent="No se pudo consultar el servidor. Continúa con la práctica local.";
+    $("perfil-remoto-aviso").textContent="Servicio no disponible. Puedes personalizar localmente.";
   }finally{if(n===consultaContexto)actualizarBotonesServidor();}
 }
 async function operarServidor(accion){
-  if(ocupada)return;
+  if(ocupada||perfilOcupado)return;
   const id=negocio.id,p=plan.id;
   if(!contextoServidor?.persistenciaConfigurada||contextoServidor.establecimiento.id!==id||contextoServidor.plan.id!==p)return;
   if(accion==="cargar"&&!confirm("¿Reemplazar el catálogo local de "+negocio.nombre+" por la copia del servidor?"))return;
@@ -220,7 +224,7 @@ async function operarServidor(accion){
   try{
     if(accion==="conectar"){
       await peticion("/api/demo/sesion",{method:"POST"});
-      revisiones.clear();practicaActiva=true;
+      revisiones.clear();revisionesPerfil.clear();perfilActivo=false;practicaActiva=true;
       // Obtener revisión sin sobreescribir cambios locales.
       const copia=await peticion(rutaServidor("catalogo",id,p));
       if(copia.establecimiento!==id||!Number.isSafeInteger(copia.revision))throw Error("Copia inválida.");
@@ -242,11 +246,52 @@ async function operarServidor(accion){
       revisiones.set(id,copia.revision);aviso("Copia guardada en servidor · revisión "+copia.revision+".");
     }
   }catch(e){
-    if(e.status===401){practicaActiva=false;revisiones.clear();}
+    if(e.status===401){practicaActiva=false;perfilActivo=false;revisiones.clear();revisionesPerfil.clear();}
     if(e.status===409)revisiones.delete(id);
     aviso(e.message||"No se pudo completar la operación.");
   }finally{ocupada=false;actualizarBotonesServidor();}
 }
+function actualizarPerfilRemoto(){
+  const listo=contextoServidor?.establecimiento.id===negocio.id&&contextoServidor?.plan.id===plan.id&&contextoServidor?.perfilConfigurado===true;
+  $("perfil-conectar").disabled=perfilOcupado||ocupada||!listo;
+  $("perfil-cargar").disabled=perfilOcupado||ocupada||!listo||!perfilActivo;
+  $("perfil-guardar").disabled=perfilOcupado||ocupada||!listo||!perfilActivo||!revisionesPerfil.has(negocio.id);
+}
+async function operarPerfil(accion){
+  if(perfilOcupado||ocupada||!contextoServidor?.perfilConfigurado)return;
+  const id=negocio.id,p=plan.id;
+  if(contextoServidor.establecimiento.id!==id||contextoServidor.plan.id!==p)return;
+  if(accion==="cargar"&&!confirm("¿Recuperar la identidad guardada y sustituir la copia local de este negocio?"))return;
+  perfilOcupado=true;actualizarBotonesServidor();
+  const aviso=mensaje=>{if(negocio.id===id)$("perfil-remoto-aviso").textContent=mensaje;};
+  const revisar=c=>{if(c.establecimiento!==id||!Number.isSafeInteger(c.revision)||c.revision<0||!c.perfil)throw Error("Respuesta inválida.");return c;};
+  try{
+    if(accion==="conectar"){
+      await peticion("/api/demo/sesion",{method:"POST"});perfilActivo=true;revisionesPerfil.clear();revisiones.clear();practicaActiva=false;
+      const c=revisar(await peticion(rutaServidor("perfil",id,p)));
+      if(c.revision===0)revisionesPerfil.set(id,0);
+      aviso(c.revision===0?"Sesión activa. Aplica tus cambios y guarda la identidad.":"Hay una identidad guardada. Recupérala antes de guardar cambios.");
+    }else if(accion==="cargar"){
+      const antes=JSON.stringify(perfiles.leer(id));
+      const c=revisar(await peticion(rutaServidor("perfil",id,p)));
+      if(antes!==JSON.stringify(perfiles.leer(id)))throw Error("La identidad local cambió mientras se recuperaba.");
+      const local=perfiles.guardar(id,perfilPlano(c.perfil));revisionesPerfil.set(id,c.revision);
+      if(negocio.id===id){cargarPerfil();renderPerfil();renderVista();}
+      aviso(local?"Identidad recuperada.":"Identidad recuperada en memoria; el almacenamiento local está bloqueado.");
+    }else{
+      if(!revisionesPerfil.has(id))return;
+      const c=revisar(await peticion(rutaServidor("perfil",id,p),{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({revision:revisionesPerfil.get(id),perfil:perfiles.leer(id)})}));
+      revisionesPerfil.set(id,c.revision);aviso("Identidad guardada en tu sesión · revisión "+c.revision+".");
+    }
+  }catch(e){
+    if(e.status===401){perfilActivo=false;practicaActiva=false;revisionesPerfil.clear();revisiones.clear();}
+    if(e.status===409)revisionesPerfil.delete(id);
+    aviso(e.message||"No fue posible completar la operación.");
+  }finally{perfilOcupado=false;actualizarBotonesServidor();}
+}
+$("perfil-conectar").addEventListener("click",()=>operarPerfil("conectar"));
+$("perfil-cargar").addEventListener("click",()=>operarPerfil("cargar"));
+$("perfil-guardar").addEventListener("click",()=>operarPerfil("guardar"));
 $("demo-sesion").addEventListener("click",()=>operarServidor("conectar"));
 $("demo-cargar").addEventListener("click",()=>operarServidor("cargar"));
 $("demo-guardar").addEventListener("click",()=>operarServidor("guardar"));
