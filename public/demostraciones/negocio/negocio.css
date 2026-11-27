@@ -23,3 +23,20 @@ a.boton-agregar{display:block;text-align:center;text-decoration:none}a.boton-agr
 /* Lectura móvil, controles de teclado y diferenciación de las copias privadas. */
 #plan-visible{display:block;color:#d7e2e8;font-size:.72rem}.aviso-practica{background:#fff5d9;color:#3d3324;padding:12px max(18px,calc((100% - var(--ancho))/2));font-size:.9rem;line-height:1.5}.aviso-practica a{font-weight:700}button:focus-visible{outline:3px solid #2979b8;outline-offset:3px}.identidad,#nombre,.producto-texto{min-width:0;overflow-wrap:anywhere}.logo{flex-shrink:0}.destacados{grid-template-columns:repeat(auto-fit,minmax(min(100%,140px),1fr))}.cabecera nav a{padding:6px 0}.producto-texto .boton-agregar{min-height:42px}.hero-arte:has(.portada-ilustrada) .arte-emblema{aspect-ratio:auto}.hero-arte:has(.portada-ilustrada) .portada-ilustrada svg{object-fit:cover}.producto-texto .descripcion{overflow-wrap:anywhere}
 @media(max-width:380px){body[data-estilo=barberia] .producto,body[data-estilo=taller] .producto{grid-template-columns:76px minmax(0,1fr)}.filtros label{min-width:0;flex-basis:100%}.destacados{grid-template-columns:1fr}.cabecera nav{gap:8px 14px}}
+
+/* Confirmación de compra sin desplazar la página. Solo giros con carrito. */
+.solo-lector{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.con-carrito-flotante{padding-bottom:calc(82px + env(safe-area-inset-bottom,0px))}
+.carrito-flotante{position:fixed;z-index:20;bottom:calc(16px + env(safe-area-inset-bottom,0px));right:16px;display:flex;align-items:center;gap:12px;max-width:calc(100% - 32px);min-height:56px;padding:12px 17px;border-radius:14px;background:#203c32;color:white;border:1px solid #45695a;box-shadow:0 5px 24px #0003;text-decoration:none;font-weight:700}
+.carrito-flotante strong{display:inline-grid;place-items:center;min-width:25px;height:25px;padding:0 5px;border-radius:20px;background:#fff;color:#203c32;margin-left:3px}
+#subtotal-carrito-flotante{padding-left:12px;border-left:1px solid #ffffff60;white-space:nowrap}
+.aviso-flotante-carrito{position:fixed;right:16px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:21;max-width:min(360px,calc(100% - 32px));padding:12px 14px;background:#eaf7ee;color:#173b28;border:1px solid #7ab58b;border-radius:12px;box-shadow:0 4px 20px #0002;display:flex;gap:10px;align-items:center;font-size:.9rem;line-height:1.5}
+.aviso-flotante-carrito[data-tipo=error]{background:#fff0e9;color:#762b20;border-color:#d5a396}
+.aviso-flotante-carrito button{border:0;background:transparent;color:inherit;font:inherit;font-size:1.4rem;cursor:pointer;padding:4px 8px}
+.boton-agregar.agregado{background:#216640;color:white;border-color:#216640}
+.entrada-carrito{animation:entradaCarrito .22s ease-out}.pulso-carrito{animation:pulsoCarrito .38s ease-out}
+@keyframes entradaCarrito{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pulsoCarrito{0%,100%{transform:scale(1)}45%{transform:scale(1.045)}}
+.acceso-empresa{margin:12px 0;padding:10px 14px;border:1px solid var(--borde);border-radius:8px;font-size:.85rem;color:var(--suave)}.acceso-empresa summary{cursor:pointer;font-weight:700}.acceso-empresa p{margin:8px 0}
+@media(max-width:480px){.carrito-flotante{left:12px;right:12px;max-width:none;justify-content:space-between}.aviso-flotante-carrito{left:12px;right:12px;max-width:none}}
+@media(prefers-reduced-motion:reduce){.entrada-carrito,.pulso-carrito{animation:none}}
