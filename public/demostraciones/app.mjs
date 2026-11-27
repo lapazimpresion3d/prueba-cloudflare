@@ -42,7 +42,9 @@ function guardarURL(){
   if(vistaAdmin)url.searchParams.set("vista","administracion");else url.searchParams.delete("vista");
   history.replaceState(null,"",url);
   const enlaces=enlacesDemo(negocio.id,plan.id);$("compartir-vista").href=enlaces.negocio;
-  $("admin-ver-negocio").href=enlacesDemo(negocio.id,plan.id,true).negocio;$("admin-salir").href=enlaces.negocio;
+  $("admin-ver-negocio").href=enlacesDemo(negocio.id,plan.id,true).negocio;$("admin-salir").href=enlacesDemo(negocio.id,plan.id,true).negocio;
+  $("ver-catalogo-editado").href=enlacesDemo(negocio.id,plan.id,true).negocio;
+  $("ver-original").href=enlaces.negocio;
   $("admin-pedidos").hidden=!admitePedidos(negocio.id,plan.id);$("admin-pedidos").href="/demostraciones/pedidos/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
   $("admin-citas").hidden=!admiteCitas(negocio.id,plan.id);$("admin-citas").href="/demostraciones/citas/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id,vista:"agenda"});
 }
@@ -127,7 +129,7 @@ function reiniciarFormulario(){
   $("cancelar-edicion").hidden=true;ajustarDuracion();
 }
 function mensajeGuardado(persistido){
-  $("aviso-editor").textContent=persistido?"Cambio guardado en esta pestaña.":"Cambio guardado temporalmente en memoria; se perderá al recargar.";
+  $("aviso-editor").textContent=persistido?"Cambio aplicado. Abre Ver catálogo editado para comprobarlo. Para conservarlo en D1, usa Guardar catálogo.":"Cambio solo en memoria; el navegador no pudo conservarlo. No se reflejará al abrir otra página hasta guardarlo en servidor.";
 }
 function trasCambio(persistido){
   mensajeGuardado(persistido);reiniciarFormulario();categorias();renderCatalogo();renderEditor();actualizarBotonesServidor();
@@ -147,7 +149,9 @@ function renderEditor(){
       if(!confirm("¿Eliminar "+p.nombre+" del catálogo de práctica de "+negocio.nombre+"?"))return;
       try{trasCambio(catalogos.eliminar(negocio.id,p.id));}catch(e){$("aviso-editor").textContent=e.message;}
     });
-    fila.append(info,editar,borrar);return fila;
+    const estado=crear("button",p.disponible===false?"Marcar disponible":"Marcar agotado");estado.type="button";estado.setAttribute("aria-label",(p.disponible===false?"Marcar disponible ":"Marcar agotado ")+p.nombre);
+    estado.addEventListener("click",()=>{if(ocupada||perfilOcupado||fotoPendiente)return;if(editando!==null&&!confirm("¿Descartar la edición actual y cambiar solo la disponibilidad?"))return;try{const actual=catalogos.leer(negocio.id).find(x=>x.id===p.id);if(!actual)throw Error("El producto ya no existe.");trasCambio(catalogos.editar(negocio.id,p.id,{...actual,disponible:actual.disponible===false}));}catch(e){$("aviso-editor").textContent=e.message;}});
+    fila.append(info,estado,editar,borrar);return fila;
   }));
 }
 $("vista-cliente").addEventListener("click",()=>{location.href=enlacesDemo(negocio.id,plan.id).negocio;});
