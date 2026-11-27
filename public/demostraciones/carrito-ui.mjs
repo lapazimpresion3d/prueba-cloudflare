@@ -25,14 +25,34 @@ export function iniciarCarrito(datos,plan,practica){
   $("seccion-carrito").hidden=false;$("nav-carrito").hidden=false;$("nav-seguimiento").hidden=false;$("seccion-seguimiento").hidden=false;
   $("modalidad-pedido").replaceChildren(...modos.map(m=>new Option(m.nombre+(m.cargo?" · "+importe(m.cargo):""),m.id)));
   const aviso=m=>{$("aviso-carrito").textContent=m;};
+  let temporizadorAviso;
+  const temporizadoresBoton=new WeakMap();
+  function notificar(m,error=false){
+    const caja=$("aviso-flotante-carrito");
+    clearTimeout(temporizadorAviso);
+    caja.hidden=false;caja.dataset.tipo=error?"error":"correcto";
+    $("texto-aviso-flotante").textContent=m;
+    $("anuncio-carrito").textContent=m;
+    caja.classList.remove("entrada-carrito");void caja.offsetWidth;caja.classList.add("entrada-carrito");
+    temporizadorAviso=setTimeout(()=>{caja.hidden=true;},error?5000:2400);
+  }
+  function confirmarBoton(b,cantidad){
+    if(!b)return;
+    clearTimeout(temporizadoresBoton.get(b));
+    b.textContent="✓ Agregado ("+cantidad+")";b.classList.add("agregado");
+    temporizadoresBoton.set(b,setTimeout(()=>{b.textContent="Agregar al carrito";b.classList.remove("agregado");temporizadoresBoton.delete(b);},1300));
+  }
+  $("carrito-flotante").hidden=false;
+  document.body.classList.add("con-carrito-flotante");
+  $("cerrar-aviso-carrito").addEventListener("click",()=>{clearTimeout(temporizadorAviso);$("aviso-flotante-carrito").hidden=true;});
   function persistir(){try{almacen?.setItem(clave,JSON.stringify(lineas));return !!almacen;}catch{return false;}}
   function cambiar(id,delta){
-    if(enviando||pendiente){aviso("Primero confirma o reintenta el pedido pendiente.");return;}
+    if(enviando||pendiente){const mensaje="Primero confirma o reintenta el pedido pendiente.";aviso(mensaje);return {ok:false,mensaje};}
     const copia=lineas.map(x=>({...x})),i=copia.findIndex(l=>l.id===id);
-    if(i<0){if(delta<=0)return;copia.push({id,cantidad:delta});}
+    if(i<0){if(delta<=0)return {ok:false,mensaje:"El producto ya no está en el carrito."};copia.push({id,cantidad:delta});}
     else{copia[i].cantidad+=delta;if(copia[i].cantidad<=0)copia.splice(i,1);}
-    try{resumirCarrito(datos.id,datos.catalogo,copia,$("modalidad-pedido").value);lineas=copia;const guardado=persistir();render();aviso(guardado?"Carrito actualizado.":"Carrito temporal: el navegador no conserva la copia.");}
-    catch(e){aviso(e.message);}
+    try{resumirCarrito(datos.id,datos.catalogo,copia,$("modalidad-pedido").value);lineas=copia;const guardado=persistir();render();aviso(guardado?"Carrito actualizado.":"Carrito temporal: el navegador no conserva la copia.");return {ok:true,guardado,cantidad:lineas.find(l=>l.id===id)?.cantidad||0};}
+    catch(e){aviso(e.message);return {ok:false,mensaje:e.message};}
   }
   function render(){
     let r;
@@ -48,7 +68,11 @@ export function iniciarCarrito(datos,plan,practica){
     }));
     $("carrito-vacio").hidden=!!r.detalle.length;
     $("pedido-subtotal").textContent=importe(r.subtotal);$("pedido-cargo").textContent=importe(r.cargo);$("pedido-total").textContent=importe(r.total);
-    $("nav-carrito").textContent="Carrito ("+r.detalle.reduce((n,l)=>n+l.cantidad,0)+")";
+    const cantidad=r.detalle.reduce((n,l)=>n+l.cantidad,0);
+    $("nav-carrito").textContent="Carrito ("+cantidad+")";
+    $("cantidad-carrito-flotante").textContent=String(cantidad);
+    $("subtotal-carrito-flotante").textContent=importe(r.subtotal);
+    $("carrito-flotante").setAttribute("aria-label","Ver carrito, "+cantidad+" productos, subtotal "+importe(r.subtotal));
     $("enviar-pedido").disabled=comprobando||enviando||conectando||(!pendiente&&!r.detalle.length)||(servidor&&configurado!==true)||(!servidor&&configurado===null&&preferencia!=="local");
     $("enviar-pedido").textContent=pendiente?"Reintentar pedido pendiente":"Crear pedido de práctica";
     $("vaciar-carrito").disabled=enviando||!!pendiente||!r.detalle.length;
@@ -61,7 +85,7 @@ export function iniciarCarrito(datos,plan,practica){
     $("conteo-local-pedidos").textContent=String(repo.leer().length);$("conteo-remoto-pedidos").textContent=totalRemoto===null?"—":String(totalRemoto);
     $("descartar-pedido").hidden=!pendiente;$("descartar-pedido").disabled=comprobando||enviando||conectando;
     $("abrir-pedidos").href="/demostraciones/pedidos/?"+new URLSearchParams({negocio:datos.id,plan,origen:servidor?"servidor":"local"});
-    $("nota-seguimiento").textContent=servidor?"Consulta desde otra pestaña del mismo navegador y dirección, activando la misma práctica en servidor. Usa Actualizar estado.":"Abre el panel en esta misma pestaña para cambiar el estado y vuelve aquí.";
+    $("nota-seguimiento").textContent="Aquí el cliente consulta el estado de sus pedidos."+(servidor?" Actualiza para consultar cambios.":" La práctica local permanece en esta pestaña.");
   }
   async function seguimiento(){
     const n=++consultando,modo=servidor;
@@ -114,5 +138,13 @@ export function iniciarCarrito(datos,plan,practica){
   window.addEventListener("focus",()=>{if(!comprobando)detectar();});
   render();detectar();
   if(pendiente)aviso("Hay un pedido pendiente de confirmación. Reintenta para recuperar el resultado sin duplicarlo.");
-  return {agregar:p=>{if(ofertaPedible(p))cambiar(p.id,1);},puedeAgregar:ofertaPedible};
+  return {agregar:(p,b)=>{
+    if(!ofertaPedible(p)){notificar("Este producto no está disponible.",true);return false;}
+    const resultado=cambiar(p.id,1);
+    if(!resultado.ok){notificar(resultado.mensaje,true);return false;}
+    confirmarBoton(b,resultado.cantidad);
+    notificar(p.nombre+" agregado al carrito"+(resultado.guardado?".":". Copia temporal en memoria."));
+    const enlace=$("carrito-flotante");enlace.classList.remove("pulso-carrito");void enlace.offsetWidth;enlace.classList.add("pulso-carrito");
+    return true;
+  },puedeAgregar:ofertaPedible};
 }
