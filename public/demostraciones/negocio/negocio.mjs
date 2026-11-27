@@ -4,6 +4,7 @@ import {crearCatalogosLocales,imagenOfertaSegura} from "../catalogo-local.mjs";
 import {crearPerfilesLocales} from "../perfil-local.mjs";
 import {presentacionDe,enlacesDemo,simbolos} from "../presentaciones.mjs";
 import {ilustracionPortada} from "../ilustraciones.mjs";
+import {iniciarCarrito} from "../carrito-ui.mjs";
 const $=id=>document.getElementById(id);
 const el=(tag,txt,clase)=>{const e=document.createElement(tag);if(txt!==undefined)e.textContent=txt;if(clase)e.className=clase;return e;};
 const q=new URLSearchParams(location.search);
@@ -35,6 +36,7 @@ if(!base||!plan||!t){
   arte.append(simbolo,el("span",t.sigla,"arte-sigla"),el("span",datos.nombre,"arte-nombre"));
   $("arte").append(arte);
   $("destacados").replaceChildren(...t.destacados.map((x,i)=>{const a=el("a");a.href="#catalogo";a.append(el("span",String(i+1).padStart(2,"0"),"numero"),el("strong",x));a.addEventListener("click",()=>{const op=[...$("categoria").options].find(o=>o.value===x);$("categoria").value=op?x:"";$("buscar").value="";render();});return a;}));
+  const carrito=iniciarCarrito(datos,plan.id,practica);
   const cats=[...new Set(datos.catalogo.map(p=>p.categoria))];
   $("categoria").replaceChildren(new Option("Todas",""),...cats.map(c=>new Option(c,c)));
   function render(){
@@ -49,6 +51,7 @@ if(!base||!plan||!t){
       cuerpo.append(el("p",p.categoria,"categoria"),el("h3",p.nombre),el("p",p.descripcion,"descripcion"),el("strong",importe(p.precioCentavos),"precio"));
       if(p.duracionMinutos)cuerpo.append(el("p",p.duracionMinutos+" min","nota"));
       if(p.disponible===false)cuerpo.append(el("p","Temporalmente no disponible","nota"));
+      if(carrito&&carrito.puedeAgregar(p)){const b=el("button","Agregar al carrito","boton-agregar");b.type="button";b.addEventListener("click",()=>carrito.agregar(p));cuerpo.append(b);}
       card.append(imagen,cuerpo);return card;
     }));
   }
