@@ -15,6 +15,9 @@ let plan=planes.find(p=>p.id===params.get("plan")) ?? planes[0];
 let vistaNegocio=params.get("vista")==="negocio";
 let editorAbierto=false;
 let editando=null;
+let contextoServidor=null, consultaContexto=0, ocupada=false;
+const revisiones=new Map();
+let practicaActiva=false;
 const catalogoActual=()=>({...negocio,catalogo:catalogos.leer(negocio.id)});
 const campo=n=>$("form-oferta").elements.namedItem(n);
 
@@ -64,7 +67,7 @@ function renderCatalogo(){
   }));
 }
 function renderCapacidades(){
-  const lista=capacidades(negocio,plan.id);
+  const lista=contextoServidor?.establecimiento.id===negocio.id&&contextoServidor.plan.id===plan.id?contextoServidor.capacidades:capacidades(negocio,plan.id);
   const incluidas=lista.filter(m=>m.estadoEfectivo!=="otro_plan");
   $("resumen-plan").textContent=plan.nombre+" · "+incluidas.filter(m=>m.estadoEfectivo==="disponible").length+" funcionalidades utilizables en esta vista previa. Las restantes no son operativas.";
   $("capacidades").replaceChildren(...lista.map(m=>{
@@ -84,7 +87,7 @@ function renderCapacidades(){
 function renderTodo(reiniciarCategoria){
   renderSelectores();renderPerfil();if(reiniciarCategoria)categorias();renderCatalogo();renderCapacidades();
   $("seccion-catalogo").hidden=false;renderVista();
-  $("estado").textContent=negocio.nombre+" · "+plan.nombre;guardarURL();
+  $("estado").textContent=negocio.nombre+" · "+plan.nombre;guardarURL();consultarContexto();
 }
 function renderVista(){
   $("introduccion").hidden=$("selector-negocios").hidden=$("selector-planes").hidden=vistaNegocio;
@@ -128,7 +131,7 @@ function renderEditor(){
 }
 $("vista-cliente").addEventListener("click",()=>{vistaNegocio=true;editorAbierto=false;reiniciarFormulario();renderTodo(false);});
 $("vista-comparador").addEventListener("click",()=>{vistaNegocio=false;renderTodo(false);});
-$("abrir-editor").addEventListener("click",()=>{editorAbierto=true;renderVista();campo("nombre").focus();});
+$("abrir-editor").addEventListener("click",()=>{editorAbierto=true;renderVista();actualizarBotonesServidor();campo("nombre").focus();});
 $("cerrar-editor").addEventListener("click",()=>{editorAbierto=false;reiniciarFormulario();renderVista();$("abrir-editor").focus();});
 $("cancelar-edicion").addEventListener("click",reiniciarFormulario);
 campo("tipo").addEventListener("change",ajustarDuracion);
@@ -144,6 +147,72 @@ $("form-oferta").addEventListener("submit",e=>{
 $("restaurar-catalogo").addEventListener("click",()=>{
   if(confirm("¿Restaurar el catálogo de práctica de "+negocio.nombre+"?"))trasCambio(catalogos.restaurar(negocio.id));
 });
+function rutaServidor(ruta,id=negocio.id,p=plan.id){
+  return "/api/demo/"+ruta+"?"+new URLSearchParams({negocio:id,plan:p});
+}
+async function peticion(ruta,opciones={}){
+  const r=await fetch(ruta,{cache:"no-store",credentials:"same-origin",...opciones});
+  const datos=await r.json();
+  if(!r.ok){const error=Error(datos.error||"No se pudo completar la solicitud.");error.status=r.status;throw error;}
+  return datos;
+}
+function actualizarBotonesServidor(){
+  const configurado=contextoServidor?.establecimiento.id===negocio.id&&contextoServidor?.plan.id===plan.id&&contextoServidor.persistenciaConfigurada===true;
+  $("demo-sesion").disabled=ocupada||!configurado;
+  $("demo-cargar").disabled=ocupada||!configurado||!practicaActiva;
+  $("demo-guardar").disabled=ocupada||!configurado||!practicaActiva||!revisiones.has(negocio.id);
+}
+async function consultarContexto(){
+  const n=++consultaContexto,id=negocio.id,p=plan.id;contextoServidor=null;actualizarBotonesServidor();
+  try{
+    const ctx=await peticion(rutaServidor("contexto",id,p));
+    if(n!==consultaContexto)return;
+    if(ctx.establecimiento?.id!==id||ctx.plan?.id!==p||!Array.isArray(ctx.capacidades))throw Error("Contexto inválido.");
+    contextoServidor=ctx;renderCapacidades();if(vistaNegocio)$("legado").hidden=true;
+    if(!ocupada)$("demo-servidor-aviso").textContent=ctx.persistenciaConfigurada?"Servicio configurado. Conecta para consultar o guardar una copia.":"Persistencia en servidor pendiente de configuración. La práctica local sigue disponible.";
+  }catch{
+    if(n!==consultaContexto)return;
+    $("demo-servidor-aviso").textContent="No se pudo consultar el servidor. Continúa con la práctica local.";
+  }finally{if(n===consultaContexto)actualizarBotonesServidor();}
+}
+async function operarServidor(accion){
+  if(ocupada)return;
+  const id=negocio.id,p=plan.id;
+  if(!contextoServidor?.persistenciaConfigurada||contextoServidor.establecimiento.id!==id||contextoServidor.plan.id!==p)return;
+  if(accion==="cargar"&&!confirm("¿Reemplazar el catálogo local de "+negocio.nombre+" por la copia del servidor?"))return;
+  ocupada=true;actualizarBotonesServidor();
+  const aviso=mensaje=>{if(negocio.id===id)$("demo-servidor-aviso").textContent=mensaje;};
+  try{
+    if(accion==="conectar"){
+      await peticion("/api/demo/sesion",{method:"POST"});
+      practicaActiva=true;
+      // Obtener revisión sin sobreescribir cambios locales.
+      const copia=await peticion(rutaServidor("catalogo",id,p));
+      if(copia.establecimiento!==id||!Number.isSafeInteger(copia.revision))throw Error("Copia inválida.");
+      revisiones.set(id,copia.revision);
+      aviso("Práctica conectada. Puedes cargar la copia guardada o guardar la actual.");
+    }else if(accion==="cargar"){
+      const copia=await peticion(rutaServidor("catalogo",id,p));
+      if(copia.establecimiento!==id||!Number.isSafeInteger(copia.revision))throw Error("Copia inválida.");
+      const guardado=catalogos.importar(id,copia.catalogo);revisiones.set(id,copia.revision);
+      if(negocio.id===id){reiniciarFormulario();categorias();renderCatalogo();renderEditor();}
+      aviso(guardado?"Copia cargada en esta pestaña.":"Copia cargada en memoria; no se conserva al recargar.");
+    }else if(accion==="guardar"){
+      if(!revisiones.has(id))throw Error("Conecta o carga la copia primero.");
+      const catalogo=catalogos.leer(id).map(x=>({...x,disponible:x.disponible!==false}));
+      const copia=await peticion(rutaServidor("catalogo",id,p),{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({revision:revisiones.get(id),catalogo})});
+      if(copia.establecimiento!==id||!Number.isSafeInteger(copia.revision))throw Error("Respuesta inválida.");
+      revisiones.set(id,copia.revision);aviso("Copia guardada en servidor · revisión "+copia.revision+".");
+    }
+  }catch(e){
+    if(e.status===401){practicaActiva=false;revisiones.clear();}
+    if(e.status===409)revisiones.delete(id);
+    aviso(e.message||"No se pudo completar la operación.");
+  }finally{ocupada=false;actualizarBotonesServidor();}
+}
+$("demo-sesion").addEventListener("click",()=>operarServidor("conectar"));
+$("demo-cargar").addEventListener("click",()=>operarServidor("cargar"));
+$("demo-guardar").addEventListener("click",()=>operarServidor("guardar"));
 $("buscar").addEventListener("input",renderCatalogo);
 $("tipo").addEventListener("change",renderCatalogo);
 $("categoria").addEventListener("change",renderCatalogo);
