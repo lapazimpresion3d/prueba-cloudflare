@@ -108,7 +108,9 @@ async function cargarSeguimiento() {
     const sinCosto = pedido.subtotalCentavos === 0 &&
       (pedido.detalle?.servicio !== "domicilio" || pedido.detalle.entrega?.envioCentavos === 0);
     const cancelado = pedido.estado === "cancelado";
-    const envioPendiente = pedido.detalle?.servicio === "domicilio" && !pedido.detalle.entrega;
+    const envioPendiente = pedido.detalle?.servicio === "domicilio" && pedido.detalle.entrega?.envioCentavos == null;
+    const cobroConciliado = Boolean(pedido.cobro && !envioPendiente &&
+      pedido.cobro.importeCentavos === pedido.totalAPagarCentavos);
     const puedeAvisar = !pedido.cobro && !sinCosto && !cancelado && !envioPendiente;
     totalReportable = pedido.totalAPagarCentavos;
     const mostrarDatosPago = puedeAvisar && pedido.totalAPagarCentavos > 0 && !pedido.transferenciaReportada;
@@ -119,7 +121,7 @@ async function cargarSeguimiento() {
       referenciaPago.textContent = "Referencia para la transferencia · Pedido " + pedido.folio;
       datosTransferencia.textContent = pedido.instruccionesTransferencia;
     }
-    const estadoCobro = pedido.cobro ? "Pagado · " + dinero.format(pedido.cobro.importeCentavos / 100) :
+    const estadoCobro = pedido.cobro ? (cobroConciliado ? "Pagado · " : "Cobro por verificar · ") + dinero.format(pedido.cobro.importeCentavos / 100) :
       cancelado ? "Pedido cancelado" :
       sinCosto ? "Pedido sin costo" :
       pedido.transferenciaReportada ? "Transferencia reportada. El negocio está por verificar el pago." :
@@ -133,7 +135,7 @@ async function cargarSeguimiento() {
     if (pedido.detalle && (!detalleMostrado || envioMostrado !== pedido.detalle.entrega?.envioCentavos)) {
       mostrarDetallePedido(pedido);
     }
-    terminado = cancelado || (pedido.estado === "entregado" && (pedido.cobro || sinCosto));
+    terminado = cancelado || (pedido.estado === "entregado" && (cobroConciliado || sinCosto));
   } catch {
     estado.textContent = "No pudimos consultar el estado. Intenta actualizar.";
   } finally {
