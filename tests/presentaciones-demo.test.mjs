@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {presentacionDe,enlacesDemo,simbolos,destacadosDisponibles,enlaceGaleria} from "../public/demostraciones/presentaciones.mjs";
+import {presentacionDe,enlacesDemo,simbolos,destacadosDisponibles,enlaceGaleria,planesRepresentativos,enlaceConfigurador} from "../public/demostraciones/presentaciones.mjs";
 import {establecimientos} from "../public/demostraciones/establecimientos.mjs";
 import {planes} from "../public/demostraciones/config.mjs";
 test("cinco identidades sectoriales, textos y símbolos propios",()=>{
@@ -32,6 +32,12 @@ test("especialidades apuntan a categorías existentes de los cinco giros",()=>{
  assert.deepEqual(destacadosDisponibles(presentacionDe("barberia-elite"),[{categoria:"Productos"}]),[{nombre:"Cuidado personal",categoria:"Productos"}]);
 });
 
-test("la galería conserva el paquete sin parámetros de práctica",()=>{
- for(const p of planes){const u=new URL(enlaceGaleria(p.id),"https://demo.example");assert.equal(u.pathname,"/demostraciones/ejemplos/");assert.equal(u.searchParams.get("plan"),p.id);assert.equal(u.searchParams.has("practica"),false);}
+test("galería fija y configurador adicional mantienen los cinco negocios y cuatro planes",()=>{
+ assert.deepEqual(planesRepresentativos,{"cafe-mirador":"p1","barberia-elite":"p2","mundo-mascotas":"p3","taqueria-el-comal":"p4","auto-servicio-bahia":"p3"});
+ assert.equal(enlaceGaleria(),"/demostraciones/ejemplos/");
+ for(const e of establecimientos)for(const p of planes){
+  const u=new URL(enlaceConfigurador(e.id,p.id),"https://demo.example");
+  assert.equal(u.pathname,"/demostraciones/configurar/");
+  assert.equal(u.searchParams.get("negocio"),e.id);assert.equal(u.searchParams.get("plan"),p.id);assert.equal(u.searchParams.has("practica"),false);
+ }
 });
