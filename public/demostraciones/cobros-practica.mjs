@@ -6,12 +6,12 @@ export function estadoCobro(p){
  if(p.cobro&&p.cobro.importeCentavos===p.total)return "cobrado";
  if(p.estado==="cancelado")return "cancelado";
  if(p.total===0)return "sin_cargo";
- if(p.estado==="entregado"&&!p.cobro)return "historico";
+ if(p.estado==="entregado"&&!p.cobro&&!p.cuenta)return "historico";
  return "pendiente";
 }
 export const nombresCobro={cobrado:"Cobro confirmado",cancelado:"Cancelado",sin_cargo:"Sin cargo",historico:"Entregado anteriormente · sin registro de cobro",pendiente:"Pendiente de pago"};
 export function validarCambioPedido(p,destino){
- if(destino==="entregado"&&p.total>0&&estadoCobro(p)!=="cobrado")throw Error("Confirma el cobro exacto antes de entregar.");
+ if(destino==="entregado"&&!p.cuenta&&p.total>0&&estadoCobro(p)!=="cobrado")throw Error("Confirma el cobro exacto antes de entregar.");
  if(destino==="entregado"&&p.total===0&&p.cobro)throw Error("El pedido sin cargo no debe tener cobro.");
  if(destino==="cancelado"&&p.cobro)throw Error("Anula el registro de cobro antes de cancelar. No equivale a devolver dinero.");
 }
@@ -21,7 +21,7 @@ export function centavosCobro(texto){
 }
 export function aplicarCobro(p,d,fecha=Date.now()){
  if(!d||!Number.isSafeInteger(d.revision)||d.revision!==revisionCobro(p))throw Error("El cobro cambió. Actualiza el pedido.");
- if(["entregado","cancelado"].includes(p.estado))throw Error("No se modifica el cobro de un pedido cerrado.");
+ if(p.estado==="cancelado"||p.estado==="entregado"&&!p.cuenta)throw Error("No se modifica el cobro de un pedido cerrado.");
  if(!Number.isSafeInteger(p.total)||p.total<=0)throw Error("Este pedido no requiere cobro.");
  const historial=p.historialCobros??[];
  if(!Array.isArray(historial)||historial.length>=20)throw Error("Límite de correcciones de práctica alcanzado.");
