@@ -56,7 +56,7 @@ else{
   if(servidor){const v=await remoto.leerEstado();if(expira!==null&&v.expira!==expira)throw Error("La sesión cambió; selecciona de nuevo el servidor.");expira=v.expira;datos=v.pedidos;totalRemoto=datos.length;}else datos=repo.leer();
   valida=true;ultima=Date.now();
  }
- async function operar(fn){if(ocupado)return;ocupado=true;controles();try{await fn();}catch(e){valida=false;datos=[];if(servidor)totalRemoto=null;aviso(e.message);}finally{ocupado=false;render();}}
+ async function operar(fn){if(ocupado)return;ocupado=true;controles();try{aviso("");await fn();}catch(e){valida=false;datos=[];if(servidor)totalRemoto=null;aviso(e.message);}finally{ocupado=false;render();}}
  async function detectar(){await operar(async()=>{const v=await detectarPedidos(remoto,{preferencia,locales:repo.leer().length,encargado:true});configurado=v.configurado;servidor=v.servidor;totalRemoto=v.estado?.pedidos.length??null;expira=v.estado?.expira??null;await cargar();});}
  async function cambiar(p,destino){if(ocupado||!valida||!accionesCocina(p.estado,mesas).includes(destino))return;await operar(async()=>{if(servidor){const actual=await remoto.leerEstado();if(actual.expira!==expira)throw Error("La sesión cambió. Actualiza antes de continuar.");await remoto.cambiar(p.solicitud,p.estado,destino);}else repo.cambiar(p.folio,p.estado,destino);aviso("Pedido actualizado: "+nombresEstado[destino]+".");await cargar();});}
  $("servidor").addEventListener("click",()=>operar(async()=>{await remoto.conectar();servidor=true;expira=null;guardarModo();await cargar();aviso("Sesión privada activa.");}));
