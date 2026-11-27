@@ -218,3 +218,8 @@ La galería deja de tener selector global. Café Mirador P1, Barbería Elite P2,
 ### v0.12.4 — Cuentas abiertas por mesa
 - [x] Visita única por mesa, captura mesero/cliente, consumo acumulado, entrega antes de pagar y cierre conciliado.
 - [ ] Aplicar 0006_cuentas.sql solo en lapaz-demos-desarrollo y validar Preview; cobro único de cuenta y QR vinculado a visita pendientes.
+
+### v0.12.5 — Base de integración Mercado Pago Point
+- [x] Adaptador privado Orders API, referencia e idempotencia, consulta y validación de acreditación; siete grupos de pruebas simuladas correctos.
+- [ ] Sandbox oficial privado, intentos persistentes, webhook autenticado, conciliación, OAuth por comercio y permisos reales. Sin tráfico ni credenciales reales en demo.
+- [ ] Cobro acumulado y dividido, POS/caja, inventario/recetas, reportes, impresoras, recuperación y piloto. Ver docs/mercado-pago-point.md y docs/estrategia-competitiva.md. No se publican cambios de precio.
