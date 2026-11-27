@@ -14,12 +14,13 @@ export async function atenderTerminales(request,db,s,ctx,json){
  if(request.method==="POST"&&d.accion==="configurar")return json({terminal:await configurarTerminal(db,s,d),modo:"simulado"});
  if(request.method==="POST"&&d.accion==="solicitar")return json({operacion:await solicitarTerminal(db,s,d),modo:"simulado"});
  if(request.method==="PATCH"&&d.accion==="conciliar")return json(await conciliarTerminal(db,s,d.operacion_id));
- if(request.method==="PATCH"&&d.accion==="resolver"){const operacion=await resolverTerminal(db,s,d);let conciliacion=null;if(operacion.estado==="aprobado"){try{conciliacion=await conciliarTerminal(db,s,d.operacion_id);}catch{conciliacion={registrado:false,incidencia:"Aprobación pendiente de conciliación."};}}return json({operacion,conciliacion,modo:"simulado"});}
+ if(request.method==="PATCH"&&d.accion==="resolver"){const operacion=await resolverTerminal(db,s,d);let conciliacion=null;if(operacion.estado==="aprobado"){try{conciliacion=await conciliarTerminal(db,s,d.operacion_id);}catch{await db.prepare("INSERT INTO demo_terminal_incidencias(sesion_id,operacion_id,fecha,codigo) VALUES(?,?,?,?) ON CONFLICT DO NOTHING").bind(s.id,d.operacion_id,Date.now(),"CONCILIACION_PENDIENTE").run();conciliacion={registrado:false,incidencia:"Aprobación pendiente de conciliación."};}}return json({operacion,conciliacion,modo:"simulado"});}
  return err("Acción inválida.",400);
  }catch(e){
  if(e instanceof ErrorSolicitud)return err(e.message,e.status);
  const seguros=["Terminal inválida.","Terminal ocupada, proveedor distinto o límite alcanzado.","Solicitud terminal inválida.","Identificador ya utilizado.","Terminal o cuenta ocupada, revisión distinta o límite alcanzado.","Solicitud de abono inválida.","Operación no aprobada.","Solicitud anterior sin datos recuperables.","Resultado terminal inválido.","Operación inexistente o ya resuelta."];
  if(seguros.includes(e.message))return err(e.message,409);
+ if(String(e.message).includes("Bloqueo financiero terminal"))return err("Cuenta o terminal bloqueada por una operación sin conciliar.",409);
  if(String(e.message).includes("Terminal no disponible"))return err("Terminal no disponible.",409);
  return err("No se pudo verificar la operación de terminal.",503);
  }
