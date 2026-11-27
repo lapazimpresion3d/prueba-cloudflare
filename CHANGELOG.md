@@ -77,3 +77,8 @@
 - Cargas independientes de logo y portada. Límite agregado 300000 bytes por catálogo, foto 45000 caracteres JPEG.
 - 24 comprobaciones lógicas, 20 páginas, 20 filtros, 3 URLs inválidas y 1 foto de práctica en DOM simulado. Suite integrada y navegador pendientes.
 - Propietario reportó creación de demo_perfiles. Preview no accesible desde herramienta; no se modificó main, D1 remota ni sitio comercial.
+
+## 2026-11-27 — v0.8 Negocio interactivo: pedidos de práctica
+- Carrito, modalidades, totales en centavos, folio, panel y seguimiento local; nueve combinaciones P2+ compatibles.
+- 30 pruebas lógicas, 20 combinaciones UI (9 activas, 11 desactivadas) y un flujo cliente/encargado/seguimiento correctos en simulación.
+- No se modificó D1 ni main; pendiente navegador, Preview, API de pedidos y agenda.
