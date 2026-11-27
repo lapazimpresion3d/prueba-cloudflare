@@ -6,6 +6,19 @@ import {aplicarCobro,referenciaRepetida,motivosAnulacion} from "./cobros-practic
 import {clientesDemo} from "./clientes-practica.mjs";
 import {contextoEmpresa,almacenEmpresa} from "./empresa-practica.mjs";
 const MAX=100000000,LIM=50,copy=x=>JSON.parse(JSON.stringify(x));
+const supervisor=r=>["propietario","administrador","encargado"].includes(r);
+const dinero=n=>Number.isSafeInteger(n)&&n>=0&&n<=MAX;
+export const motivosCaja=Object.freeze({ingreso:["Cambio adicional","Reposición de fondo"],retiro:["Resguardo de efectivo","Gasto ficticio"]});
+export function resumenTurno(t,ventas){
+ const r={fondo:t.fondo,efectivo:0,transferencia:0,tarjeta_externa:0,ingresos:0,retiros:0,canceladas:0,ventas:0,sinCargo:0};
+ for(const v of ventas.filter(v=>v.turno===t.id&&v.sucursal===t.sucursal)){
+  if(v.estado==="cancelado"){r.canceladas++;continue;}
+  r.ventas++;if(v.cobro)r[v.cobro.metodo]+=v.cobro.importeCentavos;else r.sinCargo++;
+ }
+ for(const m of t.movimientos)r[m.tipo==="ingreso"?"ingresos":"retiros"]+=m.importe;
+ r.totalVentas=r.efectivo+r.transferencia+r.tarjeta_externa;
+ r.esperado=r.fondo+r.efectivo+r.ingresos-r.retiros;return r;
+}
 export function admitePos(id,plan){return capacidades(obtenerEstablecimiento(id),plan).some(m=>m.id==="pos"&&m.estadoEfectivo==="disponible");}
 export function resumirVenta(id,catalogo,lineas,descuento=0){
  if(!obtenerEstablecimiento(id)||!Array.isArray(catalogo)||!Array.isArray(lineas)||lineas.length>30||!Number.isSafeInteger(descuento)||descuento<0||descuento>100)throw Error("Venta inválida.");
@@ -28,30 +41,40 @@ export function crearPosPractica(storage,id,plan,{empresaStorage=storage,ahora=D
   if(!Number.isInteger(sucursal)||!d.activas.includes(sucursal)||!Number.isInteger(empleado)||!rol||d.asignaciones[empleado]!==null&&d.asignaciones[empleado]!==sucursal||supervisor&&!["propietario","administrador","encargado"].includes(rol))throw Error("Rol o sucursal de práctica no autorizado.");
   return {sucursal,empleado,rol};
  }
- function leer(){
+ // Un único registro de almacenamiento evita escrituras separadas de caja y ventas.
+ function leerEstado(){
   if(!storage)throw Error("Almacenamiento no disponible.");
-  const raw=storage.getItem(key);if(!raw)return [];
-  const v=JSON.parse(raw);if(!Array.isArray(v)||v.length>LIM||v.some(x=>!x||typeof x.folio!=="string"||!Array.isArray(x.detalle)||!["vendido","cancelado"].includes(x.estado)))throw Error("Historial de práctica inválido.");
-  return copy(v);
+  const raw=storage.getItem(key);if(!raw)return {version:2,ventas:[],turnos:[]};
+  if(raw.length>2000000)throw Error("Historial de práctica demasiado grande.");
+  const v=JSON.parse(raw),d=Array.isArray(v)?{version:2,ventas:v,turnos:[]}:v;
+  if(!d||d.version!==2||!Array.isArray(d.ventas)||d.ventas.length>LIM||!Array.isArray(d.turnos)||d.turnos.length>50||d.ventas.some(x=>!x||typeof x.folio!=="string"||!Array.isArray(x.detalle)||!["vendido","cancelado"].includes(x.estado))||d.turnos.some(t=>!t||typeof t.id!=="string"||!dinero(t.fondo)||!Array.isArray(t.movimientos)||t.movimientos.length>100||!["abierto","cerrado"].includes(t.estado)))throw Error("Historial de práctica inválido.");
+  return copy(d);
  }
- function guardar(v){storage.setItem(key,JSON.stringify(v));}
+ function guardar(d){storage.setItem(key,JSON.stringify(d));}
+ function abierto(d,s){return d.turnos.find(t=>t.sucursal===s&&t.estado==="abierto");}
+ function turnoActor(d,a){const t=abierto(d,a.sucursal);if(!t)throw Error("Abre un turno de caja antes de registrar ventas.");if(t.empleado!==a.empleado&&!supervisor(a.rol))throw Error("El turno pertenece a otro empleado.");return t;}
+ function abrir(sucursal,empleado,fondo){const a=contexto(sucursal,empleado),d=leerEstado();if(!dinero(fondo)||abierto(d,sucursal)||d.turnos.length>=50)throw Error("Fondo inválido, turno existente o límite alcanzado.");const id="CAJA-"+folio();if(!/^CAJA-[a-zA-Z0-9-]{1,80}$/.test(id)||d.turnos.some(t=>t.id===id))throw Error("Folio de turno inválido.");const t={...a,id,fondo,apertura:ahora(),estado:"abierto",movimientos:[]};d.turnos.unshift(t);guardar(d);return copy(t);}
+ function mover(sucursal,empleado,tipo,importe,motivo){const a=contexto(sucursal,empleado,true),d=leerEstado(),t=turnoActor(d,a);if(!dinero(importe)||importe===0||!Object.hasOwn(motivosCaja,tipo)||!motivosCaja[tipo].includes(motivo)||t.movimientos.length>=100)throw Error("Movimiento inválido.");if(tipo==="retiro"&&importe>resumenTurno(t,d.ventas).esperado)throw Error("Retiro superior al efectivo esperado.");t.movimientos.push({tipo,importe,motivo,fecha:ahora(),empleado,rol:a.rol});guardar(d);return copy(t);}
+ function cerrar(sucursal,empleado,contado){const a=contexto(sucursal,empleado),d=leerEstado(),t=turnoActor(d,a);if(!dinero(contado))throw Error("Efectivo contado inválido.");const r=resumenTurno(t,d.ventas);t.estado="cerrado";t.cierre={fecha:ahora(),empleado,rol:a.rol,contado,diferencia:contado-r.esperado,resumen:r};guardar(d);return copy(t);}
+ function consultarCaja(sucursal,empleado){contexto(sucursal,empleado);const d=leerEstado();return d.turnos.filter(t=>t.sucursal===sucursal).map(t=>({...t,resumen:t.cierre?.resumen??resumenTurno(t,d.ventas)}));}
  function vender(catalogo,lineas,d){
   const actor=contexto(d.sucursal,d.empleado,d.descuento>0),r=resumirVenta(id,catalogo,lineas,d.descuento??0);
   if(!r.detalle.length)throw Error("Agrega productos o servicios.");
   if(r.total!==d.totalEsperado)throw Error("El total cambió. Revisa la venta.");
   if(d.cliente&&!clientesDemo.some(x=>x.id===d.cliente))throw Error("Cliente ficticio inválido.");
-  const ventas=leer();if(ventas.length>=LIM)throw Error("Límite de 50 ventas de práctica.");
+  const dEstado=leerEstado(),turno=turnoActor(dEstado,actor),ventas=dEstado.ventas;if(ventas.length>=LIM)throw Error("Límite de 50 ventas de práctica.");
   const f="POS-"+folio();if(!/^POS-[a-zA-Z0-9-]{1,80}$/.test(f)||ventas.some(x=>x.folio===f))throw Error("Folio duplicado.");
-  let v={...r,...actor,folio:f,creado:ahora(),cliente:d.cliente||"",estado:"recibido",revisionCobro:0};
+  let v={...r,...actor,folio:f,turno:turno.id,creado:ahora(),cliente:d.cliente||"",estado:"recibido",revisionCobro:0};
   if(r.total>0){v=aplicarCobro(v,{accion:"registrar",revision:0,totalEsperado:r.total,metodo:d.metodo,recibidoCentavos:d.recibidoCentavos,referencia:d.referencia},ahora());if(referenciaRepetida(ventas,v,v.cobro))throw Error("Folio de cobro repetido.");}
   else if(d.recibidoCentavos!==0)throw Error("Venta sin cargo no admite cobro.");
-  v.estado="vendido";guardar([v,...ventas]);return copy(v);
+  v.estado="vendido";dEstado.ventas=[v,...ventas];guardar(dEstado);return copy(v);
  }
  function cancelar(f,sucursal,empleado,motivo){
-  const actor=contexto(sucursal,empleado,true),ventas=leer(),v=ventas.find(x=>x.folio===f&&x.sucursal===sucursal);
+  const actor=contexto(sucursal,empleado,true),dEstado=leerEstado(),ventas=dEstado.ventas,v=ventas.find(x=>x.folio===f&&x.sucursal===sucursal);
   if(!v||v.estado!=="vendido"||!motivosAnulacion.includes(motivo))throw Error("Cancelación inválida.");
+  if(v.turno){const t=turnoActor(dEstado,actor);if(t.id!==v.turno)throw Error("No se modifica una venta de turno cerrado.");if(v.cobro?.metodo==="efectivo"&&v.total>resumenTurno(t,ventas).esperado)throw Error("Efectivo insuficiente para anular la venta.");}
   if(v.cobro)Object.assign(v,aplicarCobro(v,{accion:"anular",revision:v.revisionCobro,motivo},ahora()));
-  v.estado="cancelado";v.cancelacion={...actor,motivo,fecha:ahora()};guardar(ventas);return copy(v);
+  v.estado="cancelado";v.cancelacion={...actor,motivo,fecha:ahora()};guardar(dEstado);return copy(v);
  }
- return {contexto,leer:s=>{contexto(s.sucursal,s.empleado);return leer().filter(v=>v.sucursal===s.sucursal);},vender,cancelar,empresa:()=>empresa.leer()};
+ return {contexto,leer:s=>{contexto(s.sucursal,s.empleado);return leerEstado().ventas.filter(v=>v.sucursal===s.sucursal);},vender,cancelar,abrir,mover,cerrar,consultarCaja,empresa:()=>empresa.leer()};
 }
