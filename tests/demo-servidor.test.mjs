@@ -4,12 +4,14 @@ import { DatabaseSync } from "node:sqlite";
 import { readFileSync } from "node:fs";
 import { atenderDemo, contextoDemo, validarCatalogoDemo } from "../src/demostraciones.mjs";
 import { establecimientos } from "../public/demostraciones/establecimientos.mjs";
+import {relojLocal,sumarDias} from "../public/demostraciones/citas-practica.mjs";
 
 function d1(){
   const sql=new DatabaseSync(":memory:");
   sql.exec("PRAGMA foreign_keys=ON;"+readFileSync(new URL("../migrations-demo/0001_practica.sql",import.meta.url),"utf8"));
   sql.exec(readFileSync(new URL("../migrations-demo/0002_perfiles.sql",import.meta.url),"utf8"));
   sql.exec(readFileSync(new URL("../migrations-demo/0003_pedidos.sql",import.meta.url),"utf8"));
+  sql.exec(readFileSync(new URL("../migrations-demo/0004_citas.sql",import.meta.url),"utf8"));
   const wrap=(q,args=[])=>({bind:(...v)=>wrap(q,v),first:async()=>sql.prepare(q).get(...args)??null,all:async()=>({results:sql.prepare(q).all(...args)}),run:async()=>sql.prepare(q).run(...args)});
   return {sql,prepare:q=>wrap(q),batch:async ss=>{sql.exec("BEGIN");try{for(const s of ss)await s.run();sql.exec("COMMIT");}catch(e){sql.exec("ROLLBACK");throw e;}}};
 }
@@ -168,4 +170,32 @@ test("catálogo personalizado guardado y límite de 30 pedidos por negocio",asyn
   const ctx=await (await llamar(env,"/api/demo/contexto?negocio=cafe-mirador&plan=p2")).json();
   assert.equal(ctx.pedidosConfigurados,false);assert.equal(ctx.persistenciaConfigurada,true);assert.equal(ctx.perfilConfigurado,true);
   assert.equal((await llamar(env,ruta,"GET",a)).status,503);
+});
+
+test("citas remotas: intervalo atómico, precio/duración, idempotencia y cancelación",async()=>{
+  const env=envDemo(),ruta="/api/demo/citas?negocio=barberia-elite&plan=p2",a=await iniciar(env,"192.0.2.1"),b=await iniciar(env,"192.0.2.2");
+  let fecha=sumarDias(relojLocal().fecha,1);if(new Date(fecha+"T00:00:00Z").getUTCDay()===1)fecha=sumarDias(fecha,1);
+  const solicitud="b7a48289-b63a-4ec4-8e19-c376f91aef77",cita={solicitud,catalogo:"original",servicio:"corte",recurso:"barbero-a",fecha,inicio:600,precioEsperado:18000,duracionEsperada:35};
+  const otra={...cita,solicitud:"b7a48289-b63a-4ec4-8e19-c376f91aef78",inicio:630};
+  assert.equal((await llamar(env,ruta)).status,401);
+  assert.equal((await llamar(env,ruta.replace("p2","p1"),"POST",a,cita)).status,403);
+  assert.equal((await llamar(env,ruta,"POST",a,cita,"https://otro.example")).status,403);
+  assert.equal((await llamar(env,ruta,"POST",a,{...cita,precioEsperado:1})).status,409);
+  assert.equal((await llamar(env,ruta,"POST",a,{...cita,duracionEsperada:5})).status,409);
+  assert.equal((await llamar(env,ruta,"POST",a,{...cita,inicio:840})).status,409);
+  const [x,y]=await Promise.all([llamar(env,ruta,"POST",a,cita),llamar(env,ruta,"POST",a,otra)]);
+  assert.deepEqual([x.status,y.status].sort(),[201,409]);
+  const ganadora=x.status===201?cita:otra,perdedora=x.status===201?otra:cita;
+  assert.equal((await (await llamar(env,ruta,"POST",a,ganadora)).json()).repetida,true);
+  assert.equal((await llamar(env,ruta,"POST",a,{...ganadora,inicio:690})).status,409);
+  assert.equal((await (await llamar(env,ruta,"GET",b)).json()).citas.length,0);
+  assert.equal((await llamar(env,ruta,"POST",b,cita)).status,201);
+  assert.equal((await llamar(env,ruta,"PATCH",a,{solicitud:ganadora.solicitud,esperado:"pendiente",destino:"atendida"})).status,409);
+  assert.equal((await llamar(env,ruta,"PATCH",a,{solicitud:ganadora.solicitud,esperado:"pendiente",destino:"cancelada"})).status,200);
+  assert.equal((await llamar(env,ruta,"POST",a,perdedora)).status,201);
+  assert.equal((await (await llamar(env,ruta,"GET",a)).json()).citas.length,2);
+  env.DEMO_DB.sql.exec("DELETE FROM demo_sesiones");assert.equal(env.DEMO_DB.sql.prepare("SELECT count(*) AS n FROM demo_citas").get().n,0);
+  env.DEMO_DB.sql.exec("DROP TABLE demo_citas");
+  const ctx=await (await llamar(env,"/api/demo/contexto?negocio=barberia-elite&plan=p2")).json();
+  assert.equal(ctx.citasConfiguradas,false);assert.equal(ctx.pedidosConfigurados,true);
 });
