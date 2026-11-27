@@ -1,0 +1,17 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {estadoOperacion,diarioOperacion} from "../public/demostraciones/recuperacion-pagos.mjs";
+import {crearPlanCobro,agregarMovimiento,anularMovimiento,resumenPlanCobro} from "../public/demostraciones/pagos-multiples.mjs";
+const d={id:"p1",revision:0,metodo:"efectivo",consumoCentavos:3000};
+const pendiente={cuenta:"c1",datos:d};
+const base=crearPlanCobro(8500),pagado=agregarMovimiento(base,d,1);
+test("reintento no duplica",()=>assert.equal(agregarMovimiento(pagado,d),pagado));
+test("revisión obsoleta rechazada",()=>assert.throws(()=>agregarMovimiento(pagado,{...d,id:"p2"})));
+test("saldo exacto",()=>assert.equal(resumenPlanCobro(pagado).saldoCentavos,5500));
+test("consulta confirma pago",()=>assert.equal(estadoOperacion(pendiente,{cuenta:"c1",cerrado:null,plan:pagado}),"confirmada"));
+test("consulta permite mismo ID",()=>assert.equal(estadoOperacion(pendiente,{cuenta:"c1",cerrado:null,plan:base}),"reintentar"));
+test("cuenta diferente no confirma",()=>assert.equal(estadoOperacion(pendiente,{cuenta:"c2",cerrado:null,plan:pagado}),"desconocida"));
+test("conflicto de revisión",()=>assert.equal(estadoOperacion({...pendiente,datos:{...d,id:"otro"}},{cuenta:"c1",cerrado:null,plan:pagado}),"conflicto"));
+test("anulación recuperada",()=>{const v={accion:"anular",id:"a",movimiento:"p1",motivo:"Importe incorrecto",revision:1};const p=anularMovimiento(pagado,v);assert.equal(estadoOperacion({cuenta:"c1",datos:v},{cuenta:"c1",cerrado:null,plan:p}),"confirmada");assert.equal(resumenPlanCobro(p).saldoCentavos,8500);});
+test("cierre recuperado",()=>assert.equal(estadoOperacion({cuenta:"c1",datos:{accion:"cerrar",revision:1}},{cuenta:"c1",cerrado:1,plan:pagado}),"confirmada"));
+test("diario conserva solicitud tras recarga",()=>{const m=new Map(),s={getItem:k=>m.get(k),setItem:(k,v)=>m.set(k,v),removeItem:k=>m.delete(k)};diarioOperacion(s,"a").guardar(pendiente);assert.deepEqual(diarioOperacion(s,"a").leer(),pendiente);diarioOperacion(s,"a").limpiar();assert.equal(diarioOperacion(s,"a").leer(),null);});
