@@ -233,3 +233,8 @@ Pagos múltiples, subcuentas, anulaciones, reasignaciones y comprobantes program
 
 ## 2026-11-27 — Aceptación financiera
 - GitHub Actions ejecución 45990031779: SQLite 9/9, JavaScript 129/131. Dos fallos por fixtures de comandas entregadas sin cuenta; corregidos en 687e60e, con una prueba negativa adicional. Segunda ejecución pendiente de confirmación. D1 remoto y navegador pendientes; mantener Point simulado.
+
+## 2026-11-27 — Validación financiera automatizada y diagnóstico D1
+- Ejecución 45990181007 (b283b88): 9/9 SQLite y 132/132 JavaScript, sin fallos. Se confirma la corrección de fixtures.
+- Se añaden flags de disponibilidad de pagos múltiples y terminales a /api/demo/contexto y a la página de verificación. No certifican pruebas de uso.
+- No se dispone de acceso administrativo a Cloudflare D1; aplicación de migraciones 0007–0014, verificación remota y pruebas de navegador pendientes. Mantener Point exclusivamente simulado.
