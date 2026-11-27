@@ -28,6 +28,7 @@ export const modulos = [
   {id:"caja", nombre:"Caja y cortes", desde:3, estado:"disponible", depende:["pos"], detalle:"Turnos locales de práctica, fondo inicial, movimientos, arqueo y corte vinculados al POS. Sin dinero real."},
   {id:"comprobantes", nombre:"Tickets y comprobantes", desde:3, estado:"disponible", depende:["pos","caja"], detalle:"Tickets, cancelaciones y cortes ficticios; formatos térmicos 58/80 mm, descarga TXT e impresión mediante navegador."},
   {id:"inventario", nombre:"Inventario", desde:3, estado:"disponible", depende:["pos"], detalle:"Control unitario opcional por producto y sucursal, SKU, entradas, salidas, mínimos y ventas POS. Insumos y recetas pendientes."},
+  {id:"almacen", nombre:"Almacenes y traspasos", desde:3, estado:"disponible", depende:["inventario"], detalle:"Traspasos de práctica entre sucursales, tránsito, recepción con diferencias, kardex y CSV."},
   {id:"reportes", nombre:"Reportes", desde:3, estado:"en_desarrollo", detalle:"Métricas y exportaciones por establecimiento."},
   {id:"mesas", nombre:"Servicio y comandas por mesa", desde:3, estado:"disponible", giros:["restaurante"], depende:["cocina","qr_mesa"], detalle:"Agrupación de pedidos activos por mesa y entrega individual. Cuenta abierta en servidor, captura de comandas y cierre conciliado."},
   {id:"cotizaciones", nombre:"Cotizaciones", desde:3, estado:"en_desarrollo", giros:["taller","barberia","tienda"], detalle:"Propuestas, vigencia y aceptación."},

@@ -1,3 +1,4 @@
+import {enviarTraspaso,recibirTraspaso,cancelarTraspaso,consolidarInventario} from "./almacen-practica.mjs";
 import {inventarioVacio,validarInventario,configurarInventario,movimientoInventario,consumoVenta,registrarConsumo} from "./inventario-practica.mjs";
 // POS local de práctica. No transmite ventas ni usa proveedores financieros.
 import {obtenerEstablecimiento} from "./establecimientos.mjs";
@@ -59,7 +60,11 @@ export function crearPosPractica(storage,id,plan,{empresaStorage=storage,ahora=D
  function cerrar(sucursal,empleado,contado){const a=contexto(sucursal,empleado),d=leerEstado(),t=turnoActor(d,a);if(!dinero(contado))throw Error("Efectivo contado inválido.");const r=resumenTurno(t,d.ventas);t.estado="cerrado";t.cierre={fecha:ahora(),empleado,rol:a.rol,contado,diferencia:contado-r.esperado,resumen:r};guardar(d);return copy(t);}
  function consultarCaja(sucursal,empleado){contexto(sucursal,empleado);const d=leerEstado();return d.turnos.filter(t=>t.sucursal===sucursal).map(t=>({...t,resumen:t.cierre?.resumen??resumenTurno(t,d.ventas)}));}
  function consultarInventario(sucursal,empleado){contexto(sucursal,empleado);const i=leerEstado().inventario;return {productos:i.productos.filter(p=>p.sucursal===sucursal),movimientos:i.movimientos.filter(m=>m.sucursal===sucursal)};}
- function configurarStock(sucursal,empleado,catalogo,id,config){const a=contexto(sucursal,empleado,true),d=leerEstado(),p=configurarInventario(d.inventario,a,catalogo,id,config,ahora());guardar(d);return copy(p);}
+ function consultarAlmacen(sucursal,empleado){const a=contexto(sucursal,empleado),d=leerEstado(),empresaActual=empresa.leer(),global=["propietario","administrador"].includes(a.rol),alcance=global?Array.from({length:c.sucursales},(_,i)=>i+1):[sucursal];return {global,activas:empresaActual.activas,productos:d.inventario.productos.filter(p=>alcance.includes(p.sucursal)),movimientos:d.inventario.movimientos.filter(m=>alcance.includes(m.sucursal)),traspasos:d.inventario.traspasos.filter(t=>alcance.includes(t.origen)||alcance.includes(t.destino)),consolidado:global?consolidarInventario(d.inventario,alcance):[]};}
+ function enviarStock(sucursal,empleado,destino,id,cantidad){const a=contexto(sucursal,empleado,true),d=leerEstado();if(!empresa.leer().activas.includes(destino))throw Error("Destino inactivo.");const t=enviarTraspaso(d.inventario,a,destino,id,cantidad,"TR-"+folio(),ahora());guardar(d);return copy(t);}
+ function recibirStock(sucursal,empleado,f,cantidad,motivo){const a=contexto(sucursal,empleado,true),d=leerEstado(),t=recibirTraspaso(d.inventario,a,f,cantidad,motivo,ahora());guardar(d);return copy(t);}
+ function cancelarStock(sucursal,empleado,f){const a=contexto(sucursal,empleado,true),d=leerEstado(),t=cancelarTraspaso(d.inventario,a,f,ahora());guardar(d);return copy(t);}
+ function configurarStock(sucursal,empleado,catalogo,id,config){const a=contexto(sucursal,empleado,true),d=leerEstado(),p=(()=>{if(!config.activo&&d.inventario.traspasos.some(t=>t.estado==="transito"&&t.id===id&&(t.origen===sucursal||t.destino===sucursal)))throw Error("Hay traspasos pendientes para este producto.");return configurarInventario(d.inventario,a,catalogo,id,config,ahora());})();guardar(d);return copy(p);}
  function moverStock(sucursal,empleado,id,tipo,cantidad,motivo){const a=contexto(sucursal,empleado,true),d=leerEstado(),p=movimientoInventario(d.inventario,a,id,tipo,cantidad,motivo,ahora());guardar(d);return copy(p);}
  function vender(catalogo,lineas,d){
   const actor=contexto(d.sucursal,d.empleado,d.descuento>0),r=resumirVenta(id,catalogo,lineas,d.descuento??0);
@@ -83,5 +88,5 @@ export function crearPosPractica(storage,id,plan,{empresaStorage=storage,ahora=D
   registrarConsumo(dEstado.inventario,actor,v.consumoInventario??[],f,ahora(),true);
   v.estado="cancelado";v.cancelacion={...actor,motivo,fecha:ahora()};guardar(dEstado);return copy(v);
  }
- return {contexto,leer:s=>{contexto(s.sucursal,s.empleado);return leerEstado().ventas.filter(v=>v.sucursal===s.sucursal);},vender,cancelar,abrir,mover,cerrar,consultarCaja,consultarInventario,configurarStock,moverStock,empresa:()=>empresa.leer()};
+ return {contexto,leer:s=>{contexto(s.sucursal,s.empleado);return leerEstado().ventas.filter(v=>v.sucursal===s.sucursal);},vender,cancelar,abrir,mover,cerrar,consultarCaja,consultarInventario,configurarStock,moverStock,consultarAlmacen,enviarStock,recibirStock,cancelarStock,empresa:()=>empresa.leer()};
 }
