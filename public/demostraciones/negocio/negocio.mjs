@@ -2,7 +2,7 @@ import {planes,importe} from "../config.mjs";
 import {obtenerEstablecimiento,filtrarCatalogo} from "../establecimientos.mjs";
 import {crearCatalogosLocales,imagenOfertaSegura} from "../catalogo-local.mjs";
 import {crearPerfilesLocales} from "../perfil-local.mjs";
-import {presentacionDe,enlacesDemo,simbolos} from "../presentaciones.mjs";
+import {presentacionDe,enlacesDemo,simbolos,destacadosDisponibles} from "../presentaciones.mjs";
 import {ilustracionPortada} from "../ilustraciones.mjs";
 import {iniciarCarrito} from "../carrito-ui.mjs";
 import {admiteCitas,serviciosCita} from "../citas-practica.mjs";
@@ -36,7 +36,9 @@ if(!base||!plan||!t){
   else simbolo.innerHTML='<svg viewBox="0 0 96 96" width="106" height="106" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+simbolos[t.estilo]+'</svg>';
   arte.append(simbolo,el("span",t.sigla,"arte-sigla"),el("span",datos.nombre,"arte-nombre"));
   $("arte").append(arte);
-  $("destacados").replaceChildren(...t.destacados.map((x,i)=>{const a=el("a");a.href="#catalogo";a.append(el("span",String(i+1).padStart(2,"0"),"numero"),el("strong",x));a.addEventListener("click",()=>{const op=[...$("categoria").options].find(o=>o.value===x);$("categoria").value=op?x:"";$("buscar").value="";render();});return a;}));
+  const destacados=destacadosDisponibles(t,datos.catalogo);
+  $("destacados").hidden=!destacados.length;
+  $("destacados").replaceChildren(...destacados.map((d,i)=>{const a=el("a");a.href="#catalogo";a.append(el("span",String(i+1).padStart(2,"0"),"numero"),el("strong",d.nombre));a.addEventListener("click",()=>{$("categoria").value=d.categoria;$("buscar").value="";render();});return a;}));
   const carrito=iniciarCarrito(datos,plan.id,practica);
   const citas=admiteCitas(base.id,plan.id),urlCitas="/demostraciones/citas/?"+new URLSearchParams({negocio:base.id,plan:plan.id,...(practica?{practica:"1"}:{})});
   $("nav-citas").hidden=!citas;$("nav-citas").href=urlCitas;
@@ -61,7 +63,10 @@ if(!base||!plan||!t){
   }
   $("buscar").addEventListener("input",render);$("categoria").addEventListener("change",render);
   const links=enlacesDemo(base.id,plan.id,practica);
-  $("administracion").href=links.administracion;$("administracion-arriba").href=links.administracion;$("administracion-arriba").hidden=false;$("comparador").href=links.comparador;
+  $("administracion").href=links.administracion;$("administracion-arriba").href=links.administracion;$("administracion-arriba").hidden=false;$("comparador").href="/demostraciones/ejemplos/";
+  $("salir-practica").href=enlacesDemo(base.id,plan.id).negocio;
+  $("aviso-practica-arriba").hidden=!practica;
+  $("plan-visible").textContent=plan.nombre+(plan.id==="p1"?" · Ejemplo de página y catálogo":" · Funciones de práctica disponibles según el giro");
   $("aviso-practica").hidden=!practica;
   render();$("pagina").hidden=false;
   // Al volver desde el panel con el historial del navegador, reconstruir desde la copia de práctica.
