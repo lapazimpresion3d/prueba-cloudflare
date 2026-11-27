@@ -5,7 +5,7 @@ import { establecimientos, obtenerEstablecimiento, filtrarCatalogo } from "../pu
 
 test("cinco negocios y cuatro planes con importes exactos en centavos",()=>{
   assert.deepEqual(establecimientos.map(e=>e.nombre),["Café Mirador","Barbería Elite","Mundo Mascotas","Taquería El Comal","Auto Servicio Bahía"]);
-  assert.deepEqual(planes.map(p=>[p.implementacion,p.mensualidad]),[[75000,14900],[150000,29900],[250000,44900],[350000,64900]]);
+  assert.deepEqual(planes.map(p=>[p.implementacion,p.mensualidad]),[[75000,14900],[150000,24900],[250000,34900],[350000,49900]]);
   assert.equal(new Set(establecimientos.map(e=>e.id)).size,5);
 });
 test("20 combinaciones independientes; pedidos de práctica solo en giros y planes compatibles",()=>{

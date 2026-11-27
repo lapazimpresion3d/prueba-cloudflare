@@ -2,9 +2,9 @@
 // No es autorización del SaaS. Sin sesiones, D1, datos reales ni operaciones de escritura.
 export const planes = [
   { id:"p1", nombre:"Presencia digital", implementacion:75000, mensualidad:14900, moneda:"MXN", descripcion:"Página web y catálogo informativo." },
-  { id:"p2", nombre:"Negocio interactivo", implementacion:150000, mensualidad:29900, moneda:"MXN", descripcion:"Interacción con clientes mediante pedidos o citas, según el giro." },
-  { id:"p3", nombre:"Gestión comercial", implementacion:250000, mensualidad:44900, moneda:"MXN", descripcion:"Operación interna, punto de venta, caja y gestión comercial." },
-  { id:"p4", nombre:"Gestión profesional", implementacion:350000, mensualidad:64900, moneda:"MXN", descripcion:"Administración avanzada y módulos especializados." }
+  { id:"p2", nombre:"Negocio interactivo", implementacion:150000, mensualidad:24900, moneda:"MXN", descripcion:"Interacción con clientes mediante pedidos o citas, según el giro." },
+  { id:"p3", nombre:"Gestión comercial", implementacion:250000, mensualidad:34900, moneda:"MXN", descripcion:"Operación interna, punto de venta, caja y gestión comercial." },
+  { id:"p4", nombre:"Gestión profesional", implementacion:350000, mensualidad:49900, moneda:"MXN", descripcion:"Administración avanzada y módulos especializados." }
 ];
 
 // Estado central del escaparate: disponible = realmente utilizable aquí;

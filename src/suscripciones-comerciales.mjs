@@ -1,6 +1,8 @@
 import {planes,modulos,limitesPlanes as limites} from "../public/demostraciones/config.mjs";
 // Límites provisionales; catálogo de contratación no equivale a disponibilidad de producción.
-export const catalogoInicial=Object.freeze(planes.map((p,i)=>Object.freeze({...p,version:1,usuarios:limites[p.id][0],sucursales:limites[p.id][1],modulos:Object.freeze(modulos.filter(m=>m.desde<=i+1).map(m=>m.id))})));
+// La versión contractual 1 conserva sus tarifas; el escaparate tiene precios de lanzamiento.
+const mensualidadesV1=Object.freeze({p1:14900,p2:29900,p3:44900,p4:64900});
+export const catalogoInicial=Object.freeze(planes.map((p,i)=>Object.freeze({...p,mensualidad:mensualidadesV1[p.id],version:1,usuarios:limites[p.id][0],sucursales:limites[p.id][1],modulos:Object.freeze(modulos.filter(m=>m.desde<=i+1).map(m=>m.id))})));
 const id=x=>typeof x==="string"&&x.length>0&&x.length<=128;
 export async function crearGestorSuscripciones(env,{autorizarOperador,autorizarComercial,habilitado=false,reloj=Date.now,modulosOperativos=[]}={}){
  const db=env.COMMERCE_DB;
