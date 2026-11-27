@@ -13,7 +13,7 @@
 <div id="pagina" hidden>
 <header class="cabecera">
   <a class="identidad" href="#inicio"><span id="logo" class="logo" aria-hidden="true"></span><span id="nombre"></span></a>
-  <nav aria-label="Navegación del negocio"><a href="#inicio">Inicio</a><a id="nav-catalogo" href="#catalogo">Catálogo</a><a href="#nosotros">Nosotros</a><a href="#contacto">Contacto</a></nav>
+  <nav aria-label="Navegación del negocio"><a href="#inicio">Inicio</a><a id="nav-catalogo" href="#catalogo">Catálogo</a><a href="#nosotros">Nosotros</a><a href="#carrito" id="nav-carrito" hidden>Carrito</a><a href="#seguimiento" id="nav-seguimiento" hidden>Mis pedidos</a><a href="#contacto">Contacto</a></nav>
 </header>
 <main id="contenido">
   <section id="inicio" class="hero" aria-labelledby="titulo">
@@ -25,6 +25,22 @@
     <div class="encabezado"><div><p class="sobrelinea">DESCUBRE NUESTRA SELECCIÓN</p><h2 id="titulo-catalogo"></h2></div><p class="nota">Precios ilustrativos en MXN</p></div>
     <div class="filtros"><label>Buscar<input id="buscar" type="search" placeholder="Buscar en el catálogo"></label><label>Categoría<select id="categoria"><option value="">Todas</option></select></label></div>
     <p id="resultados" class="nota" role="status"></p><div id="productos" class="productos"></div>
+  </section>
+  <section id="seccion-carrito" class="bloque bloque-pedido" hidden aria-labelledby="titulo-carrito">
+    <div id="carrito" class="encabezado"><div><p class="sobrelinea">PEDIDOS DE PRÁCTICA</p><h2 id="titulo-carrito">Tu carrito</h2></div><button id="vaciar-carrito" class="boton-pedido" type="button">Vaciar</button></div>
+    <p class="nota">Simulación en esta pestaña. No se envían pedidos, no se cobran importes ni se solicitan datos personales.</p>
+    <p id="carrito-vacio">Aún no has agregado productos.</p><div id="lineas-carrito"></div>
+    <div class="resumen-pedido">
+      <label>Modalidad <select id="modalidad-pedido"></select></label>
+      <p>Subtotal <strong id="pedido-subtotal"></strong></p><p>Entrega <strong id="pedido-cargo"></strong></p><p class="total-pedido">Total <strong id="pedido-total"></strong></p>
+      <button id="enviar-pedido" class="principal" type="button" disabled>Crear pedido de práctica</button>
+      <p id="aviso-carrito" role="status" aria-live="polite"></p>
+    </div>
+  </section>
+  <section id="seccion-seguimiento" class="bloque bloque-pedido" hidden aria-labelledby="titulo-seguimiento">
+    <div id="seguimiento" class="encabezado"><h2 id="titulo-seguimiento">Mis pedidos de práctica</h2><button id="actualizar-seguimiento" type="button" class="boton-pedido">Actualizar estado</button></div>
+    <p class="nota">Abre el panel administrativo en esta misma pestaña para cambiar el estado y vuelve aquí para consultar el seguimiento.</p>
+    <p id="sin-pedidos">No hay pedidos registrados.</p><div id="lista-seguimiento"></div>
   </section>
   <section id="nosotros" class="nosotros" aria-labelledby="titulo-nosotros">
     <div><p class="sobrelinea">CONÓCENOS</p><h2 id="titulo-nosotros"></h2><p id="descripcion"></p><p id="historia"></p></div>
