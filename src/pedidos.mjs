@@ -138,7 +138,7 @@ const totalConEnvio = "total_centavos + COALESCE(json_extract(detalle_json, '$.e
 const envioPendienteSQL = "(json_extract(detalle_json, '$.servicio') = 'domicilio' AND json_extract(detalle_json, '$.entrega.envioCentavos') IS NULL)";
 const cobroActivoSQL = "EXISTS (SELECT 1 FROM cobros_pedido WHERE pedido_folio = pedidos_demo.folio AND anulado IS NULL)";
 const cobroCoincideSQL = `EXISTS (SELECT 1 FROM cobros_pedido WHERE pedido_folio = pedidos_demo.folio AND anulado IS NULL AND importe_centavos = ${totalConEnvio})`;
-const entregaPermitidaSQL = `(NOT ${envioPendienteSQL} AND (${totalConEnvio} = 0 OR ${cobroCoincideSQL}))`;
+const entregaPermitidaSQL = `(NOT ${envioPendienteSQL} AND ((${totalConEnvio} = 0 AND NOT ${cobroActivoSQL}) OR ${cobroCoincideSQL}))`;
 const pedidoConCobro = `(${totalConEnvio} > 0 OR ${envioPendienteSQL})`;
 
 function bloqueoAccion(accion, fila, detalle, cocina) {
@@ -147,7 +147,8 @@ function bloqueoAccion(accion, fila, detalle, cocina) {
   const total = fila.total_centavos + (detalle.entrega?.envioCentavos ?? 0);
   if (accion === "entregado") {
     if (pendiente) return { requiereEnvio: true };
-    if (total > 0 && (fila.cobro_registrado == null || fila.cobro_centavos !== total)) return { requiereCobro: true };
+    if ((total > 0 && (fila.cobro_registrado == null || fila.cobro_centavos !== total)) ||
+        (total === 0 && fila.cobro_registrado != null)) return { requiereCobro: true };
   }
   if (accion === "cancelado" && fila.cobro_registrado != null) return { requiereAnularCobro: true };
   return {};
@@ -325,7 +326,7 @@ export async function administrarPedidos(request, db, url, json, cocina = false)
       "estado NOT IN ('entregado', 'cancelado')"];
     if (sinCobro) {
       condiciones[0] = "estado = 'entregado'";
-      condiciones.push("c.pedido_folio IS NULL", pedidoConCobro);
+      condiciones.push(`((${pedidoConCobro} AND c.pedido_folio IS NULL) OR ${envioPendienteSQL} OR (c.pedido_folio IS NOT NULL AND c.importe_centavos <> ${totalConEnvio}))`);
     }
     if (reportados) {
       condiciones[0] = "estado <> 'cancelado'";
@@ -424,7 +425,7 @@ export async function administrarPedidos(request, db, url, json, cocina = false)
   if (requiereCobro) {
     const vigente = await db.prepare("SELECT estado FROM pedidos_demo WHERE folio = ?").bind(datos.folio).first();
     if (vigente?.estado === datos.actual) {
-      return json({ error: "Confirma el costo de envío y registra el pago por el total antes de entregar (si el total es cero no necesita cobro)." }, 409);
+      return json({ error: "Confirma el envío y concilia el pago con el total antes de entregar. Si el total es cero no debe existir un cobro activo." }, 409);
     }
   }
   if (datos.nuevo === "cancelado") {
