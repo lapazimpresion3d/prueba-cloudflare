@@ -177,3 +177,8 @@ Documentos vigentes: docs/arquitectura-multicomercio.md, docs/auditoria-multicom
 ### v0.11 — Agenda privada en servidor
 - [x] API de citas, control de solapamiento en INSERT, reintento idempotente, estados condicionados y modo local/remoto explícito.
 - [ ] Ejecutar 0004_citas.sql solo en DEMO_DB y validar Preview/navegador. Agenda editable y mesas pendientes. Ver docs/citas-servidor-demo.md.
+
+### v0.11.3 — Estabilización previa a publicación
+- [x] Pedidos: detección de sesión, selección de origen y acceso directo al encargado, guardado de solicitud pendiente y comprobación de vencimiento, indicadores de error y conteos. Pruebas simuladas de flujo (6) y selector (7) correctas; pendiente validación final en navegador.
+- [x] /demostraciones/verificacion/ ofrece comprobaciones GET de 10 contextos P1/P2, indicadores de catálogo, identidad, pedidos y citas según giro; no crea sesiones ni comprueba escrituras. Acceso desde comparador. Sintaxis e IDs comprobados; sin prueba real de Cloudflare.
+- [ ] Propietario verifica Preview actual, tabla demo_citas (aplicación aún no confirmada) y operación de las cinco demos. P1 primero; publicar solo con aprobación explícita y destino estable. No cambiar main ni sitio comercial.
