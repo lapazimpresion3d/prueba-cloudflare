@@ -1,3 +1,4 @@
+import {panelPagosMultiples} from "./pagos-ui.mjs";
 import {versionCuenta} from "../cobro-cuenta.mjs";
 import {centavosCobro,motivosAnulacion,metodosCobroDemo} from "../cobros-practica.mjs";
 import {admiteCuentas,consumoCuenta,enlaceComanda} from "../cuentas-practica.mjs";
@@ -12,6 +13,7 @@ const el=(t,s,c)=>{const n=document.createElement(t);if(s!==undefined)n.textCont
 if(!admiteCuentas(id,plan)){$("error").textContent="Cuentas de mesa no incluidas en este negocio o paquete.";$("error").hidden=false;}
 else{
  const query=new URLSearchParams({negocio:id,plan}),ruta="/api/demo/cuentas?"+query,links=enlacesDemo(id,plan);
+ let pagosPorCuenta=new Map();
  let ocupado=false,configurado=false,expira=null,cuentas=[],pedidos=[],valida=false,pendiente=null,objetivo=null;
  const clave="lapaz:demo:cuenta:pendiente";
  try{pendiente=JSON.parse(sessionStorage.getItem(clave)||"null");}catch{}
@@ -27,7 +29,7 @@ else{
  function controles(){
   $("estado").textContent=ocupado?"Consultando…":!configurado?"Falta configurar demo_cuentas o demo_pedidos en D1.":!valida?"Activa la sesión de servidor o actualiza.":"Sesión privada de servidor activa.";
   $("activar").disabled=ocupado||!configurado||valida;$("actualizar").disabled=ocupado;
-  for(const b of $("mesas").querySelectorAll("button"))b.disabled=ocupado||!valida||b.dataset.bloqueado==="1";
+  for(const b of document.querySelectorAll("#mesas button,#historial button"))b.disabled=ocupado||!valida||b.dataset.bloqueado==="1";
  }
  const dialogo=$("dialogo-cuenta");
  $("motivo-cuenta").replaceChildren(new Option("Selecciona motivo",""),...motivosAnulacion.map(x=>new Option(x,x)));
@@ -54,19 +56,23 @@ else{
  });
  function tarjeta(c){
   const card=el("article",undefined,"cuenta-mesa"),s=consumoCuenta(c,pedidos),abierta=c.cerrado===null;
+  const pm=pagosPorCuenta.get(c.cuenta_id),multiple=pm?.datos?.plan.revision>0;
   card.dataset.abierta=String(abierta);
-  card.append(el("h3","Mesa "+c.mesa+" · "+(abierta?"Ocupada":"Cerrada")),el("p",c.personas+" personas · "+new Date(c.abierto).toLocaleString("es-MX")),el("p","Cuenta: "+c.cuenta_id,"nota"),el("strong","Consumo: "+importe(s.total),"importe"),el("p","Cobrado: "+importe(s.cobrado)+" · Pendiente: "+importe(s.pendiente)),el("p",s.porEntregar+" comandas por entregar"));
+  card.append(el("h3","Mesa "+c.mesa+" · "+(abierta?"Ocupada":"Cerrada")),el("p",c.personas+" personas · "+new Date(c.abierto).toLocaleString("es-MX")),el("p","Cuenta: "+c.cuenta_id,"nota"),el("strong","Consumo: "+importe(s.total),"importe"),el("p",multiple?"Cobrado: "+importe(pm.datos.resumen.abonadoCentavos)+" · Pendiente: "+importe(pm.datos.resumen.saldoCentavos):pm?.error?"Saldo por verificar":"Cobrado: "+importe(s.cobrado)+" · Pendiente: "+importe(s.pendiente)),el("p",s.porEntregar+" comandas por entregar"));
   const detalle=el("details"),lista=el("ul");detalle.append(el("summary",s.todos.length+" comandas"),lista);
-  for(const p of s.todos){const item=el("li",nombresEstado[p.estado]+" · "+importe(p.total)+" · "+nombresCobro[estadoCobro(p)]);const partes=el("ul");for(const l of p.detalle)partes.append(el("li",l.cantidad+" × "+textoLinea(l)));item.append(partes);lista.append(item);}
+  for(const p of s.todos){const item=el("li",nombresEstado[p.estado]+" · "+importe(p.total)+" · "+(multiple?"Conciliación por cuenta":nombresCobro[estadoCobro(p)]));const partes=el("ul");for(const l of p.detalle)partes.append(el("li",l.cantidad+" × "+textoLinea(l)));item.append(partes);lista.append(item);}
   card.append(detalle);
   const grupos=new Map();for(const p of s.todos)if(p.cobro?.grupo)grupos.set(p.cobro.grupo.id,{...p.cobro.grupo,metodo:p.cobro.metodo,referencia:p.cobro.referencia});
   for(const g of grupos.values()){card.append(el("p","Cobro agrupado: "+importe(g.total)+" · "+metodosCobroDemo[g.metodo]+(g.referencia?" · "+g.referencia:"")+" · Recibido "+importe(g.recibido)+" · Cambio "+importe(g.cambio)));if(abierta){const b=el("button","Anular cobro agrupado");b.addEventListener("click",()=>abrirDialogo(c,s,g));card.append(b);}}
-  if(abierta){
+  if(pm?.datos){const url="/api/demo/pagos-multiples?"+query+"&cuenta="+encodeURIComponent(c.cuenta_id);
+   card.append(panelPagosMultiples(c,pm.datos,{enviar:d=>operar(async()=>{await api(url,"POST",d);aviso("Abono ficticio registrado.");await cargar();}),cerrar:revision=>operar(async()=>{await api(url,"PATCH",{accion:"cerrar",revision});aviso("Cuenta cerrada. Mesa liberada.");await cargar();})}));
+  }else if(pm?.error)card.append(el("p",pm.error,"nota"));
+  if(abierta&&!multiple&&!pm?.error){
    for(const [texto,origen] of [["Capturar comanda como mesero","mesero"],["Abrir menú del cliente para esta visita","cliente"]]){const a=el("a",texto);a.href=enlaceComanda(c,plan,origen);card.append(a);}
    if(s.pendiente>0){const pagar=el("button","Cobrar saldo completo","principal");pagar.dataset.bloqueado=s.porEntregar?"1":"0";pagar.disabled=!!s.porEntregar;pagar.addEventListener("click",()=>{if(!s.porEntregar)abrirDialogo(c,s);});card.append(pagar);}
    const b=el("button","Cerrar cuenta y liberar mesa","principal");b.dataset.bloqueado=s.puedeCerrar?"0":"1";b.disabled=!s.puedeCerrar;b.addEventListener("click",()=>{if(ocupado||!valida||!s.puedeCerrar||!confirm("¿Cerrar esta visita y liberar la mesa?"))return;operar(async()=>{await api(ruta,"PATCH",{cuenta:c.cuenta_id,accion:"cerrar"});aviso("Cuenta cerrada. Mesa liberada.");await cargar();});});card.append(b);
    if(!s.puedeCerrar)card.append(el("p","Entrega todas las comandas y cobra el saldo antes de cerrar.","nota"));
-  }else card.append(el("p","Cerrada: "+new Date(c.cerrado).toLocaleString("es-MX")));
+  }else if(!abierta)card.append(el("p","Cerrada: "+new Date(c.cerrado).toLocaleString("es-MX")));
   return card;
  }
  function render(){
@@ -94,11 +100,17 @@ else{
  async function cargar(){
   const a=await api(ruta),p=await api("/api/demo/pedidos?"+query);
   if(a.expira!==p.expira||!Array.isArray(a.cuentas)||!Array.isArray(p.pedidos))throw Error("No se pudo verificar la misma sesión.");
-  expira=a.expira;cuentas=a.cuentas;pedidos=p.pedidos;valida=true;
+  expira=a.expira;cuentas=a.cuentas;pedidos=p.pedidos;
+  const nuevos=new Map();
+  await Promise.all(cuentas.filter(c=>{const s=consumoCuenta(c,pedidos);return !s.todos.some(p=>p.cobro)&&!s.porEntregar&&(s.total>0||c.cerrado!==null);}).map(async c=>{
+   try{const datos=await api("/api/demo/pagos-multiples?"+query+"&cuenta="+encodeURIComponent(c.cuenta_id));nuevos.set(c.cuenta_id,{datos});}
+   catch(e){if(e.status===503&&e.message==="Falta configurar las migraciones de pagos múltiples.")return;if(c.cerrado!==null&&e.status===409)return;nuevos.set(c.cuenta_id,{error:"Pagos múltiples: "+e.message+" Actualiza para verificar."});}
+  }));
+  pagosPorCuenta=nuevos;valida=true;
   if(pendiente&&(pendiente.expira!==expira||cuentas.some(c=>c.cuenta_id===pendiente.datos.cuenta))){sessionStorage.removeItem(clave);pendiente=null;}
  }
  async function operar(fn){if(ocupado)return;ocupado=true;controles();try{await fn();}catch(e){valida=false;aviso(e.message+" Actualiza para recuperar el estado.");}finally{ocupado=false;render();}}
- async function detectar(){if(dialogo.open)return;await operar(async()=>{const ctx=await api("/api/demo/contexto?"+query);configurado=ctx.cuentasConfiguradas===true;valida=false;if(configurado){try{await cargar();}catch(e){if(e.status!==401)throw e;}}});}
+ async function detectar(){if(dialogo.open||document.activeElement?.closest(".pagos-multiples"))return;await operar(async()=>{const ctx=await api("/api/demo/contexto?"+query);configurado=ctx.cuentasConfiguradas===true;valida=false;if(configurado){try{await cargar();}catch(e){if(e.status!==401)throw e;}}});}
  $("activar").addEventListener("click",()=>operar(async()=>{await api("/api/demo/sesion","POST");await cargar();aviso("Sesión de práctica activa.");}));
  $("actualizar").addEventListener("click",detectar);window.addEventListener("focus",detectar);window.addEventListener("pageshow",e=>{if(e.persisted)detectar();});
  setInterval(()=>{if(!document.hidden&&!ocupado)detectar();},20000);
