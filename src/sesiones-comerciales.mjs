@@ -27,8 +27,9 @@ export async function crearSesionesComerciales(env,{verificarIdentidad,habilitad
  return Object.freeze({
  async iniciar(request){
   exigir();
+  if(request.method!=="POST"||request.headers.get("Origin")!==new URL(request.url).origin)throw Error("Origen no permitido.");
   const i=await verificarIdentidad(request);
-  if(!i||i.emailVerified!==true||typeof i.emisor!=="string"||typeof i.sujeto!=="string")throw Error("Identidad comercial no verificada.");
+  if(!i||i.emailVerified!==true||typeof i.emisor!=="string"||!i.emisor||i.emisor.length>128||typeof i.sujeto!=="string"||!i.sujeto||i.sujeto.length>128)throw Error("Identidad comercial no verificada.");
   const token=hex(crypto.getRandomValues(new Uint8Array(32))),h=await hash(token),n=reloj();
   const r=await q("INSERT INTO comercio_sesiones(hash,usuario,creado,expira,ultima) SELECT ?,id,?,?,? FROM usuarios WHERE emisor=? AND sujeto=? AND activo=1 RETURNING usuario",h,n,n+DURACION,n,i.emisor,i.sujeto);
   if(!r)throw Error("Usuario comercial no autorizado.");
