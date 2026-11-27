@@ -18,6 +18,7 @@ if(!negocio||!admitePedidos(id,plan)){
   function guardarModo(){preferencia=servidor?"servidor":"local";try{almacen?.setItem(claveModo,preferencia);}catch{}}
   function controles(){ $("modo-pedidos").textContent=servidor?"Práctica en servidor":"Práctica local";$("activar-pedidos").disabled=comprobando||ocupado||configurado===false;$("pedidos-locales").disabled=comprobando||ocupado||!servidor;$("estado-origen").textContent=comprobando?"Comprobando sesión…":configurado===false?"Servidor no configurado.":configurado===null?"No se pudo comprobar el servidor.":servidor?"Sesión privada en servidor.":"Solo pedidos locales de esta pestaña.";$("cantidad-local").textContent=String(repo.leer().length);$("cantidad-remota").textContent=totalRemoto===null?"—":String(totalRemoto);$("restaurar").hidden=servidor; }
   $("nombre").textContent=negocio.nombre;$("volver-panel").href=links.administracion;$("ver-cliente").href=links.negocio;$("ver-practica").href=enlacesDemo(id,plan,true).negocio;
+  if(id==="taqueria-el-comal"){$("filtro-mesa-campo").hidden=false;$("filtro-mesa").replaceChildren(new Option("Todas",""),...["1","2","3","4","5","6"].map(m=>new Option("Mesa "+m+(m==="6"?" (histórica)":""),m)));}
   const aviso=s=>{$("aviso").textContent=s;};
   async function render(){
     const n=++generacion,modo=servidor;controles();
@@ -25,7 +26,7 @@ if(!negocio||!admitePedidos(id,plan)){
     if(n!==generacion||modo!==servidor)return;if(modo)totalRemoto=pedidos.length;controles();
     const estado=$("filtro").value,modos=modalidadesPedido(id);
     $("resumen").replaceChildren(...Object.entries(nombresEstado).map(([k,n])=>{const c=el("div",undefined,"contador-pedido");c.append(el("strong",String(pedidos.filter(p=>p.estado===k).length)),el("span",n));return c;}));
-    const lista=pedidos.filter(p=>!estado||p.estado===estado);
+    const mesa=$("filtro-mesa").value;const lista=pedidos.filter(p=>(!estado||p.estado===estado)&&(!mesa||p.datosCliente?.mesa===mesa));
     $("pedidos").replaceChildren(...lista.map(p=>{
       const card=el("article",undefined,"pedido-admin"),head=el("div",undefined,"encabezado");
       head.append(el("strong",p.folio),el("span",nombresEstado[p.estado],"etiqueta disponible"));
@@ -52,7 +53,7 @@ if(!negocio||!admitePedidos(id,plan)){
   $("activar-pedidos").addEventListener("click",async()=>{if(comprobando||ocupado)return;ocupado=true;controles();try{await remoto.conectar();configurado=true;servidor=true;guardarModo();aviso("Práctica en servidor activada.");}catch(e){aviso(e.message);}finally{ocupado=false;await render();}});
   $("pedidos-locales").addEventListener("click",()=>{if(comprobando||ocupado)return;servidor=false;guardarModo();aviso("Práctica local activa.");render();});
   async function detectar(){if(ocupado||comprobando)return;comprobando=true;controles();try{const v=await detectarPedidos(remoto,{preferencia,locales:repo.leer().length,encargado:true});configurado=v.configurado;servidor=v.servidor;totalRemoto=v.estado?.pedidos.length??null;}catch(e){configurado=null;totalRemoto=null;aviso(e.message);}finally{comprobando=false;await render();}}
-  $("filtro").addEventListener("change",()=>{if(!ocupado&&!comprobando)render();});$("actualizar").addEventListener("click",detectar);
+  $("filtro").addEventListener("change",()=>{if(!ocupado&&!comprobando)render();});$("filtro-mesa").addEventListener("change",()=>{if(!ocupado&&!comprobando)render();});$("actualizar").addEventListener("click",detectar);
   $("restaurar").addEventListener("click",()=>{if(comprobando||servidor||ocupado)return;if(!confirm("¿Eliminar todos los pedidos de práctica de "+negocio.nombre+" de esta pestaña?"))return;try{repo.restaurar();aviso("Historial restablecido.");}catch(e){aviso(e.message);}render();});
   window.addEventListener("pageshow",e=>{if(e.persisted)detectar();});window.addEventListener("focus",detectar);document.title="Empresa · Administración de pedidos · "+negocio.nombre;detectar();$("contenido-pedidos").hidden=false;
 }
