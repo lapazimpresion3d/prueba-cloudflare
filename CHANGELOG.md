@@ -1,4 +1,10 @@
 # Registro de cambios
+## 2026-11-26 — Demostraciones multicomercio tempranas
+- Escaparate compartido /demostraciones/ con Café Mirador, Barbería Elite, Mundo Mascotas, Taquería El Comal y Auto Servicio Bahía; 27 ofertas ficticias tipadas y 20 combinaciones giro/plan.
+- Selector independiente de planes, precios configurables en registro central, filtros y estados de disponibilidad. Solo página y catálogo operativos en la galería; módulos futuros identificados sin simular operaciones.
+- Enlaces a la demo original sin cambiar su lógica ni API; sin migraciones ni escrituras D1. Pruebas de lógica JS 7/7 correctas, navegador y preview pendientes.
+- ROADMAP y docs/demostraciones-multicomercio.md actualizados. No se modifica main.
+
 ## 2026-11-26 — Ampliación a SaaS multicomercio
 - Objetivo ampliado a una plataforma de gestión comercial con núcleo común y módulos especializados por giro, sin duplicar código.
 - Planes vigentes: Presencia digital, Negocio interactivo, Gestión comercial y Gestión profesional; precios configurables en MXN + IVA, adicionales, límites, promociones y precios especiales desde superadministración.
