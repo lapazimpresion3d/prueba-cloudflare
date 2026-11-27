@@ -1,0 +1,55 @@
+// Configuración comercial compartida del escaparate inicial. Importes en centavos, MXN + IVA.
+// No es autorización del SaaS. Sin sesiones, D1, datos reales ni operaciones de escritura.
+export const planes = [
+  { id:"p1", nombre:"Presencia digital", implementacion:75000, mensualidad:14900, moneda:"MXN", descripcion:"Página web y catálogo informativo." },
+  { id:"p2", nombre:"Negocio interactivo", implementacion:150000, mensualidad:29900, moneda:"MXN", descripcion:"Interacción con clientes mediante pedidos o citas, según el giro." },
+  { id:"p3", nombre:"Gestión comercial", implementacion:250000, mensualidad:44900, moneda:"MXN", descripcion:"Operación interna, punto de venta, caja y gestión comercial." },
+  { id:"p4", nombre:"Gestión profesional", implementacion:350000, mensualidad:64900, moneda:"MXN", descripcion:"Administración avanzada y módulos especializados." }
+];
+
+// Estado central del escaparate: disponible = realmente utilizable aquí;
+// en_desarrollo = requiere implementación/adaptación; ejemplo = vista previa sin operación.
+// No elevar un estado hasta contar con pruebas y un adaptador aislado.
+export const modulos = [
+  {id:"web", nombre:"Página e identidad visual", desde:1, estado:"disponible", detalle:"Identidad, horarios e información ficticia del negocio."},
+  {id:"catalogo", nombre:"Catálogo de productos y servicios", desde:1, estado:"disponible", detalle:"Consulta y filtrado del catálogo propio."},
+  {id:"qr_nfc", nombre:"QR y NFC", desde:1, estado:"en_desarrollo", detalle:"Acceso opcional por enlace, QR o NFC; generación y gestión pendientes."},
+  {id:"pedidos", nombre:"Pedidos", desde:2, estado:"en_desarrollo", giros:["cafeteria","tienda","restaurante"], detalle:"Generalización y aislamiento de pedidos, carrito y canales."},
+  {id:"seguimiento", nombre:"Seguimiento de pedidos", desde:2, estado:"en_desarrollo", giros:["cafeteria","tienda","restaurante"], depende:["pedidos"], detalle:"Seguimiento independiente por comercio."},
+  {id:"citas", nombre:"Citas y reservaciones", desde:2, estado:"en_desarrollo", giros:["barberia","taller","restaurante","cafeteria"], detalle:"Agenda de recursos y disponibilidad según giro."},
+  {id:"agendas", nombre:"Agendas de empleados", desde:2, estado:"en_desarrollo", giros:["barberia","taller"], depende:["citas"], detalle:"Horarios y asignación de personal."},
+  {id:"clientes", nombre:"Gestión de clientes", desde:2, estado:"en_desarrollo", detalle:"Registros y permisos por establecimiento."},
+  {id:"administracion", nombre:"Panel administrativo", desde:1, estado:"en_desarrollo", detalle:"Edición autorizada de datos y módulos por negocio."},
+  {id:"cocina", nombre:"Cocina", desde:2, estado:"en_desarrollo", giros:["restaurante","cafeteria"], detalle:"Comandas y preparación aisladas por establecimiento."},
+  {id:"pagos", nombre:"Registro de pagos", desde:2, estado:"en_desarrollo", detalle:"Registro y conciliación; no procesa dinero real."},
+  {id:"pos", nombre:"Punto de venta", desde:3, estado:"en_desarrollo", detalle:"Captura interna y ventas, sin teléfono del cliente."},
+  {id:"caja", nombre:"Caja y cortes", desde:3, estado:"en_desarrollo", depende:["pos"], detalle:"Turnos, movimientos, cortes y arqueos."},
+  {id:"inventario", nombre:"Inventario", desde:3, estado:"en_desarrollo", detalle:"Existencias y movimientos de productos e insumos."},
+  {id:"reportes", nombre:"Reportes", desde:3, estado:"en_desarrollo", detalle:"Métricas y exportaciones por establecimiento."},
+  {id:"mesas", nombre:"Mesas y comandas", desde:3, estado:"en_desarrollo", giros:["restaurante","cafeteria"], detalle:"Atención tradicional y pedidos por mesero."},
+  {id:"cotizaciones", nombre:"Cotizaciones", desde:3, estado:"en_desarrollo", giros:["taller","barberia","tienda"], detalle:"Propuestas, vigencia y aceptación."},
+  {id:"ordenes_servicio", nombre:"Órdenes de servicio", desde:3, estado:"en_desarrollo", giros:["taller"], detalle:"Trabajos, refacciones, mano de obra e historial."},
+  {id:"fidelizacion", nombre:"Fidelización", desde:4, estado:"en_desarrollo", depende:["clientes"], detalle:"Beneficios e historial de clientes."},
+  {id:"costos", nombre:"Costos y administración avanzada", desde:4, estado:"en_desarrollo", detalle:"Costos, compras y reportes profesionales."},
+  {id:"recetas", nombre:"Recetas e insumos", desde:4, estado:"en_desarrollo", giros:["restaurante","cafeteria"], depende:["inventario"], detalle:"Consumo, mermas y costos de alimentos."},
+  {id:"automatizaciones", nombre:"Automatizaciones", desde:4, estado:"en_desarrollo", detalle:"Flujos especializados y notificaciones."}
+];
+
+export function capacidades(establecimiento, planId, registro = modulos) {
+  const nivel = planes.findIndex(p => p.id === planId) + 1;
+  if (!establecimiento || !nivel) return [];
+  const aplicables = registro.filter(m => !m.giros || m.giros.includes(establecimiento.giro));
+  const porId = new Map(aplicables.map(m => [m.id,m]));
+  function disponible(m, visitados = new Set()) {
+    if (!m || m.desde > nivel || m.estado !== "disponible" || visitados.has(m.id)) return false;
+    const ruta = new Set([...visitados,m.id]);
+    return (m.depende || []).every(id => disponible(porId.get(id),ruta));
+  }
+  return aplicables.map(m => ({
+    ...m,
+    estadoEfectivo: m.desde > nivel ? "otro_plan" : disponible(m) ? "disponible" : m.estado === "ejemplo" ? "ejemplo" : "en_desarrollo"
+  }));
+}
+export function importe(centavos, moneda = "MXN") {
+  return new Intl.NumberFormat("es-MX",{style:"currency",currency:moneda}).format(centavos/100);
+}
