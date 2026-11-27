@@ -11,7 +11,7 @@ export function destinoPedido(p){
  return p.modalidad==="recoger"?"Recoger en mostrador":p.modalidad==="domicilio"?"Entrega a domicilio":"Sin modalidad";
 }
 export function comandasActivas(pedidos,{mesa="",estado="",mesas=false}={}){
- return pedidos.filter(p=>activosCocina.includes(p.estado)&&(!estado||p.estado===estado)&&(!mesas||p.modalidad==="local")&&(!mesa||mesa==="sin-mesa"?!mesa||p.modalidad==="local"&&!p.datosCliente?.mesa:p.datosCliente?.mesa===mesa)).sort((a,b)=>a.creado-b.creado||a.folio.localeCompare(b.folio));
+ return pedidos.filter(p=>activosCocina.includes(p.estado)&&(!estado||p.estado===estado)&&(!mesas||p.modalidad==="local")&&(!mesa||(mesa==="sin-mesa"?p.modalidad==="local"&&!p.datosCliente?.mesa:p.datosCliente?.mesa===mesa))).sort((a,b)=>a.creado-b.creado||a.folio.localeCompare(b.folio));
 }
 export function agruparComandas(pedidos){
  const grupos=new Map();
