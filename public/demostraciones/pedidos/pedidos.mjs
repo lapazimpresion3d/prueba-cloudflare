@@ -2,7 +2,7 @@ import {importe} from "../config.mjs";
 import {obtenerEstablecimiento} from "../establecimientos.mjs";
 import {enlacesDemo} from "../presentaciones.mjs";
 import {admitePedidos,crearPedidosPractica,modalidadesPedido,nombresEstado,transicionesPedido} from "../pedidos-practica.mjs";
-import {crearPedidosRemotos} from "../pedidos-remotos.mjs";
+import {crearPedidosRemotos,detectarPedidos} from "../pedidos-remotos.mjs";
 const $=id=>document.getElementById(id);
 const el=(tag,texto,clase)=>{const e=document.createElement(tag);if(texto!==undefined)e.textContent=texto;if(clase)e.className=clase;return e;};
 const q=new URLSearchParams(location.search),id=q.get("negocio"),plan=q.get("plan");
@@ -12,16 +12,16 @@ if(!negocio||!admitePedidos(id,plan)){
 }else{
   let almacen;try{almacen=sessionStorage;}catch{}
   const repo=crearPedidosPractica(almacen,id,plan),links=enlacesDemo(id,plan),remoto=crearPedidosRemotos(id,plan),claveModo="lapaz:demo:pedidos:modo:"+id;
-  let servidor=false,ocupado=false,generacion=0;
-  try{servidor=almacen?.getItem(claveModo)==="servidor";}catch{}
-  function guardarModo(){try{almacen?.setItem(claveModo,servidor?"servidor":"local");}catch{}}
-  function controles(){ $("modo-pedidos").textContent=servidor?"Práctica en servidor":"Práctica local";$("activar-pedidos").disabled=ocupado;$("pedidos-locales").disabled=ocupado||!servidor;$("restaurar").hidden=servidor; }
+  let servidor=false,ocupado=false,generacion=0,preferencia=null,comprobando=false,configurado=null,totalRemoto=null;
+  try{preferencia=["local","servidor"].includes(q.get("origen"))?q.get("origen"):almacen?.getItem(claveModo);servidor=preferencia==="servidor";}catch{}
+  function guardarModo(){preferencia=servidor?"servidor":"local";try{almacen?.setItem(claveModo,preferencia);}catch{}}
+  function controles(){ $("modo-pedidos").textContent=servidor?"Práctica en servidor":"Práctica local";$("activar-pedidos").disabled=comprobando||ocupado||configurado===false;$("pedidos-locales").disabled=comprobando||ocupado||!servidor;$("estado-origen").textContent=comprobando?"Comprobando sesión…":configurado===false?"Servidor no configurado.":configurado===null?"No se pudo comprobar el servidor.":servidor?"Sesión privada en servidor.":"Solo pedidos locales de esta pestaña.";$("cantidad-local").textContent=String(repo.leer().length);$("cantidad-remota").textContent=totalRemoto===null?"—":String(totalRemoto);$("restaurar").hidden=servidor; }
   $("nombre").textContent=negocio.nombre;$("volver-panel").href=links.administracion;$("ver-cliente").href=links.negocio;$("ver-practica").href=enlacesDemo(id,plan,true).negocio;
   const aviso=s=>{$("aviso").textContent=s;};
   async function render(){
     const n=++generacion,modo=servidor;controles();
     let pedidos;try{pedidos=modo?await remoto.leer():repo.leer();}catch(e){if(n===generacion){$("pedidos").replaceChildren();$("resumen").replaceChildren();aviso(e.message+" Activa la práctica en servidor o actualiza.");}return;}
-    if(n!==generacion||modo!==servidor)return;
+    if(n!==generacion||modo!==servidor)return;if(modo)totalRemoto=pedidos.length;controles();
     const estado=$("filtro").value,modos=modalidadesPedido(id);
     $("resumen").replaceChildren(...Object.entries(nombresEstado).map(([k,n])=>{const c=el("div",undefined,"contador-pedido");c.append(el("strong",String(pedidos.filter(p=>p.estado===k).length)),el("span",n));return c;}));
     const lista=pedidos.filter(p=>!estado||p.estado===estado);
@@ -34,7 +34,7 @@ if(!negocio||!admitePedidos(id,plan)){
       const etiquetas={preparando:"Iniciar preparación",listo:"Marcar listo",entregado:"Entregar",cancelado:"Cancelar"};
       for(const destino of transicionesPedido(p.estado)){
         const b=el("button",etiquetas[destino]);b.type="button";b.addEventListener("click",async()=>{
-          if(ocupado||modo!==servidor)return;
+          if(comprobando||ocupado||modo!==servidor)return;
           if(destino==="cancelado"&&!confirm("¿Cancelar este pedido de práctica?"))return;
           ocupado=true;controles();try{if(modo)await remoto.cambiar(p.solicitud,p.estado,destino);else repo.cambiar(p.folio,p.estado,destino);aviso("Estado actualizado: "+nombresEstado[destino]+".");}catch(e){aviso(e.message);}finally{ocupado=false;await render();}
         });acciones.append(b);
@@ -47,9 +47,10 @@ if(!negocio||!admitePedidos(id,plan)){
     if(!lista.length)$("pedidos").append(el("p","No hay pedidos con este filtro.","nota"));
     $("restaurar").disabled=!pedidos.length;
   }
-  $("activar-pedidos").addEventListener("click",async()=>{if(ocupado)return;ocupado=true;controles();try{await remoto.conectar();servidor=true;guardarModo();aviso("Práctica en servidor activada.");}catch(e){aviso(e.message);}finally{ocupado=false;await render();}});
-  $("pedidos-locales").addEventListener("click",()=>{if(ocupado)return;servidor=false;guardarModo();aviso("Práctica local activa.");render();});
-  $("filtro").addEventListener("change",render);$("actualizar").addEventListener("click",render);
-  $("restaurar").addEventListener("click",()=>{if(servidor||ocupado)return;if(!confirm("¿Eliminar todos los pedidos de práctica de "+negocio.nombre+" de esta pestaña?"))return;try{repo.restaurar();aviso("Historial restablecido.");}catch(e){aviso(e.message);}render();});
-  window.addEventListener("pageshow",render);document.title="Pedidos · "+negocio.nombre;render();$("contenido-pedidos").hidden=false;
+  $("activar-pedidos").addEventListener("click",async()=>{if(comprobando||ocupado)return;ocupado=true;controles();try{await remoto.conectar();configurado=true;servidor=true;guardarModo();aviso("Práctica en servidor activada.");}catch(e){aviso(e.message);}finally{ocupado=false;await render();}});
+  $("pedidos-locales").addEventListener("click",()=>{if(comprobando||ocupado)return;servidor=false;guardarModo();aviso("Práctica local activa.");render();});
+  async function detectar(){if(ocupado||comprobando)return;comprobando=true;controles();try{const v=await detectarPedidos(remoto,{preferencia,locales:repo.leer().length,encargado:true});configurado=v.configurado;servidor=v.servidor;totalRemoto=v.estado?.pedidos.length??null;}catch(e){configurado=null;totalRemoto=null;aviso(e.message);}finally{comprobando=false;await render();}}
+  $("filtro").addEventListener("change",()=>{if(!ocupado&&!comprobando)render();});$("actualizar").addEventListener("click",detectar);
+  $("restaurar").addEventListener("click",()=>{if(comprobando||servidor||ocupado)return;if(!confirm("¿Eliminar todos los pedidos de práctica de "+negocio.nombre+" de esta pestaña?"))return;try{repo.restaurar();aviso("Historial restablecido.");}catch(e){aviso(e.message);}render();});
+  window.addEventListener("pageshow",e=>{if(e.persisted)detectar();});window.addEventListener("focus",detectar);document.title="Pedidos · "+negocio.nombre;detectar();$("contenido-pedidos").hidden=false;
 }
