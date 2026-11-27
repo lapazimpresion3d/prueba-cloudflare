@@ -1,4 +1,9 @@
 # Registro de cambios
+## 2026-11-27 — Personalización visual y perfiles privados en servidor
+- Portadas ilustradas de cuatro giros, logo/portada JPG/PNG/WebP optimizados a JPEG localmente y vista previa de práctica.
+- API /api/demo/perfil, sesión temporal, revisión y tabla dedicada demo_perfiles. Guardado/recuperación explícitos desde panel; sin publicación real ni cambios en DB original.
+- Migración incremental 0002_perfiles.sql pendiente en DEMO_DB; 21 comprobaciones JS, 10 rutas simuladas y 12 comprobaciones SQLite correctas. Suite integrada, navegador, decodificación real de imágenes y despliegue pendientes.
+
 ## 2026-11-27 — Presentación pública separada de laboratorio
 - Cinco diseños sectoriales, portadas, emblemas vectoriales, navegación y catálogos. Nueva ruta /demostraciones/negocio/ con negocio/plan; compatibilidad vista=negocio.
 - Panel de práctica con catálogo/perfil y vista personalizada explícita, separado del laboratorio D1. Página pública limpia por defecto.
