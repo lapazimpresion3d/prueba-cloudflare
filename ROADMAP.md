@@ -9,7 +9,7 @@ Construir una plataforma modular de gestión comercial reutilizable, rentable y 
 - Cada versión comercial debe funcionar, ser segura, estable y vendible independientemente de módulos o giros futuros. No desarrollar todos los giros simultáneamente.
 - QR/NFC y canales de autoservicio opcionales. Un comercio puede operar mediante atención tradicional, carta impresa, mostrador o empleados sin teléfono del cliente.
 - Priorizar facilidad de uso, aprovisionamiento automático, mantenimiento compartido, costos operativos medidos, diferenciación y márgenes sostenibles.
-- Trabajar en desarrollo. No modificar ni fusionar main, publicar producción, ejecutar migraciones remotas ni eliminar datos sin autorización y verificación del entorno. En esta revisión solo documentación.
+- Trabajar en desarrollo. No modificar ni fusionar main, publicar producción, ejecutar migraciones remotas ni eliminar datos sin autorización y verificación del entorno. El escaparate temprano de demostraciones se permite en desarrollo sin tocar datos ni API operativas; la implementación del núcleo y migraciones sigue su orden y controles.
 
 ## 2. Planes comerciales vigentes
 | Versión | Plan | Implementación MXN + IVA | Mensualidad MXN + IVA |
@@ -50,7 +50,15 @@ Catálogo de plantillas por giro; sugerir módulos, configuración, datos fictic
 ### Aislamiento
 Evaluar ADR entre D1 compartida con ámbito obligatorio/relaciones compuestas, D1 separadas y modelo híbrido con plano de control central. Verificar costos, límites, migración, recuperación y acceso cruzado; no decidir ni ejecutar prematuramente. La sucursal pertenece al establecimiento; validar contexto y pertenencia en cada consulta, token, foto, exportación, caché, QR, tarea y almacenamiento de navegador. Sin fallback a otro establecimiento.
 
-## 4. Prioridades de desarrollo (orden obligatorio)
+## 4. Prioridades de desarrollo (orden de implementación del núcleo)
+### Línea paralela temprana — Demostraciones comerciales
+- [x] Escaparate compartido en /demostraciones/, con cinco identidades ficticias, catálogos tipados separados, selector de cuatro planes y registro común de capacidades.
+- [x] Configuración de precios en centavos y estados de disponibilidad; enlaces a vistas originales de El Comal sin modificar su lógica.
+- [x] Pruebas de las 20 combinaciones, filtros, dependencias y estados; pendientes navegador real y despliegue de desarrollo.
+- [ ] Conectar el escaparate a un registro central de capacidades verificadas en servidor cuando el núcleo y el sistema de módulos estén listos. El selector no cambia suscripciones reales ni concede permisos.
+- [ ] Reutilizar componentes operativos de El Comal mediante adaptadores con ámbito y datos ficticios, validar cada módulo antes de habilitarlo en giros compatibles.
+- [ ] Implementar administración y operaciones interactivas aisladas, sesiones y reinicio controlado de datos demo; nunca usar datos de clientes reales. Las nuevas funciones verificadas se incorporarán al registro compartido, no a cinco copias independientes.
+- La galería inicial no equivale a cinco instalaciones SaaS operativas ni a certificación de seguridad. No mostrar como funcional un módulo no implementado o no adaptado.
 ### Etapa 0 — Auditoría del código existente (prioridad 1, actual)
 - [x] Verificar SHA de desarrollo/main, leer ROADMAP y auditoría previa; revisar módulos críticos de negocio, catálogo, pedidos, reservas y Worker.
 - [x] Registrar ampliación multicomercio, identificar acoplamientos restauranteros y diseñar mapa conceptual de módulos en docs/arquitectura-multicomercio.md y docs/auditoria-multicomercio-2026-11-26.md.
@@ -78,12 +86,12 @@ Evaluar ADR entre D1 compartida con ámbito obligatorio/relaciones compuestas, D
 
 ### Etapa 4 — Páginas web y catálogos (prioridad 5)
 - Página adaptable, marca, horarios, sucursales, ubicación, contacto, catálogo opcional, productos físicos/alimentos/servicios y fotos con ámbito, panel editable, enlaces y QR/NFC opcionales.
-- Primero Café Mirador (cafetería) y piloto P1 Presencia digital, sin esperar P2/P3/P4. Validar plantilla alternativa sencilla con datos ficticios de otro giro sin construir sus módulos avanzados.
+- Generalizar el escaparate temprano de los cinco establecimientos al módulo web/catálogo autorizado en servidor. Café Mirador será piloto P1, sin esperar P2/P3/P4.
 - Alta guiada, accesibilidad, móvil, respaldo de contenido, costo de operación, documentación comercial y soporte.
 
 ### Etapa 5 — Citas y agendas (prioridad 6)
 - Recursos, empleados, horarios, duración, capacidad, bloqueos, disponibilidad, asignación, cancelación/reprogramación y prevención atómica de traslapes; clientes base y privacidad.
-- Barbería/salón como primer piloto de agenda; reusar para servicios y, con adaptador, reservas de mesa. No exigir mesa/personas a una cita de empleado.
+- Barbería Elite como primer piloto de agenda; reusar para servicios y, con adaptador, reservas de mesa. No exigir mesa/personas a una cita de empleado.
 - P2 Negocio interactivo puede comercializarse con alcance de cita/agenda aprobado y probado, sin esperar pedidos restauranteros completos. No ofrecer módulos pendientes.
 
 ### Etapa 6 — Completar módulos restauranteros (prioridad 7)
@@ -93,24 +101,29 @@ Evaluar ADR entre D1 compartida con ámbito obligatorio/relaciones compuestas, D
 
 ### Etapa 7 — POS, caja e inventarios compartidos (prioridad 8)
 - POS general para productos/servicios/alimentos, venta y cobro, cuentas, tickets, devoluciones autorizadas y conciliación, turnos, movimientos, cortes/arqueos, roles y auditoría; inventario básico por sucursal, movimientos, unidades, existencias y alertas.
-- Tienda minorista como piloto de venta/stock. Integrar con restaurante para captura interna por empleado/mesero, mesas/cuentas, división de cuentas, comandas y cocina. Sin QR obligatorio.
+- Mundo Mascotas como piloto de venta/stock. Integrar con restaurante para captura interna por empleado/mesero, mesas/cuentas, división de cuentas, comandas y cocina. Sin QR obligatorio.
 - Pruebas de stock/cobro simultáneo, idempotencia, transacciones, reconexión, permisos, impresión y cierres. P3 Gestión comercial vendible por giro aprobado; no esperar P4.
 
 ### Etapa 8 — Módulos especializados progresivos (prioridad 9)
-- Taller mecánico: cotizaciones y órdenes de servicio con datos del vehículo, tareas, piezas, mano de obra, aprobación, historial; reutilizar clientes, agenda, POS/caja/inventario. Incorporar servicios generales y emprendedores por plantilla cuando módulos requeridos estén listos.
+- Auto Servicio Bahía (taller mecánico): cotizaciones y órdenes de servicio con datos del vehículo, tareas, piezas, mano de obra, aprobación, historial; reutilizar clientes, agenda, POS/caja/inventario. Incorporar servicios generales y emprendedores por plantilla cuando módulos requeridos estén listos.
 - Fidelización, reportes avanzados, inventario avanzado, costos, compras, proveedores, automatizaciones y recetas/mermas restauranteras. Implementar un módulo, probarlo, pilotarlo y luego ampliar el alcance.
 - P4 Gestión profesional: El Comal como demo avanzada de restaurante y otras combinaciones profesionales según módulos probados. Pagos reales, CFDI, offline avanzado e integraciones se evalúan por costos/alcance antes de prometer.
 - Mantener P1/P2/P3 operativos, actualizaciones compatibles y seguridad continua.
 
 ## 5. Demostraciones y estrategia de lanzamiento
-| Demo | Giro | Prioridad de construcción | Plan objetivo inicial (propuesto) |
+Los cinco establecimientos se crean desde el inicio; su giro no determina su plan. Cada uno admite P1, P2, P3 y P4 en el selector comercial (20 combinaciones). El plan determina derechos ofertados, el giro sugiere módulos pertinentes; el estado real de implementación determina qué se puede probar. La demo no altera contratos, sesiones ni permisos. Precios vigentes en sección 2.
+| Demo | Giro | Catálogo temprano | Piloto operativo prioritario |
 | --- | --- | --- | --- |
-| Taquería El Comal | Restaurante | Existente; conservar, adaptar y ampliar en etapas 6–8 | P4 |
-| Café Mirador | Cafetería | Etapa 4 | P1 |
-| Barbería ficticia (nombre por definir) | Barbería/salón | Etapa 5 | P2 |
-| Tienda minorista ficticia (nombre por definir) | Tienda | Etapa 7 | P3 |
-| Taller mecánico ficticio (nombre por definir) | Taller | Etapa 8 | Según módulos probados P3/P4 |
-Todas son instancias de la plataforma, con datos sintéticos y entornos aislados. No crear demos ni módulos simultáneamente sin necesidad. Separar El Comal de desarrollo de la demo pública final. Mantener candidatas anteriores de restaurante como opcionales.
+| Café Mirador | Cafetería | Alimentos, productos y experiencias | Web/catálogo |
+| Barbería Elite | Barbería | Servicios y productos físicos | Citas/agendas |
+| Mundo Mascotas | Tienda minorista | Productos físicos | POS/caja/inventario |
+| Taquería El Comal | Restaurante | Alimentos; conserva demo existente | Restaurante avanzado |
+| Auto Servicio Bahía | Taller mecánico | Servicios y refacciones | Cotizaciones/órdenes de servicio |
+
+Identidad, catálogo, configuración y datos sintéticos independientes. Las demos comparten interfaz, catálogo de planes y registro de capacidades. Estados: disponible (utilizable aquí), en desarrollo (no operativo), plan superior (no incluido), vista previa (solo ejemplo, no escritura). Módulos ajenos al giro se omiten de la plantilla inicial, no se prohíben definitivamente. El selector comercial no sustituye autorización en servidor; todos los negocios admiten cualquiera de los cuatro planes.
+Taquería El Comal conserva su demostración original y su papel de referencia avanzada; las vistas de panel/cocina originales son ejemplos de solo lectura señalados como tales. No exponer escrituras o datos operativos a la galería. La Hamburguesería y Mariscos La Bahía quedan como posibles demos futuras.
+No esperar a completar todos los módulos para mostrar los giros; sí exigir pruebas de integración antes de activar funciones operativas. Cada incorporación verificada al registro central se refleja en demos compatibles. Mantener demo pública final separada del entorno de desarrollo y producción.
+Ver docs/demostraciones-multicomercio.md.
 
 ## 6. Criterios de salida por módulo y versión
 - Contrato, dependencias y permisos documentados; funcionamiento sin módulos futuros y sin conceptos ajenos al giro.
@@ -122,5 +135,5 @@ Todas son instancias de la plataforma, con datos sintéticos y entornos aislados
 
 ## 7. Estado heredado y próximo paso
 El Comal cuenta con código de menú, catálogo, pedidos, agenda de mesas, cocina, cobros, seguimiento, envío, paginación y seguridad de entrada; 0018 historial de cobros versionado, aplicación remota no confirmada. Pruebas previas parciales; no se acredita estabilidad comercial ni aislamiento multicomercio.
-Siguiente trabajo: cerrar auditoría de dependencias y diseñar ADR, modelo de datos y contratos de módulos/planes/plantillas. Implementar primero núcleo y aislamiento, después página/catálogo. No cambiar main ni datos remotos.
+Siguiente trabajo: verificar escaparate en navegador y preview; en paralelo cerrar auditoría de dependencias y diseñar ADR, modelo de datos y contratos de módulos/planes/plantillas. Implementar primero núcleo y aislamiento para operaciones reales, después generalizar módulos y conectarlos al escaparate. No cambiar main ni datos remotos.
 Documentos vigentes: docs/arquitectura-multicomercio.md, docs/auditoria-multicomercio-2026-11-26.md. Referencias históricas: docs/auditoria-multirrestaurante-2026-11-26.md, docs/auditoria-etapa-0-2026-11-26.md, docs/estabilizacion-nucleo-2026-11-26.md, docs/seguridad-nucleo-2026-11-26.md, docs/respaldo-d1.md. En caso de conflicto prevalece este ROADMAP.
