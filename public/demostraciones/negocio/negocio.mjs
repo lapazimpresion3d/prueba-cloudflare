@@ -7,6 +7,7 @@ import {crearCatalogosLocales,imagenOfertaSegura} from "../catalogo-local.mjs";
 import {crearPerfilesLocales} from "../perfil-local.mjs";
 import {presentacionDe,enlacesDemo,simbolos,destacadosDisponibles,enlaceGaleria} from "../presentaciones.mjs";
 import {ilustracionPortada} from "../ilustraciones.mjs";
+import {portadaDemo,logoDemo} from "../identidad.mjs";
 import {iniciarCarrito} from "../carrito-ui.mjs";
 import {admiteCitas,serviciosCita} from "../citas-practica.mjs";
 const $=id=>document.getElementById(id);
@@ -31,15 +32,17 @@ if(!base||!plan||!t){
   const textos={logo:t.sigla,nombre:datos.nombre,distintivo:t.distintivo,titulo:practica?datos.marca.lema:t.titulo,entrada:t.entrada,accion:t.accion,"nav-catalogo":t.catalogo,"titulo-catalogo":t.catalogo,"titulo-nosotros":t.seccion,descripcion:datos.marca.descripcion,historia:t.texto,horario:datos.horario,ubicacion:datos.ubicacion,"contacto-texto":datos.contacto||"Información de contacto de ejemplo.","pie-nombre":datos.nombre,"detalle-marca":datos.marca.icono};
   for(const [id,txt] of Object.entries(textos))$(id).textContent=txt;
   if(datos.logo){const img=el("img");img.src=datos.logo;img.alt="";$("logo").replaceChildren(img);}
+  else if(!practica||datos.marca.icono===base.marca.icono&&datos.nombre===base.nombre&&datos.marca.color===base.marca.color){const img=el("img");img.src=logoDemo(base.id);img.alt="";img.addEventListener("error",()=>$("logo").textContent=t.sigla);$("logo").replaceChildren(img);}
+  else $("logo").textContent=datos.marca.icono;
   if(datos.portada){const img=el("img",undefined,"portada-practica");img.src=datos.portada;img.alt="";$("arte").append(img);}
-  else if(base.id==="taqueria-el-comal"){const img=el("img",undefined,"portada-fotografica");img.src="/imagenes/banner-el-comal.webp";img.alt="";img.addEventListener("error",()=>img.remove());$("arte").append(img);}
-  else{const svg=ilustracionPortada(t.estilo);if(svg){const fondo=el("div",undefined,"portada-ilustrada");fondo.innerHTML=svg;$("arte").append(fondo);}}
+  else{const svg=ilustracionPortada(t.estilo);if(svg){const fondo=el("div",undefined,"portada-ilustrada");fondo.innerHTML=svg;$("arte").append(fondo);}const foto=portadaDemo(base.id);if(foto){const img=el("img",undefined,"portada-fotografica");img.alt="";img.addEventListener("load",()=>{$("arte").querySelector(".portada-ilustrada")?.remove();});img.addEventListener("error",()=>img.remove());img.src=foto;$("arte").append(img);}}
   const arte=el("div",undefined,"arte-emblema");
   const simbolo=el("div",undefined,"arte-vector");
   if(practica&&datos.marca.icono!==base.marca.icono)simbolo.textContent=datos.marca.icono;
   else simbolo.innerHTML='<svg viewBox="0 0 96 96" width="106" height="106" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+simbolos[t.estilo]+'</svg>';
   arte.append(simbolo,el("span",t.sigla,"arte-sigla"),el("span",datos.nombre,"arte-nombre"));
   $("arte").append(arte);
+  if(!practica){const img=el("img");img.src=logoDemo(base.id);img.alt="";img.loading="lazy";img.addEventListener("error",()=>img.remove());$("detalle-marca").replaceChildren(img); }
   const destacados=destacadosDisponibles(t,datos.catalogo);
   $("destacados").hidden=!destacados.length;
   $("destacados").replaceChildren(...destacados.map((d,i)=>{const a=el("a");a.href="#catalogo";a.append(el("span",String(i+1).padStart(2,"0"),"numero"),el("strong",d.nombre));a.addEventListener("click",()=>{$("categoria").value=d.categoria;$("buscar").value="";render();});return a;}));
