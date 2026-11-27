@@ -1,3 +1,4 @@
+import {clientesDemo,notasCitaDemo,seleccionCita} from "../clientes-practica.mjs";
 import {importe} from "../config.mjs";
 import {obtenerEstablecimiento} from "../establecimientos.mjs";
 import {crearCatalogosLocales} from "../catalogo-local.mjs";
@@ -19,6 +20,10 @@ if(!negocio||!admiteCitas(id,plan)){
  $("cambiar-vista").href=admin?base:base+"&vista=agenda";$("cambiar-vista").textContent=admin?"Probar como cliente":"Abrir agenda del encargado";
  $("reservar").hidden=admin;$("filtros").hidden=!admin;$("resumen-agenda").hidden=!admin;$("restaurar").hidden=!admin;$("titulo-listado").textContent=admin?"Agenda de citas":"Mis citas de práctica";
  const aviso=s=>{$("aviso").textContent=s;};
+ $("cliente-cita").replaceChildren(new Option("Selecciona un cliente",""),...clientesDemo.map(x=>new Option(x.nombre,x.id)));
+ $("nota-cita").replaceChildren(...notasCitaDemo.map(x=>new Option(x.nombre,x.id)));
+ function contactoCita(){const x=clientesDemo.find(x=>x.id===$("cliente-cita").value);$("telefono-cita").value=x?.telefono||"";$("correo-cita").value=x?.correo||"";}
+ $("cliente-cita").addEventListener("change",contactoCita);contactoCita();
  $("servicio").replaceChildren(...servicios.map(p=>new Option(p.nombre+" · "+p.duracionMinutos+" min · "+importe(p.precioCentavos),p.id)));
  if(servicios.some(p=>p.id===q.get("servicio")))$("servicio").value=q.get("servicio");
  $("recurso").replaceChildren(...recursos.map(r=>new Option(r.nombre,r.id)));
@@ -47,9 +52,10 @@ if(!negocio||!admiteCitas(id,plan)){
   $("restaurar").hidden=!admin||servidor;
   $("descartar-cita").hidden=!pendiente||admin;
   $("descartar-cita").disabled=ocupado||creando;
-  for(const k of ["servicio","recurso","fecha"])$(k).disabled=creando||ocupado||!!pendiente;
+  for(const k of ["servicio","recurso","fecha","cliente-cita","nota-cita"])$(k).disabled=creando||ocupado||!!pendiente;
  }
  const solicitud=()=>({servicio:$("servicio").value,recurso:$("recurso").value,fecha:$("fecha").value,inicio:elegido});
+ const solicitudCompleta=()=>({...solicitud(),datosCliente:seleccionCita({cliente:$("cliente-cita").value,nota:$("nota-cita").value})});
  function horas(){
   const p=servicios.find(p=>p.id===$("servicio").value),slots=servidor&&!listaValida?[]:horariosCita(id,catalogo,citasActuales(),solicitud());
   if(!slots.some(s=>s.inicio===elegido))elegido=null;
@@ -70,6 +76,8 @@ if(!negocio||!admiteCitas(id,plan)){
   $("resumen-agenda").replaceChildren(...Object.entries(nombresCita).map(([k,n])=>{const a=el("div");a.append(el("strong",String(lista.filter(c=>c.estado===k).length)),el("span",n));return a;}));
   $("citas").replaceChildren(...lista.map(c=>{
    const a=el("article");a.append(el("p",c.fecha+" · "+horaCita(c.inicio)+"–"+horaCita(c.fin),"cita-hora"),el("h3",c.nombreServicio),el("p",recursos.find(r=>r.id===c.recurso)?.nombre),el("p",importe(c.precioCentavos)+" · "+nombresCita[c.estado]),el("p",c.folio,"nota"));
+   if(c.datosCliente?.cliente){const d=c.datosCliente;a.append(el("p","Cliente: "+d.cliente.nombre),el("p","Teléfono: "+d.cliente.telefono),el("p","Correo: "+d.cliente.correo),el("p","Comentarios: "+d.nota));}
+   else a.append(el("p","Cita anterior sin datos de cliente.","nota"));
    const acciones=el("div",undefined,"acciones-demo"),est=admin?transicionesCita(c.estado):transicionesCita(c.estado).filter(s=>s==="cancelada");
    const etiquetas={confirmada:"Confirmar",atendida:"Marcar atendida",no_asistio:"No asistió",cancelada:"Cancelar"};
    for(const destino of est){const b=el("button",etiquetas[destino]);b.type="button";b.disabled=ocupado||creando||servidor&&!listaValida;b.addEventListener("click",async()=>{if(ocupado||creando||servidor&&!listaValida)return;if(destino==="cancelada"&&!confirm("¿Cancelar la cita de práctica?"))return;ocupado=true;render();try{if(servidor)await remoto.cambiar(c.solicitud,c.estado,destino);else repo.cambiar(c.folio,c.estado,destino);aviso("Cita actualizada: "+nombresCita[destino]+".");}catch(e){aviso(e.message);}finally{ocupado=false;await actualizar();}});acciones.append(b);}
@@ -125,11 +133,11 @@ if(!negocio||!admiteCitas(id,plan)){
    if(servidor){
     const v=expira===null&&!pendiente?await remoto.conectar():await remoto.leer();expira=v.expira;copiaRemota=v.citas;listaValida=true;remotoDisponible=true;remotoConsultado=true;modo();
     if(pendiente&&pendiente.expira!==expira)throw Error("La sesión del reintento caducó. No se reenviará en otra sesión. Descarta el reintento.");
-    if(!pendiente){const d=solicitud(),p=servicios.find(p=>p.id===d.servicio);if(!p||!horariosCita(id,catalogo,copiaRemota,d).some(h=>h.inicio===d.inicio))throw Error("Horario ocupado. Selecciona otro.");guardarPendiente({expira,datos:prepararCita(d,p,personalizada,crypto.randomUUID())});}
+    if(!pendiente){const d=solicitudCompleta(),p=servicios.find(p=>p.id===d.servicio);if(!p||!horariosCita(id,catalogo,copiaRemota,d).some(h=>h.inicio===d.inicio))throw Error("Horario ocupado. Selecciona otro.");guardarPendiente({expira,datos:prepararCita(d,p,personalizada,crypto.randomUUID())});}
     const resultado=await remoto.crear(pendiente.datos);c=resultado.cita;
     if(!c||c.solicitud!==pendiente.datos.solicitud)throw Error("No se confirmó la cita. Reintenta.");
     guardarPendiente(null);
-   }else{c=repo.crear(catalogo,solicitud());modo();}
+   }else{c=repo.crear(catalogo,solicitudCompleta());modo();}
    elegido=null;aviso("Cita de práctica "+(servidor?"guardada en servidor":"creada localmente")+" · "+c.folio);
    $("ir-agenda").hidden=false;
   }catch(e){if(pendiente&&[400,403,409,413,415].includes(e.status)){try{guardarPendiente(null);}catch{}}aviso(e.message+(pendiente?" Conserva o reintenta la solicitud pendiente.":""));}
