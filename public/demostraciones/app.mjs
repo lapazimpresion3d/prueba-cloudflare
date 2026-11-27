@@ -1,3 +1,4 @@
+import {admiteCotizaciones} from "./cotizaciones-practica.mjs";
 import {montarInicioAdmin} from "./panel-admin.mjs";
 import {admitePos} from "./pos-practica.mjs";
 import {montarEmpresa} from "./empresa-practica.mjs";
@@ -58,6 +59,7 @@ function guardarURL(){
   $("admin-almacen").hidden=!admitePos(negocio.id,plan.id);$("admin-almacen").href="/demostraciones/almacen/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
   $("admin-inventario").hidden=!admitePos(negocio.id,plan.id);$("admin-inventario").href="/demostraciones/inventario/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
   $("admin-caja").hidden=!admitePos(negocio.id,plan.id);$("admin-caja").href="/demostraciones/caja/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
+  $("admin-cotizaciones").hidden=!admiteCotizaciones(negocio.id,plan.id);$("admin-cotizaciones").href="/demostraciones/cotizaciones/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
   $("admin-pos").hidden=!admitePos(negocio.id,plan.id);$("admin-pos").href="/demostraciones/pos/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
   $("admin-pedidos").hidden=!admitePedidos(negocio.id,plan.id);$("admin-pedidos").href="/demostraciones/pedidos/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
   $("admin-cocina").hidden=!admiteCocina(negocio.id,plan.id);$("admin-cocina").href="/demostraciones/cocina/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});

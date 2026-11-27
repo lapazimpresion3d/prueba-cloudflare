@@ -1,0 +1,2 @@
+# 46 · Cotizaciones y órdenes de servicio
+P3/P4 taller, barbería y tienda. Presupuestos de catálogo congelados, cliente ficticio, descuento autorizado, vigencia, estados, orden de trabajo y seguimiento, anticipos simulados con referencia, comprobante imprimible, conversión a POS atómica sin anticipos activos, bloqueo de duplicados. No envíos reales, pagos reales, edición posterior del borrador, partidas libres, conciliación de anticipos en caja o reversión de venta vinculada. Permisos individuales y sucursal. Sin main ni migraciones. Prueba visual pendiente.
