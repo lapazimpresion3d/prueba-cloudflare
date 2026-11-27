@@ -266,3 +266,24 @@ test("cuentas abiertas: aislamiento, ocupación, comandas, entrega y cierre",asy
  assert.equal((await llamar(env,pedidos,"PATCH",a,{solicitud,cobro:{accion:"anular",revision:1,motivo:"Importe incorrecto"}})).status,409);
  assert.equal((await llamar(env,cuentas,"POST",a,{...abrir,cuenta:otra})).status,201);
 });
+
+test("cobro acumulado atómico, anulación conjunta y folio de terminal externa",async()=>{
+ const env=envDemo(),cuentas="/api/demo/cuentas?negocio=taqueria-el-comal&plan=p4",pedidos="/api/demo/pedidos?negocio=taqueria-el-comal&plan=p4",a=await iniciar(env,"192.0.2.1");
+ const uid=n=>"b7a48289-b63a-4ec4-8e19-c376f91aef"+n,cuenta=uid("70"),ids=[uid("71"),uid("72")];
+ assert.equal((await llamar(env,cuentas,"POST",a,{cuenta,mesa:"3",personas:4})).status,201);
+ for(const solicitud of ids){
+  assert.equal((await llamar(env,pedidos,"POST",a,{cuenta,captura:"mesero",solicitud,catalogo:"original",modalidad:"local",lineas:[{id:"pastor",cantidad:2,precioEsperado:2500}],totalEsperado:5000,datosCliente:{cliente:"cliente-1",pago:"efectivo",mesa:"3",nota:""}})).status,201);
+  for(const [esperado,destino] of [["recibido","preparando"],["preparando","listo"],["listo","entregado"]])assert.equal((await llamar(env,pedidos,"PATCH",a,{solicitud,esperado,destino})).status,200);
+ }
+ const leer=async()=>(await (await llamar(env,pedidos,"GET",a)).json()).pedidos.filter(p=>p.cuenta===cuenta);
+ const version=ps=>JSON.stringify(ps.map(p=>[p.solicitud,p.estado,p.total,p.revisionCobro??0]).sort((a,b)=>a[0].localeCompare(b[0])));
+ const d={cuenta,accion:"cobrar",operacion:uid("73"),version:version(await leer()),totalEsperado:10000,metodo:"efectivo",recibidoCentavos:15000};
+ assert.equal((await llamar(env,cuentas,"PATCH",a,d)).status,200);
+ let ps=await leer();assert.equal(ps.reduce((s,p)=>s+p.cobro.importeCentavos,0),10000);assert.equal(ps.reduce((s,p)=>s+p.cobro.cambioCentavos,0),5000);
+ assert.equal((await llamar(env,cuentas,"PATCH",a,d)).status,409);
+ assert.equal((await llamar(env,pedidos,"PATCH",a,{solicitud:ids[0],cobro:{accion:"anular",revision:1,motivo:"Método incorrecto"}})).status,409);
+ assert.equal((await llamar(env,cuentas,"PATCH",a,{cuenta,accion:"anular_cobro",operacion:uid("74"),grupo:d.operacion,version:version(ps),motivo:"Método incorrecto"})).status,200);
+ ps=await leer();assert.ok(ps.every(p=>!p.cobro));
+ assert.equal((await llamar(env,cuentas,"PATCH",a,{...d,operacion:uid("75"),version:version(ps),metodo:"tarjeta_externa",recibidoCentavos:10000,referencia:"DEMO-123456"})).status,200);
+ assert.equal((await llamar(env,cuentas,"PATCH",a,{cuenta,accion:"cerrar"})).status,200);
+});
