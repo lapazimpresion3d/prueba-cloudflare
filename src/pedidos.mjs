@@ -21,7 +21,7 @@ function accionesPara(estado, servicio, cocina) {
   const siguiente = {
     recibido: "confirmado",
     confirmado: "preparacion",
-    preparacion: servicio === "domicilio" ? "en_reparto" : "listo",
+    preparacion: "listo",
     listo: servicio === "domicilio" ? "en_reparto" : "entregado",
     en_reparto: "entregado"
   }[estado];
@@ -135,11 +135,23 @@ function estadoPublico(fila) {
 const columnasCobro = ", c.importe_centavos AS cobro_centavos, c.registrado AS cobro_registrado ";
 const unionCobro = "LEFT JOIN cobros_pedido c ON c.pedido_folio = folio AND c.anulado IS NULL ";
 const totalConEnvio = "total_centavos + COALESCE(json_extract(detalle_json, '$.entrega.envioCentavos'), 0)";
-const pedidoConCobro = `(
-  ${totalConEnvio} > 0
-  OR (json_extract(detalle_json, '$.servicio') = 'domicilio'
-    AND json_extract(detalle_json, '$.entrega') IS NULL)
-)`;
+const envioPendienteSQL = "(json_extract(detalle_json, '$.servicio') = 'domicilio' AND json_extract(detalle_json, '$.entrega.envioCentavos') IS NULL)";
+const cobroActivoSQL = "EXISTS (SELECT 1 FROM cobros_pedido WHERE pedido_folio = pedidos_demo.folio AND anulado IS NULL)";
+const cobroCoincideSQL = `EXISTS (SELECT 1 FROM cobros_pedido WHERE pedido_folio = pedidos_demo.folio AND anulado IS NULL AND importe_centavos = ${totalConEnvio})`;
+const entregaPermitidaSQL = `(NOT ${envioPendienteSQL} AND (${totalConEnvio} = 0 OR ${cobroCoincideSQL}))`;
+const pedidoConCobro = `(${totalConEnvio} > 0 OR ${envioPendienteSQL})`;
+
+function bloqueoAccion(accion, fila, detalle, cocina) {
+  if (cocina) return {};
+  const pendiente = detalle.servicio === "domicilio" && detalle.entrega?.envioCentavos == null;
+  const total = fila.total_centavos + (detalle.entrega?.envioCentavos ?? 0);
+  if (accion === "entregado") {
+    if (pendiente) return { requiereEnvio: true };
+    if (total > 0 && (fila.cobro_registrado == null || fila.cobro_centavos !== total)) return { requiereCobro: true };
+  }
+  if (accion === "cancelado" && fila.cobro_registrado != null) return { requiereAnularCobro: true };
+  return {};
+}
 const metodosCobro = new Map([
   ["efectivo", "Efectivo"], ["tarjeta", "Tarjeta"],
   ["transferencia", "Transferencia"], ["otro", "Otro"]
@@ -226,7 +238,7 @@ export async function pedidosPublicos(request, env, url, obtenerMenu, json) {
     const detalle = JSON.parse(previo.detalle_json);
     const { servicio, mesa, notas, moneda, lineas, entrega } = detalle;
     const cobro = cobroRegistrado(previo);
-    const envioPendiente = servicio === "domicilio" && !entrega;
+    const envioPendiente = servicio === "domicilio" && entrega?.envioCentavos == null;
     const totalAPagarCentavos = envioPendiente ? null : previo.total_centavos + (entrega?.envioCentavos ?? 0);
     const puedeTransferir = !cobro && previo.estado !== "cancelado" && totalAPagarCentavos > 0;
     return json({
@@ -247,7 +259,7 @@ export async function pedidosPublicos(request, env, url, obtenerMenu, json) {
     });
   }
 
-  if (previo) return json(estadoPublico(previo));
+  if (previo) return json(estadoPublico(previo)); // El token identifica un intento, no crea una segunda orden.
   if (!soloRevisar && (!env.ADMIN_PASSWORD || env.ADMIN_PASSWORD.length < 16)) {
     return json({ error: "El registro de pedidos de prueba todavía no está configurado." }, 503);
   }
@@ -307,7 +319,7 @@ export async function administrarPedidos(request, db, url, json, cocina = false)
     const sinCobro = vista === "sin-cobro";
     const reportados = vista === "transferencias-reportadas";
     const historial = vista === "historial" || sinCobro || reportados;
-    const paginado = historial && url.searchParams.get("pagina") === "1";
+    const paginado = url.searchParams.get("pagina") === "1";
     const condiciones = [cocina ? "estado IN ('confirmado', 'preparacion')" :
       historial ? "estado IN ('entregado', 'cancelado')" :
       "estado NOT IN ('entregado', 'cancelado')"];
@@ -339,7 +351,7 @@ export async function administrarPedidos(request, db, url, json, cocina = false)
       valores.push(metodo);
     }
     if (paginado) {
-      for (const [parametro, condicion] of [["antes", "folio < ?"], ["folio", "folio = ?"]]) {
+      for (const [parametro, condicion] of (historial ? [["antes", "folio < ?"], ["folio", "folio = ?"]] : [["despues", "folio > ?"]])) {
         const valor = url.searchParams.get(parametro);
         if (valor === null) continue;
         if (!/^[1-9]\d*$/.test(valor) || !Number.isSafeInteger(Number(valor))) {
@@ -362,8 +374,7 @@ export async function administrarPedidos(request, db, url, json, cocina = false)
         ...estadoPublico(fila), creado: fila.creado,
         acciones: accionesPara(fila.estado, detalle.servicio, cocina).map(accion => ({
           ...accion,
-          ...(accion.id === "entregado" && !cocina && fila.total_centavos + (detalle.entrega?.envioCentavos ?? 0) > 0 &&
-              fila.cobro_registrado == null ? { requiereCobro: true } : {})
+          ...bloqueoAccion(accion.id, fila, detalle, cocina)
         }))
       };
       if (!cocina) return {
@@ -405,16 +416,19 @@ export async function administrarPedidos(request, db, url, json, cocina = false)
   const requiereCobro = datos.nuevo === "entregado";
   const actualizado = await db.prepare(
     "UPDATE pedidos_demo SET estado = ?, actualizado = ? WHERE folio = ? AND estado = ? " +
-    (requiereCobro ? "AND (total_centavos + COALESCE(json_extract(detalle_json, '$.entrega.envioCentavos'), 0) = 0 " +
-      "OR EXISTS (SELECT 1 FROM cobros_pedido WHERE pedido_folio = pedidos_demo.folio AND anulado IS NULL)) " : "") +
+    (requiereCobro ? `AND ${entregaPermitidaSQL} ` :
+      datos.nuevo === "cancelado" ? `AND NOT ${cobroActivoSQL} ` : "") +
     "RETURNING folio, estado, actualizado"
   ).bind(datos.nuevo, Date.now(), datos.folio, datos.actual).first();
   if (actualizado) return json(estadoPublico(actualizado));
   if (requiereCobro) {
     const vigente = await db.prepare("SELECT estado FROM pedidos_demo WHERE folio = ?").bind(datos.folio).first();
     if (vigente?.estado === datos.actual) {
-      return json({ error: "Registra el pago recibido antes de marcar el pedido como entregado." }, 409);
+      return json({ error: "Confirma el costo de envío y registra el pago por el total antes de entregar (si el total es cero no necesita cobro)." }, 409);
     }
+  }
+  if (datos.nuevo === "cancelado") {
+    return json({ error: "No se pudo cancelar. Comprueba el estado y, si hay un cobro, corrige su registro antes de cancelar. Esto no devuelve dinero." }, 409);
   }
   return json({ error: "El estado ya cambió. Actualiza la lista." }, 409);
 }
@@ -443,25 +457,29 @@ export async function administrarCobro(request, db, json) {
       return json({ error: "Indica un costo de envío válido." }, 400);
     }
     const fila = await db.prepare(`
-      UPDATE pedidos_demo SET detalle_json = json_set(detalle_json, '$.entrega',
+      UPDATE pedidos_demo SET actualizado = ?, detalle_json = json_set(detalle_json, '$.entrega',
         json_object('envioCentavos', ?, 'origen', 'manual',
           'colonia', COALESCE(json_extract(detalle_json, '$.direccionEntrega.colonia'), '')))
       WHERE folio = ? AND estado <> 'cancelado' AND json_extract(detalle_json, '$.servicio') = 'domicilio'
         AND json_extract(detalle_json, '$.entrega.envioCentavos') IS ?
+        AND transferencia_reportada IS NULL
         AND (json_extract(detalle_json, '$.entrega') IS NULL OR
-          (json_extract(detalle_json, '$.entrega.origen') = 'manual' AND transferencia_reportada IS NULL))
-        AND NOT EXISTS (SELECT 1 FROM cobros_pedido WHERE pedido_folio = pedidos_demo.folio AND anulado IS NULL)
+          (estado <> 'entregado' AND json_extract(detalle_json, '$.entrega.origen') = 'manual'))
+        AND (NOT ${cobroActivoSQL} OR (${envioPendienteSQL} AND EXISTS (
+          SELECT 1 FROM cobros_pedido WHERE pedido_folio = pedidos_demo.folio AND anulado IS NULL
+            AND importe_centavos = total_centavos + ?
+        )))
       RETURNING folio
-    `).bind(costo, datos.folio, anterior).first();
+    `).bind(Date.now(), costo, datos.folio, anterior, costo).first();
     return fila ? json({ envioCentavos: costo }) :
       json({ error: "El costo de envío ya cambió o el pedido ya tiene un pago reportado o registrado. Actualiza la lista." }, 409);
   }
   if (datos.accion === "corregir" && Number.isSafeInteger(datos.registrado)) {
     const fila = await db.prepare(
       "UPDATE cobros_pedido SET anulado = ? WHERE pedido_folio = ? AND registrado = ? " +
-      "AND anulado IS NULL RETURNING pedido_folio"
+      "AND anulado IS NULL AND EXISTS (SELECT 1 FROM pedidos_demo WHERE folio = pedido_folio AND estado <> 'entregado') RETURNING pedido_folio"
     ).bind(Date.now(), datos.folio, datos.registrado).first();
-    return fila ? json({ cobro: null }) : json({ error: "El registro de cobro cambió. Actualiza el pedido." }, 409);
+    return fila ? json({ cobro: null }) : json({ error: "No se puede quitar un cobro de un pedido entregado, o el registro cambió. Actualiza el pedido." }, 409);
   }
   const devolverCobro = "RETURNING importe_centavos AS cobro_centavos, registrado AS cobro_registrado, metodo AS cobro_metodo";
   if (datos.accion === "editar-metodo") {
@@ -489,11 +507,11 @@ export async function administrarCobro(request, db, json) {
   ).bind(datos.folio).first();
   if (!pedido) return json({ error: "No encontramos ese pedido." }, 404);
   const detalle = JSON.parse(pedido.detalle_json);
-  const envioPendiente = detalle.servicio === "domicilio" && !detalle.entrega;
+  const envioPendiente = detalle.servicio === "domicilio" && detalle.entrega?.envioCentavos == null;
   const total = pedido.total_centavos + (detalle.entrega?.envioCentavos ?? 0);
-  if (envioPendiente ? datos.importeCentavos < total : datos.importeCentavos !== total) {
+  if (envioPendiente || datos.importeCentavos !== total) {
     return json({
-      error: envioPendiente ? "El cobro debe cubrir el subtotal de productos." :
+      error: envioPendiente ? "Primero publica el costo de envío, incluso si es cero." :
         "El cobro debe coincidir con el total del pedido."
     }, 400);
   }
