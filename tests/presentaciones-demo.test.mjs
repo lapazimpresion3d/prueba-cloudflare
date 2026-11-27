@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {presentacionDe,enlacesDemo,simbolos,destacadosDisponibles} from "../public/demostraciones/presentaciones.mjs";
+import {presentacionDe,enlacesDemo,simbolos,destacadosDisponibles,enlaceGaleria} from "../public/demostraciones/presentaciones.mjs";
 import {establecimientos} from "../public/demostraciones/establecimientos.mjs";
 import {planes} from "../public/demostraciones/config.mjs";
 test("cinco identidades sectoriales, textos y símbolos propios",()=>{
@@ -30,4 +30,8 @@ test("especialidades apuntan a categorías existentes de los cinco giros",()=>{
  for(const e of establecimientos){const d=destacadosDisponibles(presentacionDe(e.id),e.catalogo);assert.equal(d.length,3);assert.ok(d.every(x=>e.catalogo.some(p=>p.categoria===x.categoria)));}
  assert.equal(destacadosDisponibles(presentacionDe("cafe-mirador"),[]).length,0);
  assert.deepEqual(destacadosDisponibles(presentacionDe("barberia-elite"),[{categoria:"Productos"}]),[{nombre:"Cuidado personal",categoria:"Productos"}]);
+});
+
+test("la galería conserva el paquete sin parámetros de práctica",()=>{
+ for(const p of planes){const u=new URL(enlaceGaleria(p.id),"https://demo.example");assert.equal(u.pathname,"/demostraciones/ejemplos/");assert.equal(u.searchParams.get("plan"),p.id);assert.equal(u.searchParams.has("practica"),false);}
 });
