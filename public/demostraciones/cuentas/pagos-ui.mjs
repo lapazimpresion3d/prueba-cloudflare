@@ -1,13 +1,13 @@
 import {calcularAsignacion} from "../division-cuentas.mjs";
 import {importe} from "../config.mjs";
 import {centavosCobro,metodosCobroDemo} from "../cobros-practica.mjs";
-import {dividirImporte} from "../pagos-multiples.mjs";
+import {dividirImporte,motivosAnulacionMultiple} from "../pagos-multiples.mjs";
 const el=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n;};
-export function panelPagosMultiples(c,datos,{enviar,cerrar}){
+export function panelPagosMultiples(c,datos,{enviar,cerrar,anular}){
  const panel=el("section");panel.className="pagos-multiples";
  const {plan,resumen}=datos;
  panel.append(el("h4","Pagos múltiples · práctica"),el("p","Consumo: "+importe(resumen.consumoCentavos)),el("p","Abonado: "+importe(resumen.abonadoCentavos)+" · Propinas: "+importe(resumen.propinaCentavos)),el("strong","Saldo: "+importe(resumen.saldoCentavos)));
- const lista=el("ul");for(const m of plan.movimientos)lista.append(el("li",(m.comensal?"Comensal "+m.comensal+" · ":"")+metodosCobroDemo[m.metodo]+" · Consumo "+importe(m.consumoCentavos)+" · Propina "+importe(m.propinaCentavos)+" · Recibido "+importe(m.recibidoCentavos)+" · Cambio "+importe(m.cambioCentavos)+(m.referencia?" · "+m.referencia:"")));panel.append(lista);
+ const lista=el("ul");for(const m of plan.movimientos){const item=el("li",(m.comensal?"Comensal "+m.comensal+" · ":"")+metodosCobroDemo[m.metodo]+" · Consumo "+importe(m.consumoCentavos)+" · Propina "+importe(m.propinaCentavos)+" · Recibido "+importe(m.recibidoCentavos)+" · Cambio "+importe(m.cambioCentavos)+(m.referencia?" · "+m.referencia:""));const a=(plan.anulaciones||[]).find(x=>x.movimiento===m.id);if(a){item.append(el("p","ANULADO · "+a.motivo+" · "+new Date(a.fecha).toLocaleString("es-MX")));}else if(c.cerrado===null){const motivo=el("select"),b=el("button","Anular registro");const inicial=el("option","Selecciona motivo");inicial.value="";motivo.append(inicial);for(const t of motivosAnulacionMultiple){const o=el("option",t);o.value=t;motivo.append(o);}motivo.setAttribute("aria-label","Motivo de anulación");b.type="button";b.addEventListener("click",()=>{if(!motivo.value){motivo.reportValidity();return;}if(confirm("¿Anular este registro ficticio? No implica devolución bancaria."))anular({accion:"anular",id:crypto.randomUUID(),movimiento:m.id,motivo:motivo.value,revision:plan.revision});});motivo.required=true;item.append(motivo,b);}lista.append(item);}panel.append(lista);
  if(plan.division){
   for(const s of datos.subcuentas||[]){
    panel.append(el("p","Comensal "+s.comensal+" · Consumo "+importe(s.total)+" · Saldo "+importe(s.saldo)+" · Propina "+importe(s.propina)+(s.liquidada?" · Liquidado":"")));
