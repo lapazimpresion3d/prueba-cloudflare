@@ -97,3 +97,6 @@ body[data-estilo=mascotas]:has(.portada-practica) .hero{background:var(--hero);c
 
 /* Identidad original de cada marca y recursos fotográficos de demostración. */
 .logo{width:60px;height:60px;border:0;background:transparent}.logo img{background:transparent}.detalle-marca img{width:min(100%,220px);height:auto;display:block;margin:auto}.hero-arte .portada-fotografica{object-fit:cover}.aviso-imagenes-demo{font-size:.78rem;color:var(--suave);margin-top:12px}.producto .imagen-producto img{object-position:center}.hero-arte:has(.portada-fotografica) .arte-emblema{display:none}
+
+/* Regreso visible en el extremo izquierdo, también en pantallas estrechas. */
+.demo-bar{align-items:center;justify-content:flex-start}.demo-bar>.demo-regreso{font-weight:700;margin-inline-end:auto}.demo-bar-enlaces{margin-inline-start:auto}@media(max-width:620px){.demo-bar>.demo-regreso{flex-basis:100%;margin:0}.demo-bar-enlaces{margin-inline-start:0}}
