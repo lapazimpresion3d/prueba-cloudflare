@@ -83,7 +83,7 @@ async function atenderPerfil(request,env,ctx,json){
     const fila=await db.prepare("SELECT revision, datos_json FROM demo_perfiles WHERE sesion_id=? AND establecimiento_id=?").bind(s.id,id).first();
     return json({establecimiento:id,revision:fila?.revision??0,perfil:fila?JSON.parse(fila.datos_json):crearPerfilesLocales().leer(id),expira:s.expira});
   }
-  const datos=await leerJsonLimitado(request,8192);
+  const datos=await leerJsonLimitado(request,220000);
   if(!Number.isSafeInteger(datos?.revision)||datos.revision<0||datos.revision>=1000000)return error(json,"Revisión inválida.",400);
   let perfil;
   try{perfil=validarPerfil(id,perfilPlano(datos.perfil));}catch{return error(json,"Revisa la identidad y los datos de ejemplo.",400);}
