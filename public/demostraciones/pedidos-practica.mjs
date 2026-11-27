@@ -1,6 +1,6 @@
 // Flujo de práctica exclusivamente local. No accede a /api/pedidos ni a datos reales.
 import {obtenerEstablecimiento} from "./establecimientos.mjs";
-import {planes} from "./config.mjs";
+import {capacidades} from "./config.mjs";
 const MAX_PEDIDOS=30,MAX_LINEAS=30,MAX_CANTIDAD=20,MAX_TOTAL=100000000;
 const PREFIJO="lapaz:demo:pedidos:v1:";
 const estados=["recibido","preparando","listo","entregado","cancelado"];
@@ -9,7 +9,7 @@ export const nombresEstado={recibido:"Recibido",preparando:"En preparación",lis
 const copiar=x=>JSON.parse(JSON.stringify(x));
 export function admitePedidos(id,plan){
   const e=obtenerEstablecimiento(id);
-  return !!e&&["cafeteria","restaurante","tienda"].includes(e.giro)&&planes.findIndex(p=>p.id===plan)>=1;
+  return !!e&&capacidades(e,plan).some(m=>m.id==="pedidos"&&m.estadoEfectivo==="disponible");
 }
 export function modalidadesPedido(id){
   const e=obtenerEstablecimiento(id);
@@ -36,6 +36,14 @@ export function resumirCarrito(id,catalogo,lineas,modalidad){
   return {detalle,modalidad:modo.id,subtotal,cargo,total};
 }
 export function transicionesPedido(estado){return Object.hasOwn(transiciones,estado)?[...transiciones[estado]]:[];}
+function pedidoValido(p,id){
+  if(!p||typeof p.folio!=="string"||!/^DEMO-[a-zA-Z0-9-]{1,80}$/.test(p.folio)||!estados.includes(p.estado)||!Number.isSafeInteger(p.creado)||!Array.isArray(p.detalle)||!p.detalle.length||p.detalle.length>MAX_LINEAS||!Array.isArray(p.historial)||!p.historial.length||p.historial.length>5)return false;
+  if(!p.detalle.every(l=>l&&typeof l.id==="string"&&typeof l.nombre==="string"&&l.nombre.length<=100&&Number.isSafeInteger(l.cantidad)&&l.cantidad>=1&&l.cantidad<=MAX_CANTIDAD&&Number.isSafeInteger(l.precioCentavos)&&l.precioCentavos>=0&&l.precioCentavos<=MAX_TOTAL&&l.subtotal===l.cantidad*l.precioCentavos))return false;
+  if(new Set(p.detalle.map(l=>l.id)).size!==p.detalle.length)return false;
+  const modo=modalidadesPedido(id).find(m=>m.id===p.modalidad);
+  if(!modo||p.cargo!==modo.cargo||p.subtotal!==p.detalle.reduce((sum,l)=>sum+l.subtotal,0)||p.total!==p.subtotal+p.cargo||!Number.isSafeInteger(p.total)||p.total>MAX_TOTAL)return false;
+  return p.historial.every((h,i)=>h&&Number.isSafeInteger(h.fecha)&&(i===0?h.estado==="recibido":transicionesPedido(p.historial[i-1].estado).includes(h.estado)))&&p.historial.at(-1).estado===p.estado;
+}
 export function crearPedidosPractica(almacen,id,plan,{ahora=()=>Date.now(),folio=()=>crypto.randomUUID()}={}){
   if(!admitePedidos(id,plan))throw Error("Los pedidos no están incluidos en esta demostración.");
   const clave=PREFIJO+id;
@@ -45,7 +53,7 @@ export function crearPedidosPractica(almacen,id,plan,{ahora=()=>Date.now(),folio
       const raw=almacen?.getItem(clave);
       if(raw&&raw.length<=400000){
         const v=JSON.parse(raw);
-        if(v.version===1&&v.establecimiento===id&&Array.isArray(v.pedidos)&&v.pedidos.length<=MAX_PEDIDOS&&v.pedidos.every(p=>p&&typeof p.folio==="string"&&estados.includes(p.estado)&&Array.isArray(p.detalle)&&p.detalle.length<=MAX_LINEAS&&Number.isSafeInteger(p.total)&&p.total>=0))memoria=v;
+        if(v.version===1&&v.establecimiento===id&&Array.isArray(v.pedidos)&&v.pedidos.length<=MAX_PEDIDOS&&new Set(v.pedidos.map(p=>p?.folio)).size===v.pedidos.length&&v.pedidos.every(p=>pedidoValido(p,id)))memoria=v;
       }
     }catch{}
     return copiar(memoria.pedidos);
@@ -62,7 +70,7 @@ export function crearPedidosPractica(almacen,id,plan,{ahora=()=>Date.now(),folio
     const pedidos=leer();
     if(pedidos.length>=MAX_PEDIDOS)throw Error("Límite de 30 pedidos de práctica. Restablece el historial desde el panel.");
     const f="DEMO-"+folio();
-    if(pedidos.some(p=>p.folio===f))throw Error("No se pudo asignar un folio. Intenta de nuevo.");
+    if(!/^DEMO-[a-zA-Z0-9-]{1,80}$/.test(f)||pedidos.some(p=>p.folio===f))throw Error("No se pudo asignar un folio. Intenta de nuevo.");
     const p={...resumen,folio:f,estado:"recibido",creado:ahora(),historial:[{estado:"recibido",fecha:ahora()}]};
     guardar([p,...pedidos]);return copiar(p);
   }
