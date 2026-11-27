@@ -7,7 +7,7 @@ export const presentaciones={
     entrada:"Descubre nuestras bebidas, desayunos y pequeños antojos.",
     catalogo:"Nuestro menú",accion:"Explorar el menú",
     seccion:"Un espacio para disfrutar",texto:"Desde un espresso hasta una degustación, encuentra tu momento favorito.",
-    destacados:["Café artesanal","Repostería","Desayunos"],iconos:{Bebidas:"☕",Repostería:"🥐",Desayunos:"🍳",Productos:"☕",Experiencias:"☕"}
+    destacados:["Café artesanal","Repostería","Desayunos"], categoriasDestacadas:["Bebidas","Repostería","Desayunos"],iconos:{Bebidas:"☕",Repostería:"🥐",Desayunos:"🍳",Productos:"☕",Experiencias:"☕"}
   },
   "barberia-elite":{
     estilo:"barberia",sigla:"BE",distintivo:"BARBERÍA · ESTILO · CUIDADO",
@@ -15,7 +15,7 @@ export const presentaciones={
     entrada:"Conoce nuestros cortes, servicios de barba y productos de cuidado personal.",
     catalogo:"Servicios y productos",accion:"Conocer los servicios",
     seccion:"El detalle hace la diferencia",texto:"Cortes clásicos, perfilado y acabados para tu rutina de cuidado.",
-    destacados:["Cortes","Barba","Cuidado personal"],iconos:{Cortes:"✂️",Barba:"🪒",Paquetes:"✂️",Productos:"🧴"}
+    destacados:["Cortes","Barba","Cuidado personal"], categoriasDestacadas:["Cortes","Barba","Productos"],iconos:{Cortes:"✂️",Barba:"🪒",Paquetes:"✂️",Productos:"🧴"}
   },
   "mundo-mascotas":{
     estilo:"mascotas",sigla:"MM",distintivo:"ALIMENTACIÓN · JUEGO · CUIDADO",
@@ -58,3 +58,9 @@ export const simbolos={
  comal:'<path d="M10 72C10 28 80 15 88 72Z"/><path d="M15 55l8-9 9 5 9-10 10 5 8-9 9 6 7-4M25 65h3m11-8h3m11 8h3m10-11h3"/><path d="M22 29l-4-8m24 1 1-10m20 12 5-8"/>',
  taller:'<path d="M64 12a20 20 0 0 0-21 27L14 68a10 10 0 0 0 14 14l29-29a20 20 0 0 0 27-21L70 43 57 30Z"/><circle cx="21" cy="75" r="3"/><path d="M12 20h20M22 10v20M70 73h16M78 65v16"/>'
 };
+
+// Los nombres comerciales de especialidades pueden diferir de las categorías del catálogo.
+export function destacadosDisponibles(t,catalogo){
+ const categorias=new Set(catalogo.map(p=>p.categoria));
+ return t.destacados.map((nombre,i)=>({nombre,categoria:(t.categoriasDestacadas||t.destacados)[i]})).filter(d=>categorias.has(d.categoria));
+}
