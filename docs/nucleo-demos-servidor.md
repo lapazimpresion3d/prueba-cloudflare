@@ -37,3 +37,6 @@ Validación nueva: 20/20 comprobaciones de lógica JS, 11/11 rutas simuladas, 17
 
 ## Estado de configuración posterior
 Binding DEMO_DB incorporado en previews mediante ff7a914. El propietario configuró DEMO_RATE_SECRET mediante Wrangler Preview desarrollo (deployment b29cb1dc-46bc-4b09-8f48-5d59b14363b7) y reportó que la comprobación funcionó. No se acredita aquí la ejecución independiente de todas las operaciones ni la suite integrada. El laboratorio conserva los botones técnicos; la nueva página pública y su panel de práctica no los exponen. No cambiar datos ni secretos desde GitHub.
+
+## Perfiles de práctica: migración 0002
+Se añadió GET/PUT /api/demo/perfil, con sesión/establecimiento/revisión y validación de identidad y dos JPEG optimizados. Ejecutar exclusivamente migrations-demo/0002_perfiles.sql en la D1 dedicada. perfilConfigurado indica disponibilidad del perfil, independiente de persistenciaConfigurada del catálogo. Sin migración, no se activa el guardado de identidad; el catálogo sigue funcionando. Ver docs/personalizacion-demos.md.
