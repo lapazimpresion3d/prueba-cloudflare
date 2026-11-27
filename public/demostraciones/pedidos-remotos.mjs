@@ -21,8 +21,8 @@ export function crearPedidosRemotos(id,plan,peticion=fetch){
   }
   return {conectar,leer,leerEstado,disponibilidad,crear:datos=>api("pedidos?"+query,"POST",datos),cambiar:(solicitud,esperado,destino)=>api("pedidos?"+query,"PATCH",{solicitud,esperado,destino})};
 }
-export function prepararSolicitudPedido(resumen,personalizado,solicitud){
-  return {solicitud,catalogo:personalizado?"personalizado":"original",modalidad:resumen.modalidad,totalEsperado:resumen.total,lineas:resumen.detalle.map(l=>({id:l.id,cantidad:l.cantidad,precioEsperado:l.precioCentavos}))};
+export function prepararSolicitudPedido(resumen,personalizado,solicitud,datosCliente){
+  return {...(datosCliente===undefined?{}:{datosCliente}),solicitud,catalogo:personalizado?"personalizado":"original",modalidad:resumen.modalidad,totalEsperado:resumen.total,lineas:resumen.detalle.map(l=>({id:l.id,cantidad:l.cantidad,precioEsperado:l.precioCentavos}))};
 }
 
 // No crea sesiones al visitar una página. No mezcla historiales.
