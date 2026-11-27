@@ -2,7 +2,7 @@ import {planes,importe} from "../config.mjs";
 import {obtenerEstablecimiento,filtrarCatalogo} from "../establecimientos.mjs";
 import {crearCatalogosLocales,imagenOfertaSegura} from "../catalogo-local.mjs";
 import {crearPerfilesLocales} from "../perfil-local.mjs";
-import {presentacionDe,enlacesDemo,simbolos,destacadosDisponibles} from "../presentaciones.mjs";
+import {presentacionDe,enlacesDemo,simbolos,destacadosDisponibles,enlaceGaleria} from "../presentaciones.mjs";
 import {ilustracionPortada} from "../ilustraciones.mjs";
 import {iniciarCarrito} from "../carrito-ui.mjs";
 import {admiteCitas,serviciosCita} from "../citas-practica.mjs";
@@ -63,7 +63,7 @@ if(!base||!plan||!t){
   }
   $("buscar").addEventListener("input",render);$("categoria").addEventListener("change",render);
   const links=enlacesDemo(base.id,plan.id,practica);
-  $("administracion").href=links.administracion;$("administracion-arriba").href=links.administracion;$("administracion-arriba").hidden=false;$("comparador").href="/demostraciones/ejemplos/";
+  $("administracion").href=links.administracion;$("administracion-arriba").href=links.administracion;$("administracion-arriba").hidden=false;$("comparador").href=enlaceGaleria(plan.id);
   $("salir-practica").href=enlacesDemo(base.id,plan.id).negocio;
   $("aviso-practica-arriba").hidden=!practica;
   $("plan-visible").textContent=plan.nombre+(plan.id==="p1"?" · Ejemplo de página y catálogo":" · Funciones de práctica disponibles según el giro");
