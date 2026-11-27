@@ -1,3 +1,4 @@
+import {estadoCobro,nombresCobro,validarCambioPedido} from "../cobros-practica.mjs";
 import {admiteCocina,admiteComandas,accionesCocina,comandasActivas,agruparComandas} from "../cocina-practica.mjs";
 import {obtenerEstablecimiento} from "../establecimientos.mjs";
 import {importe} from "../config.mjs";
@@ -18,7 +19,7 @@ else{
  function guardarModo(){preferencia=servidor?"servidor":"local";try{almacen?.setItem(clave,preferencia);}catch{}}
  $("titulo").textContent=mesas?"Servicio y comandas por mesa":"Pantalla de cocina";
  $("negocio").textContent=obtenerEstablecimiento(id).nombre;
- $("intro").textContent=mesas?"Agrupa pedidos activos del salón. Marca cada pedido listo como entregado. El total visible no es una cuenta abierta ni un cobro.":"Recibe comandas, consulta cantidades, ingredientes y extras, inicia preparación y marca listo. No contiene datos de contacto, cobros ni cancelaciones.";
+ $("intro").textContent=mesas?"Agrupa pedidos activos del salón. Marca cada pedido listo como entregado. El total visible no es una cuenta abierta. Confirma el cobro en administración antes de entregar.":"Recibe comandas, consulta cantidades, ingredientes y extras, inicia preparación y marca listo. No contiene datos de contacto, cobros ni cancelaciones.";
  $("panel").href=links.administracion;$("cliente").href=links.negocio;
  $("alternar").hidden=!admiteComandas(id,plan);$("alternar").textContent=mesas?"Ir a cocina":"Ver comandas por mesa";
  if(id==="taqueria-el-comal"){$("filtro-mesa").hidden=false;$("mesa").replaceChildren(new Option("Todas",""),...["1","2","3","4","5","6"].map(m=>new Option("Mesa "+m+(m==="6"?" (histórica)":""),m)),new Option("Local sin mesa","sin-mesa"));}
@@ -45,7 +46,8 @@ else{
     const lista=el("ul");for(const l of p.detalle){const li=el("li",l.cantidad+" × "+l.nombre);if(l.personalizacion?.length)for(const d of l.personalizacion)li.append(el("span",d));lista.append(li);}
     card.append(el("h4",g.destino),estado,el("p",p.folio,"folio"),el("p","Recibido: "+new Date(p.creado).toLocaleTimeString("es-MX")),lista);
     if(p.datosCliente?.nota&&p.datosCliente.nota!=="Sin instrucciones")card.append(el("p","Instrucciones: "+p.datosCliente.nota));
-    for(const destino of accionesCocina(p.estado,mesas)){const b=el("button",({preparando:"Iniciar preparación",listo:"Pedido listo",entregado:"Marcar entregado"})[destino]);b.type="button";b.addEventListener("click",()=>cambiar(p,destino));card.append(b);}
+    if(mesas)card.append(el("p",nombresCobro[estadoCobro(p)]));
+    for(const destino of accionesCocina(p.estado,mesas)){try{validarCambioPedido(p,destino);}catch(e){card.append(el("p",e.message,"nota"));continue;}const b=el("button",({preparando:"Iniciar preparación",listo:"Pedido listo",entregado:"Marcar entregado"})[destino]);b.type="button";b.addEventListener("click",()=>cambiar(p,destino));card.append(b);}
     tarjetas.append(card);
    }return grupo;
   }));
