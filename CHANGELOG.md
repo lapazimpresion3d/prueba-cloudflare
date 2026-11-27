@@ -1,4 +1,11 @@
 # Registro de cambios
+## 2026-11-26 — Ampliación a SaaS multicomercio
+- Objetivo ampliado a una plataforma de gestión comercial con núcleo común y módulos especializados por giro, sin duplicar código.
+- Planes vigentes: Presencia digital, Negocio interactivo, Gestión comercial y Gestión profesional; precios configurables en MXN + IVA, adicionales, límites, promociones y precios especiales desde superadministración.
+- Prioridades revisadas: auditoría, diseño, núcleo, módulos/planes, páginas/catálogos, citas/agendas, módulos restauranteros, POS/caja/inventarios, especializaciones progresivas.
+- Plantillas y demos por giro, productos físicos/alimentos/servicios tipados, sucursales, clientes/empleados base; conservación de funciones existentes de El Comal.
+- Ver ROADMAP.md, docs/arquitectura-multicomercio.md y docs/auditoria-multicomercio-2026-11-26.md. Documentación únicamente; sin cambios funcionales, migraciones, datos ni main.
+
 ## 2026-11-26 — Cambio de estrategia comercial y multirrestaurante
 - Nueva secuencia: auditoría, base SaaS común, Presencia digital, Restaurante interactivo, Punto de venta integral y Administración profesional.
 - Precios configurables en MXN + IVA y demos Café Mirador, La Hamburguesería, Mariscos La Bahía y Taquería El Comal.
