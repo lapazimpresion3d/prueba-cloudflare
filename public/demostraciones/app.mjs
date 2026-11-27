@@ -185,15 +185,17 @@ async function operarServidor(accion){
   try{
     if(accion==="conectar"){
       await peticion("/api/demo/sesion",{method:"POST"});
-      practicaActiva=true;
+      revisiones.clear();practicaActiva=true;
       // Obtener revisión sin sobreescribir cambios locales.
       const copia=await peticion(rutaServidor("catalogo",id,p));
       if(copia.establecimiento!==id||!Number.isSafeInteger(copia.revision))throw Error("Copia inválida.");
-      revisiones.set(id,copia.revision);
-      aviso("Práctica conectada. Puedes cargar la copia guardada o guardar la actual.");
+      if(copia.revision===0)revisiones.set(id,0);
+      aviso(copia.revision===0?"Práctica conectada. Puedes guardar la copia actual.":"Hay una copia guardada. Cárgala antes de modificarla y guardarla.");
     }else if(accion==="cargar"){
+      const antes=JSON.stringify(catalogos.leer(id));
       const copia=await peticion(rutaServidor("catalogo",id,p));
       if(copia.establecimiento!==id||!Number.isSafeInteger(copia.revision))throw Error("Copia inválida.");
+      if(antes!==JSON.stringify(catalogos.leer(id)))throw Error("El catálogo local cambió mientras se cargaba. Intenta de nuevo.");
       const guardado=catalogos.importar(id,copia.catalogo);revisiones.set(id,copia.revision);
       if(negocio.id===id){reiniciarFormulario();categorias();renderCatalogo();renderEditor();}
       aviso(guardado?"Copia cargada en esta pestaña.":"Copia cargada en memoria; no se conserva al recargar.");
