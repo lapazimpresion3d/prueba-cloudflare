@@ -28,18 +28,21 @@ if(!negocio||!admiteCitas(id,plan)){
  const remoto=crearCitasRemotas(id,plan),claveModo="lapaz:demo:citas:modo:"+id,clavePendiente="lapaz:demo:citas:pendiente:"+id;
  let elegido=null,creando=false,servidor=false,ocupado=false,lectura=0,copiaRemota=[],listaValida=false,expira=null,pendiente=null,preferencia=null,configurado=null,comprobando=true;
  let remotoDisponible=false,remotoConsultado=false;
- try{preferencia=almacen?.getItem(claveModo);servidor=preferencia==="servidor";const v=JSON.parse(almacen?.getItem(clavePendiente)||"null");if(v?.datos?.solicitud&&Number.isSafeInteger(v.expira)){pendiente=v;servidor=true;}}catch{}
+ try{preferencia=["local","servidor"].includes(q.get("origen"))?q.get("origen"):almacen?.getItem(claveModo);servidor=preferencia==="servidor";const v=JSON.parse(almacen?.getItem(clavePendiente)||"null");if(v?.datos?.solicitud&&Number.isSafeInteger(v.expira)){pendiente=v;servidor=true;}}catch{}
  function modo(){preferencia=servidor?"servidor":"local";try{almacen?.setItem(claveModo,preferencia);}catch{}}
  function guardarPendiente(v){if(!almacen)throw Error("Habilita el almacenamiento para conservar la solicitud.");if(v)almacen.setItem(clavePendiente,JSON.stringify(v));else almacen.removeItem(clavePendiente);pendiente=v;}
  const citasActuales=()=>servidor?copiaRemota:repo.leer();
  function controles(){
   $("modo-citas").textContent=servidor?"Práctica en servidor · sesión privada":"Práctica local · esta pestaña";
   $("activar-citas").disabled=comprobando||ocupado||creando||!!pendiente||configurado===false;
-  $("estado-origen").textContent=comprobando?"Comprobando agenda…":configurado===false?"Servidor no configurado. Las citas locales solo se ven en esta pestaña.":configurado===null?"No se pudo comprobar el servidor. No se mezclan las agendas.":servidor?"Agenda privada en servidor; se comparte en este navegador.":"Agenda local: las citas de otras pestañas no aparecen aquí.";
+  $("estado-origen").textContent=comprobando?"Comprobando agenda…":configurado===false?"Servidor no configurado. Las citas locales solo se ven en esta pestaña.":configurado===null?"No se pudo comprobar el servidor. No se mezclan las agendas.":servidor?(expira===null&&listaValida?"La primera cita activará una sesión en servidor.":"Agenda privada en servidor; se comparte en este navegador."):"Agenda local: las citas de otras pestañas no aparecen aquí.";
   $("cantidad-local").textContent=String(repo.leer().length);
   $("cantidad-remota").textContent=remotoConsultado?String(copiaRemota.length):"—";
   $("citas-locales").textContent="Ver agenda local";
   $("activar-citas").textContent=remotoDisponible?"Ver agenda del servidor":"Activar agenda en servidor";
+  const origen="&origen="+(servidor?"servidor":"local");
+  $("cambiar-vista").href=base+(admin?"":"&vista=agenda")+origen;
+  $("ir-agenda").href=base+"&vista=agenda"+origen;
   $("citas-locales").disabled=comprobando||ocupado||creando||!!pendiente||!servidor;
   $("restaurar").hidden=!admin||servidor;
   $("descartar-cita").hidden=!pendiente||admin;
@@ -79,6 +82,7 @@ if(!negocio||!admiteCitas(id,plan)){
  async function actualizar(){
   const n=++lectura;
   if(!servidor){render();return;}
+  if(expira===null&&!pendiente&&!admin){await iniciarAgenda();return;}
   try{const v=await remoto.leer();if(n!==lectura||!servidor)return;copiaRemota=v.citas;expira=v.expira;listaValida=true;remotoDisponible=true;remotoConsultado=true;}
   catch(e){if(n!==lectura)return;copiaRemota=[];listaValida=false;remotoConsultado=false;remotoDisponible=false;aviso(e.message+" Actualiza o activa la sesión.");}
   render();
@@ -99,11 +103,13 @@ if(!negocio||!admiteCitas(id,plan)){
   if(n!==lectura)return;
   if(configurado){
    try{const v=await remoto.leer();if(n!==lectura)return;copiaRemota=v.citas;expira=v.expira;remotoDisponible=true;remotoConsultado=true;listaValida=true;
-    if(pendiente||preferencia==="servidor"||admin&&v.citas.length>0||preferencia!=="local"&&repo.leer().length===0)servidor=true;
+    if(pendiente||preferencia==="servidor"||preferencia!=="local"&&repo.leer().length===0)servidor=true;
+    else servidor=false;
    }catch(e){if(n!==lectura)return;if(e.status!==401)aviso(e.message);listaValida=false;
     // Cliente nuevo: reservar en servidor por defecto cuando esté configurado.
     // Crear sesión solo al solicitar una cita, no al visitar la página.
-    if(!admin&&!pendiente&&preferencia!=="local"&&repo.leer().length===0&&e.status===401){servidor=true;listaValida=true;expira=null;remotoConsultado=true;}
+    if(!admin&&!pendiente&&preferencia!=="local"&&repo.leer().length===0&&e.status===401){servidor=true;listaValida=true;expira=null;remotoDisponible=false;remotoConsultado=true;copiaRemota=[];}
+    else if(e.status===401){remotoDisponible=false;remotoConsultado=false;copiaRemota=[];}
    }
   }else if(!pendiente){servidor=false;listaValida=false;}
  }catch(e){if(n!==lectura)return;configurado=null;aviso("No se pudo comprobar la agenda remota. "+e.message);}
@@ -123,16 +129,15 @@ if(!negocio||!admiteCitas(id,plan)){
     const resultado=await remoto.crear(pendiente.datos);c=resultado.cita;
     if(!c||c.solicitud!==pendiente.datos.solicitud)throw Error("No se confirmó la cita. Reintenta.");
     guardarPendiente(null);
-   }else c=repo.crear(catalogo,solicitud());
+   }else{c=repo.crear(catalogo,solicitud());modo();}
    elegido=null;aviso("Cita de práctica "+(servidor?"guardada en servidor":"creada localmente")+" · "+c.folio);
    $("ir-agenda").hidden=false;
   }catch(e){if(pendiente&&[400,403,409,413,415].includes(e.status)){try{guardarPendiente(null);}catch{}}aviso(e.message+(pendiente?" Conserva o reintenta la solicitud pendiente.":""));}
   finally{creando=false;await actualizar();}
  });
  for(const k of ["filtro-fecha","filtro-recurso","filtro-estado"])$(k).addEventListener("change",render);
- $("actualizar").addEventListener("click",actualizar);
+ $("actualizar").addEventListener("click",()=>{if(!comprobando&&!ocupado&&!creando)iniciarAgenda();});
  $("restaurar").addEventListener("click",()=>{if(!admin||servidor||ocupado||creando||!confirm("¿Restablecer las citas de práctica de este negocio?"))return;try{repo.restaurar();aviso("Agenda restablecida.");}catch(e){aviso(e.message);}render();});
- $("ir-agenda").href=base+"&vista=agenda";
  window.addEventListener("pageshow",e=>{if(e.persisted&&!comprobando&&!ocupado&&!creando)iniciarAgenda();});
  window.addEventListener("focus",()=>{if(!comprobando&&!ocupado&&!creando)iniciarAgenda();});
  document.title=(admin?"Agenda · ":"Citas · ")+negocio.nombre;render();$("contenido").hidden=false;iniciarAgenda();
