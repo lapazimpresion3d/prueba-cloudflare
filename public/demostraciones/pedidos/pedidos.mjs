@@ -20,7 +20,7 @@ if(!negocio||!admitePedidos(id,plan)){
   const aviso=s=>{$("aviso").textContent=s;};
   async function render(){
     const n=++generacion,modo=servidor;controles();
-    let pedidos;try{pedidos=modo?await remoto.leer():repo.leer();}catch(e){if(n===generacion){$("pedidos").replaceChildren();$("resumen").replaceChildren();aviso(e.message+" Activa la práctica en servidor o actualiza.");}return;}
+    let pedidos;try{pedidos=modo?await remoto.leer():repo.leer();}catch(e){if(n===generacion){totalRemoto=null;controles();$("pedidos").replaceChildren();$("resumen").replaceChildren();aviso(e.message+" Activa la práctica en servidor o actualiza.");}return;}
     if(n!==generacion||modo!==servidor)return;if(modo)totalRemoto=pedidos.length;controles();
     const estado=$("filtro").value,modos=modalidadesPedido(id);
     $("resumen").replaceChildren(...Object.entries(nombresEstado).map(([k,n])=>{const c=el("div",undefined,"contador-pedido");c.append(el("strong",String(pedidos.filter(p=>p.estado===k).length)),el("span",n));return c;}));
