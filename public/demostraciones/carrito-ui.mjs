@@ -37,7 +37,7 @@ export function iniciarCarrito(datos,plan,practica){
   function render(){
     let r;
     try{r=resumirCarrito(datos.id,datos.catalogo,lineas,$("modalidad-pedido").value);}
-    catch(e){$("enviar-pedido").disabled=true;aviso(e.message);return;}
+    catch(e){aviso(e.message);r={detalle:[],subtotal:0,cargo:0,total:0};}
     $("lineas-carrito").replaceChildren(...r.detalle.map(l=>{
       const fila=nodo("div",undefined,"linea-carrito"),info=nodo("div");
       info.append(nodo("strong",l.nombre),nodo("p",importe(l.precioCentavos)+" × "+l.cantidad+" · "+importe(l.subtotal),"nota"));
@@ -53,6 +53,7 @@ export function iniciarCarrito(datos,plan,practica){
     $("enviar-pedido").textContent=pendiente?"Reintentar pedido pendiente":"Crear pedido de práctica";
     $("vaciar-carrito").disabled=enviando||!!pendiente||!r.detalle.length;
     $("modalidad-pedido").disabled=enviando||!!pendiente;
+    if(pendiente){const op=modos.find(m=>m.id===pendiente.modalidad);if(op)$("modalidad-pedido").value=op.id;}
     $("modo-pedidos").textContent=servidor?"Práctica en servidor · sesión privada":"Práctica local · esta pestaña";
     $("activar-pedidos").disabled=enviando||conectando;
     $("pedidos-locales").disabled=!servidor||enviando||conectando||!!pendiente;
@@ -87,8 +88,8 @@ export function iniciarCarrito(datos,plan,practica){
       lineas=[];persistir();await seguimiento();aviso("Pedido de práctica "+(servidor?"guardado en servidor":"creado localmente")+". "+p.folio+" · No se envió a un negocio real.");
       $("seccion-seguimiento").scrollIntoView({block:"start"});
     }catch(e){
-      // Una respuesta explícita 400/403/409/413/415/503 implica rechazo sin nueva escritura.
-      if(pendiente&&[400,403,409,413,415,503].includes(e.status)){try{guardarPendiente(null);}catch{}}
+      // Un 5xx o fallo de red no confirma el resultado: conservar la misma solicitud.
+      if(pendiente&&[400,403,409,413,415].includes(e.status)){try{guardarPendiente(null);}catch{}}
       aviso(e.message+(pendiente?" Reintenta el mismo pedido; no se creará uno nuevo.":""));
     }finally{enviando=false;render();}
   });
