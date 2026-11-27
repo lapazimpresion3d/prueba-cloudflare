@@ -206,3 +206,7 @@ La galería deja de tener selector global. Café Mirador P1, Barbería Elite P2,
 ### v0.12.1 — Cocina y servicio por mesa
 - [x] Cocina P2+, comandas agrupadas P3+, preparación/listo/entrega, aviso al cliente y actualización periódica.
 - [ ] Validación Preview y sesiones; cuenta abierta, captura por mesero, entrega por zonas y cobros.
+
+### v0.12.2 — Entrega por zonas
+- [x] Tres colonias ficticias, costos y mínimos por zona, cobertura, horario y validación de servidor.
+- [ ] Editor de reglas de entrega, validación Preview, registro y conciliación de cobros.
