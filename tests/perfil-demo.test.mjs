@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {crearPerfilesLocales,validarPerfil,perfilPlano} from "../public/demostraciones/perfil-local.mjs";
+import {crearPerfilesLocales,validarPerfil,perfilPlano,validarImagenPerfil} from "../public/demostraciones/perfil-local.mjs";
 import {establecimientos} from "../public/demostraciones/establecimientos.mjs";
 const almacen=()=>{const m=new Map();return {getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,v)};};
 test("cinco perfiles independientes, persistencia y restauración",()=>{
@@ -32,4 +32,17 @@ test("almacenamiento corrupto o ajeno se descarta y copia en memoria",()=>{
   assert.equal(p.guardar(id,{...perfilPlano(p.leer(id)),nombre:"Prueba"}),false);
   const c=p.leer(id);c.nombre="otro";assert.equal(p.leer(id).nombre,"Prueba");
   assert.equal(p.restaurar(id),false);assert.equal(p.leer(id).nombre,"Café Mirador");
+});
+
+test("imágenes limitadas, sin URL externa ni SVG, persistencia de campos opcionales",()=>{
+  const id="cafe-mirador",a=almacen(),p=crearPerfilesLocales(a);
+  const muestra="data:image/jpeg;base64,/9j/AA==";
+  // Fixture sintética del formato de transporte, no una fotografía decodificable.
+  assert.equal(validarImagenPerfil(muestra),muestra);
+  assert.equal(validarImagenPerfil(undefined),"");
+  for(const x of ["https://example.invalid/x","data:image/svg+xml;base64,AAAA","data:image/jpeg;base64,AAAA","data:image/jpeg;base64,/9j/"+"A".repeat(100000)])assert.throws(()=>validarImagenPerfil(x));
+  assert.equal(p.guardar(id,{...perfilPlano(p.leer(id)),logo:muestra,portada:muestra}),true);
+  assert.equal(crearPerfilesLocales(a).leer(id).logo,muestra);
+  assert.equal(p.leer("barberia-elite").logo,"");
+  p.restaurar(id);assert.equal(p.leer(id).portada,"");
 });
