@@ -1,3 +1,5 @@
+import {versionCuenta} from "../cobro-cuenta.mjs";
+import {centavosCobro,motivosAnulacion,metodosCobroDemo} from "../cobros-practica.mjs";
 import {admiteCuentas,consumoCuenta,enlaceComanda} from "../cuentas-practica.mjs";
 import {mesasComal} from "../mesas-practica.mjs";
 import {enlacesDemo} from "../presentaciones.mjs";
@@ -10,7 +12,7 @@ const el=(t,s,c)=>{const n=document.createElement(t);if(s!==undefined)n.textCont
 if(!admiteCuentas(id,plan)){$("error").textContent="Cuentas de mesa no incluidas en este negocio o paquete.";$("error").hidden=false;}
 else{
  const query=new URLSearchParams({negocio:id,plan}),ruta="/api/demo/cuentas?"+query,links=enlacesDemo(id,plan);
- let ocupado=false,configurado=false,expira=null,cuentas=[],pedidos=[],valida=false,pendiente=null;
+ let ocupado=false,configurado=false,expira=null,cuentas=[],pedidos=[],valida=false,pendiente=null,objetivo=null;
  const clave="lapaz:demo:cuenta:pendiente";
  try{pendiente=JSON.parse(sessionStorage.getItem(clave)||"null");}catch{}
  const aviso=s=>{$("aviso").textContent=s;};
@@ -27,6 +29,29 @@ else{
   $("activar").disabled=ocupado||!configurado||valida;$("actualizar").disabled=ocupado;
   for(const b of $("mesas").querySelectorAll("button"))b.disabled=ocupado||!valida||b.dataset.bloqueado==="1";
  }
+ const dialogo=$("dialogo-cuenta");
+ $("motivo-cuenta").replaceChildren(new Option("Selecciona motivo",""),...motivosAnulacion.map(x=>new Option(x,x)));
+ function actualizarImporte(){if(!objetivo)return;const efectivo=$("metodo-cuenta").value==="efectivo";$("campo-folio-cuenta").hidden=efectivo;try{const recibido=centavosCobro($("recibido-cuenta").value),dif=recibido-objetivo.total;$("cambio-cuenta").textContent=efectivo?(dif>=0?"Cambio: "+importe(dif):"Faltan: "+importe(-dif)):dif===0?"Importe exacto":"El importe debe ser exacto.";}catch(e){$("cambio-cuenta").textContent=e.message;}}
+ $("recibido-cuenta").addEventListener("input",actualizarImporte);$("metodo-cuenta").addEventListener("change",actualizarImporte);
+ function abrirDialogo(c,s,grupo=null){
+  if(ocupado||!valida||dialogo.open)return;
+  objetivo={cuenta:c.cuenta_id,version:versionCuenta(s.todos),expira,operacion:crypto.randomUUID(),total:grupo?grupo.total:s.pendiente,grupo:grupo?.id||null};
+  $("titulo-cobro-cuenta").textContent=grupo?"Anular cobro completo":"Cobrar saldo de Mesa "+c.mesa;
+  $("saldo-cuenta").textContent="Importe: "+importe(objetivo.total);
+  $("campos-cuenta").hidden=!!grupo;$("campo-motivo-cuenta").hidden=!grupo;
+  $("metodo-cuenta").value="efectivo";$("recibido-cuenta").value=(objetivo.total/100).toFixed(2);$("folio-cuenta").value="";$("motivo-cuenta").value="";$("error-cuenta").textContent="";
+  $("confirmar-cuenta").textContent=grupo?"Anular registro (no reembolso)":"Confirmar cobro ficticio";actualizarImporte();dialogo.showModal();
+ }
+ $("volver-cuenta").addEventListener("click",()=>{if(!ocupado)dialogo.close();});
+ dialogo.addEventListener("cancel",e=>{if(ocupado)e.preventDefault();});dialogo.addEventListener("close",()=>{objetivo=null;});
+ $("form-cuenta").addEventListener("submit",async e=>{
+  e.preventDefault();const o=objetivo;if(!o||ocupado||!valida||o.expira!==expira)return;
+  let d;try{d={cuenta:o.cuenta,version:o.version,operacion:o.operacion,...(o.grupo?{accion:"anular_cobro",grupo:o.grupo,motivo:$("motivo-cuenta").value}:{accion:"cobrar",totalEsperado:o.total,metodo:$("metodo-cuenta").value,recibidoCentavos:centavosCobro($("recibido-cuenta").value),referencia:$("folio-cuenta").value.trim()})};}catch(e){$("error-cuenta").textContent=e.message;return;}
+  ocupado=true;controles();$("confirmar-cuenta").disabled=$("volver-cuenta").disabled=true;
+  try{const estado=await api(ruta);if(estado.expira!==o.expira)throw Error("La sesión cambió.");await api(ruta,"PATCH",d);dialogo.close();aviso(o.grupo?"Registro grupal anulado.":"Cobro de mesa registrado.");await cargar();}
+  catch(e){valida=false;$("error-cuenta").textContent=e.message+" Cierra el diálogo y actualiza antes de reintentar.";aviso("Consulta el resultado antes de realizar otro cobro.");}
+  finally{ocupado=false;$("confirmar-cuenta").disabled=!valida;$("volver-cuenta").disabled=false;render();}
+ });
  function tarjeta(c){
   const card=el("article",undefined,"cuenta-mesa"),s=consumoCuenta(c,pedidos),abierta=c.cerrado===null;
   card.dataset.abierta=String(abierta);
@@ -34,10 +59,13 @@ else{
   const detalle=el("details"),lista=el("ul");detalle.append(el("summary",s.todos.length+" comandas"),lista);
   for(const p of s.todos){const item=el("li",nombresEstado[p.estado]+" · "+importe(p.total)+" · "+nombresCobro[estadoCobro(p)]);const partes=el("ul");for(const l of p.detalle)partes.append(el("li",l.cantidad+" × "+textoLinea(l)));item.append(partes);lista.append(item);}
   card.append(detalle);
+  const grupos=new Map();for(const p of s.todos)if(p.cobro?.grupo)grupos.set(p.cobro.grupo.id,{...p.cobro.grupo,metodo:p.cobro.metodo,referencia:p.cobro.referencia});
+  for(const g of grupos.values()){card.append(el("p","Cobro agrupado: "+importe(g.total)+" · "+metodosCobroDemo[g.metodo]+(g.referencia?" · "+g.referencia:"")+" · Recibido "+importe(g.recibido)+" · Cambio "+importe(g.cambio)));if(abierta){const b=el("button","Anular cobro agrupado");b.addEventListener("click",()=>abrirDialogo(c,s,g));card.append(b);}}
   if(abierta){
    for(const [texto,origen] of [["Capturar comanda como mesero","mesero"],["Abrir menú del cliente para esta visita","cliente"]]){const a=el("a",texto);a.href=enlaceComanda(c,plan,origen);card.append(a);}
+   if(s.pendiente>0){const pagar=el("button","Cobrar saldo completo","principal");pagar.dataset.bloqueado=s.porEntregar?"1":"0";pagar.disabled=!!s.porEntregar;pagar.addEventListener("click",()=>{if(!s.porEntregar)abrirDialogo(c,s);});card.append(pagar);}
    const b=el("button","Cerrar cuenta y liberar mesa","principal");b.dataset.bloqueado=s.puedeCerrar?"0":"1";b.disabled=!s.puedeCerrar;b.addEventListener("click",()=>{if(ocupado||!valida||!s.puedeCerrar||!confirm("¿Cerrar esta visita y liberar la mesa?"))return;operar(async()=>{await api(ruta,"PATCH",{cuenta:c.cuenta_id,accion:"cerrar"});aviso("Cuenta cerrada. Mesa liberada.");await cargar();});});card.append(b);
-   if(!s.puedeCerrar)card.append(el("p","Entrega y concilia todas las comandas desde servicio y cobros antes de cerrar.","nota"));
+   if(!s.puedeCerrar)card.append(el("p","Entrega todas las comandas y cobra el saldo antes de cerrar.","nota"));
   }else card.append(el("p","Cerrada: "+new Date(c.cerrado).toLocaleString("es-MX")));
   return card;
  }
@@ -70,7 +98,7 @@ else{
   if(pendiente&&(pendiente.expira!==expira||cuentas.some(c=>c.cuenta_id===pendiente.datos.cuenta))){sessionStorage.removeItem(clave);pendiente=null;}
  }
  async function operar(fn){if(ocupado)return;ocupado=true;controles();try{await fn();}catch(e){valida=false;aviso(e.message+" Actualiza para recuperar el estado.");}finally{ocupado=false;render();}}
- async function detectar(){await operar(async()=>{const ctx=await api("/api/demo/contexto?"+query);configurado=ctx.cuentasConfiguradas===true;valida=false;if(configurado){try{await cargar();}catch(e){if(e.status!==401)throw e;}}});}
+ async function detectar(){if(dialogo.open)return;await operar(async()=>{const ctx=await api("/api/demo/contexto?"+query);configurado=ctx.cuentasConfiguradas===true;valida=false;if(configurado){try{await cargar();}catch(e){if(e.status!==401)throw e;}}});}
  $("activar").addEventListener("click",()=>operar(async()=>{await api("/api/demo/sesion","POST");await cargar();aviso("Sesión de práctica activa.");}));
  $("actualizar").addEventListener("click",detectar);window.addEventListener("focus",detectar);window.addEventListener("pageshow",e=>{if(e.persisted)detectar();});
  setInterval(()=>{if(!document.hidden&&!ocupado)detectar();},20000);
