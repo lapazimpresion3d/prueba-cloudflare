@@ -54,3 +54,6 @@ La galería deja de tener selector global. Café Mirador P1, Barbería Elite P2,
 
 ## Tarifas de lanzamiento vigentes (27/11/2026)
 Implementación desde $750/$1,500/$2,500/$3,500; mensualidades públicas $149/$249/$349/$499 MXN + IVA. Esta sección sustituye la tabla histórica para el escaparate. La versión contractual v1 conserva los importes históricos 149/299/449/649; no se alteran contratos, suscripciones ni D1. El alta de nuevas versiones contractuales requiere autorización independiente. Los módulos de práctica no equivalen a operación comercial verificada.
+
+## Captación desde las demostraciones
+Los enlaces «Me interesa este paquete» en cliente, panel, comparador, galería y configurador llevan a cotizacion-web.html?paquete=slug&giro=clave#precios-paquetes, con claves cerradas; no comparten nombres, sesiones, pedidos ni datos de ejemplo. Formulario editable, no envía automáticamente. Los módulos de práctica disponibles de actualizaciones 44 y 45 no se convierten por ello en servicios comerciales verificados.

@@ -5,7 +5,7 @@ import {planes,importe} from "../config.mjs";
 import {obtenerEstablecimiento,filtrarCatalogo} from "../establecimientos.mjs";
 import {crearCatalogosLocales,imagenOfertaSegura} from "../catalogo-local.mjs";
 import {crearPerfilesLocales} from "../perfil-local.mjs";
-import {presentacionDe,enlacesDemo,simbolos,destacadosDisponibles,enlaceGaleria} from "../presentaciones.mjs";
+import {presentacionDe,enlacesDemo,simbolos,destacadosDisponibles,enlaceGaleria,enlaceCotizacion} from "../presentaciones.mjs";
 import {ilustracionPortada} from "../ilustraciones.mjs";
 import {portadaDemo,logoDemo} from "../identidad.mjs";
 import {iniciarCarrito} from "../carrito-ui.mjs";
@@ -96,6 +96,7 @@ if(!base||!plan||!t){
   }
   $("buscar").addEventListener("input",render);$("categoria").addEventListener("change",render);
   const links=enlacesDemo(base.id,plan.id,practica);
+  $("cotizar-paquete").href=enlaceCotizacion(base.id,plan.id);$("cotizar-paquete").hidden=false;
   $("administracion").href=links.administracion;$("administracion-arriba").href=links.administracion;$("administracion-arriba").hidden=false;$("comparador").href=enlaceGaleria();
   $("salir-practica").href=enlacesDemo(base.id,plan.id).negocio;
   $("aviso-practica-arriba").hidden=!practica;

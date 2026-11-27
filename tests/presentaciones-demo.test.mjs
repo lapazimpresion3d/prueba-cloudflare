@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {presentacionDe,enlacesDemo,simbolos,destacadosDisponibles,enlaceGaleria,planesRepresentativos,enlaceConfigurador} from "../public/demostraciones/presentaciones.mjs";
+import {presentacionDe,enlacesDemo,simbolos,destacadosDisponibles,enlaceGaleria,planesRepresentativos,enlaceConfigurador,enlaceCotizacion} from "../public/demostraciones/presentaciones.mjs";
 import {establecimientos} from "../public/demostraciones/establecimientos.mjs";
 import {planes} from "../public/demostraciones/config.mjs";
 test("cinco identidades sectoriales, textos y símbolos propios",()=>{
@@ -41,3 +41,5 @@ test("galería fija y configurador adicional mantienen los cinco negocios y cuat
   assert.equal(u.searchParams.get("negocio"),e.id);assert.equal(u.searchParams.get("plan"),p.id);assert.equal(u.searchParams.has("practica"),false);
  }
 });
+
+test("cotización de 20 combinaciones sin datos de práctica ni destinos arbitrarios",()=>{const slugs=["presencia-digital","negocio-interactivo","gestion-comercial","gestion-profesional"];const giros={"cafe-mirador":"cafeteria","barberia-elite":"barberia","mundo-mascotas":"mascotas","auto-servicio-bahia":"taller","taqueria-el-comal":"restaurante"};for(const e of establecimientos)for(const [i,p] of planes.entries()){const u=new URL(enlaceCotizacion(e.id,p.id));assert.equal(u.origin,"https://lapazimpresion3d.com");assert.equal(u.pathname,"/cotizacion-web.html");assert.equal(u.searchParams.get("paquete"),slugs[i]);assert.equal(u.searchParams.get("giro"),giros[e.id]);assert.equal([...u.searchParams.keys()].length,2);assert.equal(u.hash,"#precios-paquetes");}assert.equal(enlaceCotizacion("otro","p1"),null);assert.equal(enlaceCotizacion("cafe-mirador","p9"),null);});

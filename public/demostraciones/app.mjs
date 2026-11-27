@@ -8,7 +8,7 @@ import {establecimientos,obtenerEstablecimiento,filtrarCatalogo} from "./estable
 import {crearCatalogosLocales,centavosDesdeTexto,imagenOfertaSegura} from "./catalogo-local.mjs";
 import {crearPerfilesLocales,perfilPlano,validarImagenPerfil} from "./perfil-local.mjs";
 import {optimizarImagenPerfil} from "./imagenes-perfil.mjs";
-import {enlacesDemo} from "./presentaciones.mjs";
+import {enlacesDemo,enlaceCotizacion} from "./presentaciones.mjs";
 import {admitePedidos} from "./pedidos-practica.mjs";
 import {admiteCitas} from "./citas-practica.mjs";
 let almacenamiento;
@@ -46,7 +46,7 @@ function guardarURL(){
   const url=new URL(location.href);url.searchParams.set("negocio",negocio.id);url.searchParams.set("plan",plan.id);
   if(vistaAdmin)url.searchParams.set("vista","administracion");else url.searchParams.delete("vista");
   history.replaceState(null,"",url);
-  const enlaces=enlacesDemo(negocio.id,plan.id);$("compartir-vista").href=enlaces.negocio;
+  const enlaces=enlacesDemo(negocio.id,plan.id);$("compartir-vista").href=enlaces.negocio;$("cotizar-paquete").href=enlaceCotizacion(negocio.id,plan.id);
   $("admin-ver-negocio").href=enlacesDemo(negocio.id,plan.id,true).negocio;$("admin-salir").href=enlacesDemo(negocio.id,plan.id,true).negocio;
   $("ver-catalogo-editado").href=enlacesDemo(negocio.id,plan.id,true).negocio;
   $("ver-original").href=enlaces.negocio;
@@ -68,7 +68,7 @@ function renderSelectores(){
   $("negocios").replaceChildren(...establecimientos.map(e=>boton([["span",e.marca.icono,"icono"],["strong",e.nombre],["small",e.giroNombre]],e.id===negocio.id,()=>{
     negocio=e;generacionImagen++;editorAbierto=false;perfilAbierto=false;reiniciarFormulario();$("aviso-editor").textContent="";$("buscar").value="";$("tipo").value="";$("categoria").value="";renderTodo(true);$("negocios").querySelector('[aria-pressed="true"]')?.focus();
   })));
-  $("planes").replaceChildren(...planes.map(p=>boton([["strong",p.nombre],["span",importe(p.mensualidad,p.moneda)+"/mes","precio-plan"],["small","Implementación: "+importe(p.implementacion,p.moneda)],["small",p.descripcion]],p.id===plan.id,()=>{
+  $("planes").replaceChildren(...planes.map(p=>boton([["strong",p.nombre],["span",importe(p.mensualidad,p.moneda)+"/mes","precio-plan"],["small","Implementación desde: "+importe(p.implementacion,p.moneda)],["small",p.descripcion]],p.id===plan.id,()=>{
     plan=p;renderTodo(false);$("planes").querySelector('[aria-pressed="true"]')?.focus();
   })));
 }

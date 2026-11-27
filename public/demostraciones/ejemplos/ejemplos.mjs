@@ -1,5 +1,5 @@
 import {establecimientos} from "../establecimientos.mjs";
-import {presentacionDe,enlacesDemo,simbolos,planesRepresentativos} from "../presentaciones.mjs";
+import {presentacionDe,enlacesDemo,simbolos,planesRepresentativos,enlaceCotizacion} from "../presentaciones.mjs";
 import {planes,capacidades} from "../config.mjs";
 import {ilustracionPortada} from "../ilustraciones.mjs";
 import {portadaDemo,logoDemo} from "../identidad.mjs";
@@ -18,6 +18,7 @@ for(const negocio of establecimientos){
  const lista=el("ul",undefined,"funciones"),pendientes=el("ul",undefined,"funciones pendientes"),detalle=el("details",undefined,"modulos-pendientes");detalle.append(el("summary","Funciones pendientes de este paquete"),pendientes);
  lista.replaceChildren(...mods.filter(m=>m.estadoEfectivo==="disponible").map(m=>el("li",m.nombre)));
  const resto=mods.filter(m=>m.estadoEfectivo==="en_desarrollo"||m.estadoEfectivo==="ejemplo");detalle.hidden=!resto.length;pendientes.replaceChildren(...resto.map(m=>el("li",m.nombre+" · En desarrollo")));
- info.append(el("p",negocio.giroNombre,"etiqueta"),el("h2",negocio.nombre),el("p",plan.nombre+" · Ejemplo representativo","plan-representativo"),el("p",t.entrada),el("strong","Disponible para probar","funciones-titulo"),lista,detalle,a);card.append(arte,info);cont.append(card);
+ const cotizar=el("a","Me interesa este paquete","accion");cotizar.href=enlaceCotizacion(negocio.id,plan.id);
+ info.append(el("p",negocio.giroNombre,"etiqueta"),el("h2",negocio.nombre),el("p",plan.nombre+" · Ejemplo representativo","plan-representativo"),el("p",t.entrada),el("strong","Disponible para probar","funciones-titulo"),lista,detalle,a,cotizar);card.append(arte,info);cont.append(card);
 }
 

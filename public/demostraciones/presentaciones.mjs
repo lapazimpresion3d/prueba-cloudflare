@@ -72,3 +72,8 @@ export function destacadosDisponibles(t,catalogo){
  const categorias=new Set(catalogo.map(p=>p.categoria));
  return t.destacados.map((nombre,i)=>({nombre,categoria:(t.categoriasDestacadas||t.destacados)[i]})).filter(d=>categorias.has(d.categoria));
 }
+
+// Solo parámetros comerciales conocidos; no compartir identidad, sesión ni datos de práctica.
+const slugsCotizacion=Object.freeze({p1:"presencia-digital",p2:"negocio-interactivo",p3:"gestion-comercial",p4:"gestion-profesional"});
+const girosCotizacion=Object.freeze({"cafe-mirador":"cafeteria","barberia-elite":"barberia","mundo-mascotas":"mascotas","auto-servicio-bahia":"taller","taqueria-el-comal":"restaurante"});
+export function enlaceCotizacion(id,plan){if(!Object.hasOwn(girosCotizacion,id)||!Object.hasOwn(slugsCotizacion,plan))return null;return "https://lapazimpresion3d.com/cotizacion-web.html?paquete="+encodeURIComponent(slugsCotizacion[plan])+"&giro="+encodeURIComponent(girosCotizacion[id])+"#precios-paquetes";}

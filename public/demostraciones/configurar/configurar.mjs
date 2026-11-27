@@ -1,6 +1,6 @@
 import {establecimientos,obtenerEstablecimiento} from "../establecimientos.mjs";
 import {planes,capacidades} from "../config.mjs";
-import {planesRepresentativos,enlacesDemo,enlaceConfigurador} from "../presentaciones.mjs";
+import {planesRepresentativos,enlacesDemo,enlaceConfigurador,enlaceCotizacion} from "../presentaciones.mjs";
 const $=id=>document.getElementById(id);
 const q=new URLSearchParams(location.search);
 const inicial=obtenerEstablecimiento(q.get("negocio"))||establecimientos[0];
@@ -16,7 +16,7 @@ function actualizar(){
  $("lista-pendientes").replaceChildren(...resto.map(m=>item(m.nombre+" · "+(m.estadoEfectivo==="ejemplo"?"Vista previa":"En desarrollo"))));
  $("pendientes").hidden=!resto.length;
  const links=enlacesDemo(e.id,p.id,true);
- $("abrir").href=links.negocio;$("editar").href=links.administracion;
+ $("abrir").href=links.negocio;$("editar").href=links.administracion;$("cotizar-paquete").href=enlaceCotizacion(e.id,p.id);
  try{history.replaceState(null,"",enlaceConfigurador(e.id,p.id));}catch{}
 }
 $("negocio").addEventListener("change",()=>{$("plan").value=planesRepresentativos[$("negocio").value];actualizar();});
