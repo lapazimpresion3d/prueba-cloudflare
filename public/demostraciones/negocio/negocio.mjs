@@ -63,7 +63,7 @@ if(!base||!plan||!t){
   }
   $("buscar").addEventListener("input",render);$("categoria").addEventListener("change",render);
   const links=enlacesDemo(base.id,plan.id,practica);
-  $("administracion").href=links.administracion;$("administracion-arriba").href=links.administracion;$("administracion-arriba").hidden=false;$("comparador").href=enlaceGaleria(plan.id);
+  $("administracion").href=links.administracion;$("administracion-arriba").href=links.administracion;$("administracion-arriba").hidden=false;$("comparador").href=enlaceGaleria();
   $("salir-practica").href=enlacesDemo(base.id,plan.id).negocio;
   $("aviso-practica-arriba").hidden=!practica;
   $("plan-visible").textContent=plan.nombre+(plan.id==="p1"?" · Ejemplo de página y catálogo":" · Funciones de práctica disponibles según el giro");
