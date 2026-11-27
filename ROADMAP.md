@@ -1,105 +1,126 @@
-# ROADMAP — Plataforma multirrestaurante de Lapazimpresion3d
-Actualización estratégica: 2026-11-26. Sustituye el orden de desarrollo anterior, no elimina los hallazgos ni las mejoras existentes.
+# ROADMAP — Plataforma SaaS multicomercio de Lapazimpresion3d
+Actualización estratégica: 2026-11-26. Este documento sustituye la estrategia exclusivamente multirrestaurante y el orden anterior. Los informes históricos y las mejoras de El Comal se conservan.
 
-## 1. Objetivo y reglas
-- Arquitectura multirrestaurante, aislamiento de datos y activación de módulos por plan desde las primeras etapas. No completar El Comal para después adaptarlo.
-- Un código compartido, sin copias por cliente. El Comal es el establecimiento principal de desarrollo/pruebas y futura demo del plan profesional.
-- Cuatro entregas comerciales progresivas, cada una funcional, estable, segura y vendible por sí misma; no esperar funcionalidades de planes superiores.
-- QR/NFC y uso del teléfono por el comensal son opcionales. Carta impresa, mesero, comandas y cobros internos deben funcionar independientemente del canal QR.
-- Priorizar facilidad de uso, configuración automática, costos operativos medidos, competitividad y diferenciación. Precios configurables en MXN más IVA; no codificar tarifas en JavaScript ni lógica de permisos.
-- Trabajar en desarrollo; no modificar ni fusionar main, desplegar producción ni migrar datos remotos sin autorización y verificación de entorno. En etapa 0 solo documentación.
-- Seguridad, pruebas, recuperación, accesibilidad móvil, rendimiento, costos y soporte son requisitos transversales de cada entrega, no una fase final.
+## 1. Objetivo general
+Construir una plataforma modular de gestión comercial reutilizable, rentable y competitiva para restaurantes y cafeterías, barberías y salones de belleza, tiendas minoristas, talleres mecánicos, negocios de servicios, emprendedores y otros giros configurables.
+- Un código compartido, sin aplicaciones ni forks por cliente. Separar núcleo común, módulos de negocio y plantillas por giro.
+- Arquitectura multiestablecimiento, multisucursal, aislamiento de datos, usuarios, permisos y módulos/planes desde las primeras etapas. El núcleo no depende de mesas, ingredientes, comandas o cocina.
+- Taquería El Comal es el primer establecimiento de demostración, entorno principal de desarrollo/pruebas y futura demo restaurantera más avanzada. Conservar todas sus funciones y sus datos mediante adaptación progresiva y pruebas de regresión; no reescribir ni romper la versión estable.
+- Cada versión comercial debe funcionar, ser segura, estable y vendible independientemente de módulos o giros futuros. No desarrollar todos los giros simultáneamente.
+- QR/NFC y canales de autoservicio opcionales. Un comercio puede operar mediante atención tradicional, carta impresa, mostrador o empleados sin teléfono del cliente.
+- Priorizar facilidad de uso, aprovisionamiento automático, mantenimiento compartido, costos operativos medidos, diferenciación y márgenes sostenibles.
+- Trabajar en desarrollo. No modificar ni fusionar main, publicar producción, ejecutar migraciones remotas ni eliminar datos sin autorización y verificación del entorno. En esta revisión solo documentación.
 
-## 2. Oferta comercial vigente
-| Versión | Plan | Demo | Implementación MXN + IVA | Mensualidad MXN + IVA |
-| --- | --- | --- | ---: | ---: |
-| 1 | Presencia digital | Café Mirador | 750 | 149 |
-| 2 | Restaurante interactivo | La Hamburguesería | 1500 | 299 |
-| 3 | Punto de venta integral | Mariscos La Bahía | 2500 | 449 |
-| 4 | Administración profesional | Taquería El Comal | 3500 | 649 |
+## 2. Planes comerciales vigentes
+| Versión | Plan | Implementación MXN + IVA | Mensualidad MXN + IVA |
+| --- | --- | ---: | ---: |
+| P1 | Presencia digital | 750 | 149 |
+| P2 | Negocio interactivo | 1500 | 299 |
+| P3 | Gestión comercial | 2500 | 449 |
+| P4 | Gestión profesional | 3500 | 649 |
 
-Guardar precios en centavos, moneda, vigencia y condiciones fiscales configurables. Separar precios publicados de condiciones contratadas; una modificación de catálogo comercial no cambia contratos previos automáticamente. No inferir impuestos, descuentos, permanencia, comisiones ni métodos de facturación no aprobados. Las demos son establecimientos ficticios separados, con datos sintéticos; no son proyectos de código independientes.
+El superadministrador podrá configurar planes, precios en centavos, moneda, condiciones fiscales, vigencia, módulos adicionales, límites por módulo (p. ej., sucursales, usuarios, almacenamiento), promociones y precios especiales. Los valores de límites, descuentos y reglas de permanencia no se fijan aquí. Distinguir precio publicado, oferta especial y condiciones de la suscripción contratada; no modificar contratos existentes automáticamente. Separar suscripción comercial SaaS de cobros internos del negocio. No prometer facturación CFDI o pagos automáticos hasta implementar y validar alcance.
 
-## 3. Alcance inicial propuesto de los módulos (sujeto a ajustes comerciales)
-Los planes superiores heredan las capacidades de los inferiores, pero cada establecimiento puede ocultar/desactivar canales que no usa. Los módulos se habilitan en servidor por plan y configuración; la interfaz no sustituye autorización.
-| Módulo | P1 | P2 | P3 | P4 |
+### Alcance inicial propuesto (no implementado ni oferta final por módulo)
+| Capacidad | P1 | P2 | P3 | P4 |
 | --- | --- | --- | --- | --- |
-| Perfil, marca, horarios, ubicación, contacto | Sí | Sí | Sí | Sí |
-| Catálogo/menu informativo editable | Sí | Sí | Sí | Sí |
-| QR/NFC a página o menú | Opcional | Opcional | Opcional | Opcional |
-| Administración de contenido y cuentas autorizadas | Sí | Sí | Sí | Sí |
-| Carrito/pedidos públicos, WhatsApp y seguimiento | No | Sí | Sí | Sí |
-| Reservaciones y agenda básica | No | Sí | Sí | Sí |
-| Disponibilidad, extras, variantes y promociones | Básico | Sí | Sí | Sí |
-| Cocina básica y control de cobros de pedidos | No | Sí | Sí | Sí |
-| Captura interna POS y pedidos por mesero sin QR | No | No | Sí | Sí |
-| Mesas, cuentas abiertas, división de cuenta, comandas | No | No | Sí | Sí |
-| Turnos de caja, arqueos, movimientos y tickets | No | No | Sí | Sí |
-| Reportes de ventas y operación | No | Básico | Sí | Avanzado |
-| Inventario, insumos, recetas, mermas y costos | No | No | No | Sí |
-| Proveedores, compras, auditoría ampliada y automatizaciones | No | No | No | Sí |
+| Perfil, página, marca, catálogo informativo, QR/NFC de acceso | Sí | Sí | Sí | Sí |
+| Pedidos interactivos o citas/agenda, según giro | No | Sí | Sí | Sí |
+| Clientes operativos, seguimiento y reportes básicos | No | Básico | Sí | Sí |
+| POS, caja, tickets e inventario básico | No | No | Sí | Sí |
+| Cotizaciones y órdenes de servicio, según giro | No | Según oferta adicional | Sí | Sí |
+| Mesas/comandas/cocina, según giro | No | Cocina y pedidos básicos | Sí | Sí |
+| Inventario/costos avanzados, fidelización y automatizaciones | No | No | Según oferta adicional | Sí |
+| Reportes avanzados y administración profesional | No | No | No | Sí |
 
-El alcance de pagos en línea, CFDI, integraciones externas, impresión especializada y operación offline avanzada se evaluará por separado; no prometerlos incluidos ni generar obligaciones comerciales hasta definir costos y pruebas. QR físico, soportes y NFC físicos pueden cotizarse aparte; no son requisito de contratación.
+Los planes superiores pueden heredar capacidades, pero una capacidad contratada no obliga a activarla. El giro es una plantilla, no un mecanismo de autorización. No se incluye automáticamente un módulo aún no desarrollado o probado. El catálogo de planes debe permitir ampliar la oferta sin duplicar código.
 
-## 4. Etapa 0 — Auditoría y diseño (actual)
-- [x] Verificar ramas y SHA iniciales; leer ROADMAP anterior, módulos operativos y migraciones 0001–0018.
-- [x] Identificar dependencias mononegocio, sesiones, almacenamiento local, permisos faltantes y flujos reutilizables.
-- [x] Registrar nueva estrategia comercial y auditoría en docs/auditoria-multirrestaurante-2026-11-26.md.
-- [ ] Confirmar bindings reales por entorno, inventario completo, despliegue y migraciones aplicadas; sin datos sensibles en GitHub.
-- [ ] Respaldar D1 y probar restauración en base aislada; confirmar si 0018 está aplicada y conservar historia.
-- [ ] Diseñar decisión técnica documentada de aislamiento, esquema, resolver, autorización, migración y reversión. No bloquear diseño temprano por funciones P3/P4 pendientes.
-- [ ] Definir catálogo de módulos/dependencias, contratos de API, alcance de P1 y criterios de piloto.
-- [ ] Validar pruebas previas del núcleo en ambiente aislado, especialmente flujos que vaya a reutilizar cada versión.
+## 3. Arquitectura objetivo
+### Núcleo común
+Establecimientos, sucursales, resolución de contexto por URL/dominio, usuarios, membresías, roles y permisos, sesiones revocables, suscripciones, catálogo de planes, clientes y empleados (identidad/datos básicos), configuraciones, personalización visual, seguridad, auditoría, respaldo/restauración, aprovisionamiento y administración central.
+Los clientes y empleados tienen entidades base comunes; las operaciones de clientes, CRM/fidelización, agendas y otras funciones son módulos, no dependencias obligatorias del núcleo.
+### Módulos independientes
+- Presencia: páginas web, catálogos, productos y servicios, QR/NFC.
+- Operación: pedidos, citas y reservaciones, agendas de empleados, POS, caja, inventarios, clientes (gestión ampliada), fidelización, cotizaciones, órdenes de servicio, reportes.
+- Restauración: mesas, comandas, cocina, personalización de alimentos, modalidades de atención y reservas de mesa.
+Módulos con identificador estable, versión, dependencias, permisos, contratos API, esquema propio, eventos y capacidades/limites; autorización explícita en servidor e interfaz. Separar canal, giro, rol, suscripción, módulo y sucursal.
+Productos físicos, alimentos y servicios como tipos distintos de una oferta comercial común, con atributos y validaciones específicos. No exigir ingredientes, duración o inventario a todos. Reservaciones genéricas de recursos (empleados, mesas u otros) con políticas por módulo.
+### Plantillas
+Catálogo de plantillas por giro; sugerir módulos, configuración, datos ficticios/semilla, roles, navegación y textos. Aplicar solo la intersección de módulos disponibles/contratados, dependencias satisfechas y elección del comercio; nunca conceder derechos por plantilla. Permitir activar/desactivar módulos y modificar configuración conservando datos y auditoría. Aprovisionamiento idempotente.
+### Aislamiento
+Evaluar ADR entre D1 compartida con ámbito obligatorio/relaciones compuestas, D1 separadas y modelo híbrido con plano de control central. Verificar costos, límites, migración, recuperación y acceso cruzado; no decidir ni ejecutar prematuramente. La sucursal pertenece al establecimiento; validar contexto y pertenencia en cada consulta, token, foto, exportación, caché, QR, tarea y almacenamiento de navegador. Sin fallback a otro establecimiento.
 
-## 5. Etapa 1 — Base SaaS compartida (antes de la primera venta)
-- Crear registro de establecimientos, slugs/dominios permitidos, configuración de marca y estado demo/cliente; resolver establecimiento en servidor, rechazar dominios/rutas desconocidos sin fallback a datos de otro negocio.
-- Elegir con pruebas y costos entre D1 compartida con establecimiento_id obligatorio, claves/índices/relaciones compuestas y repositorios con ámbito, o D1 separadas con enrutamiento de servidor. Evaluar modelo híbrido con plano de control separado. No elegir por conveniencia únicamente; registrar ADR, límites y plan de evolución.
-- Catálogo de planes, módulos, dependencias, precios, asignaciones, estados de servicio y habilitaciones por establecimiento. Comprobar cada endpoint, consulta y tarea en servidor; denegar por defecto. El plan no concede permiso de empleado por sí solo.
-- Usuarios nominativos, membresías, roles mínimos (propietario/administrador, operador según módulo), sesiones revocables con ámbito de establecimiento, límites de acceso y auditoría. Superadministración separada y explícitamente autorizada.
-- Ámbito para menú, productos, configuraciones, fotos, mesas, reservas, pedidos, tokens, cobros, exportaciones, caché, claves de navegador y cualquier dato relacionado. Los IDs enviados por cliente no otorgan acceso. Preservar idempotencia por establecimiento.
-- Migración no destructiva: preparar nueva base aislada, copiar/backfill con ID fijo de El Comal, mapear identificadores y relaciones, comparar conteos e importes, verificar fotos y seguimiento, probar reversión; no introducir escrituras en base estable ni eliminar tablas anteriores. Aplicar 0018 en entorno correcto si procede, tras respaldo.
-- Provisionar automáticamente establecimiento desde plantilla de datos, plan, usuario inicial, branding, menú, URL y demo; operación idempotente, registro de errores y recuperación sin duplicados. Ningún dato de un cliente se usa como semilla de otro.
-- Preparar entornos separados para producción, desarrollo y demos públicas; demos sin datos reales y con reinicio controlado. Código común, datos separados, permisos explícitos.
-- Salida: al menos dos establecimientos sintéticos con productos/folios/usuarios coincidentes, pruebas de lectura/escritura cruzada, acceso por URL/API/foto/token/QR/CSV, cambios de plan, revocación, aislamiento de caché y restauración. Ningún acceso cruzado permitido. No se requiere POS completo para cerrar esta etapa.
+## 4. Prioridades de desarrollo (orden obligatorio)
+### Etapa 0 — Auditoría del código existente (prioridad 1, actual)
+- [x] Verificar SHA de desarrollo/main, leer ROADMAP y auditoría previa; revisar módulos críticos de negocio, catálogo, pedidos, reservas y Worker.
+- [x] Registrar ampliación multicomercio, identificar acoplamientos restauranteros y diseñar mapa conceptual de módulos en docs/arquitectura-multicomercio.md y docs/auditoria-multicomercio-2026-11-26.md.
+- [ ] Completar inventario de rutas, consultas, activos, dependencias y esquema; pruebas de regresión de El Comal en entorno aislado.
+- [ ] Confirmar bindings efectivos, entorno de preview, migraciones 0001–0018 y estado de 0018; respaldo y restauración en base separada. No dar por aplicado lo no verificado.
 
-## 6. Etapa 2 — Versión comercial 1: Presencia digital
-Demo: Café Mirador. Implementación 750, mensualidad 149 MXN + IVA.
-- Página adaptable con branding, contacto, horario, ubicación, catálogo y enlaces; publicación y edición sencilla, menú informativo opcional; QR/NFC solo como acceso alternativo.
-- Panel limitado a contenido, productos, horarios y datos propios. Sin API de pedidos, cocina, caja ni módulos de planes superiores para este plan.
-- Plantilla, alta rápida, instrucciones de uso, acceso administrativo individual, respaldo/recuperación del contenido, pruebas móvil/escritorio, accesibilidad y métricas de costo.
-- Piloto independiente y lanzamiento comercial cuando supere criterios de salida; no esperar P2/P3/P4. Mantener soporte y actualizaciones de seguridad durante etapas posteriores.
+### Etapa 1 — Diseño de arquitectura multicomercio (prioridad 2)
+- Definir ADR de aislamiento, entidades y relaciones, contexto establecimiento/sucursal, contrato de autorización, dominios modulares, identificadores y compatibilidad de API.
+- Diseñar ofertas comerciales tipadas (físico, alimento, servicio), recursos/capacidades, políticas de agenda, precios, instantáneas históricas, separación de cobros de suscripción y de ventas.
+- Contratos de módulos/dependencias, catálogo de plantillas, estrategia de habilitación y límites, configuración visual, arquitectura de provisión.
+- Plan de migración no destructiva de El Comal a una base aislada; conservar folios, fotos, precios, estados, tokens, reservas, historial y preferencias; conteos, conciliación de importes, rollback y compatibilidad de URLs. No modificar base estable.
+- Diseñar y probar casos de dos giros y dos sucursales con IDs coincidentes antes de autorizar datos reales. No esperar funciones avanzadas de todos los módulos.
 
-## 7. Etapa 3 — Versión comercial 2: Restaurante interactivo
-Demo: La Hamburguesería. Implementación 1500, mensualidad 299 MXN + IVA.
-- Reutilizar catálogo, carrito, pedidos para recoger/domicilio/mesa según configuración, WhatsApp, seguimiento, cotización de envío, disponibilidad, extras, variantes, promociones, agenda y cocina básica.
-- Administración de pedidos, estados, cobros registrados y reportes operativos básicos; no confundir registro con procesar pagos reales.
-- Reutilizar y verificar reglas de cobro/envío, token de reintento, paginación y 0018; prueba de concurrencia, fallo de conexión y restauración. Permitir apagar canal QR y pedidos públicos sin perder página informativa ni administración habilitada.
-- Piloto y salida independiente; no requerir POS, caja o inventario.
+### Etapa 2 — Implementar núcleo compartido (prioridad 3)
+- Establecimientos, sucursales, dominio/slug, identidad, membresías, permisos por operación y alcance, sesiones revocables, cliente/empleado base, marca y configuración, auditoría, seguridad y respaldos.
+- Resolver contexto en servidor y aplicar pertenencia obligatoria. Superadmin separado con acceso explícito y auditado. Configuración por sucursal con herencia explícita.
+- Infraestructura de provisión, entornos separados para desarrollo, demos y producción, pruebas de aislamiento por API/URL/consulta/foto/token/CSV/cache y restauración.
+- Migración incremental de datos y adaptadores de compatibilidad de El Comal solo en entorno aislado. No retirar funciones existentes.
 
-## 8. Etapa 4 — Versión comercial 3: Punto de venta integral
-Demo: Mariscos La Bahía. Implementación 2500, mensualidad 449 MXN + IVA.
-- POS web interno; captura por empleado de pedidos de mesa, mostrador, recoger y domicilio. Carta impresa y mesero plenamente soportados; QR opcional.
-- Meseros, cuentas por mesa, apertura/cierre y división de cuentas, comandas, cocina, métodos de pago, tickets, caja por turnos, entradas/salidas, cortes y arqueos; trazabilidad individual y conciliación.
-- Diseñar operaciones idempotentes, conflictos, anulaciones autorizadas y reembolsos explícitos sin simular devolución real; pruebas de doble cobro, pérdida de red, impresoras y cierres de turno.
-- Reportes de ventas, medios de pago y caja; exportaciones por establecimiento. Definir recuperación segura de conexión y limitaciones operativas.
-- Piloto y salida independiente; no requerir inventario profesional.
+### Etapa 3 — Sistema de módulos, planes y plantillas (prioridad 4)
+- Registro modular, dependencias acíclicas, permisos, límites, activación efectiva, configuración y navegación. Rechazar API no contratada incluso por llamada directa.
+- Panel superadministrador: establecimientos/sucursales, planes, suscripciones, asignaciones, módulos adicionales, límites, promociones, precios especiales, configuración y auditoría; aprovisionamiento idempotente.
+- Cambios de plan sin pérdida de información, reglas explícitas de suspensión, exportación autorizada y reactivación. Límites de nuevas escrituras aplicados atómicamente; no borrar datos para cumplir límites.
+- Plantillas por giro con activación automática de módulos disponibles y autorizados, personalización posterior, datos demo separados. Pruebas de activación, desactivación, dependencias, precio/contrato, concurrencia y permisos.
 
-## 9. Etapa 5 — Versión comercial 4: Administración profesional
-Demo: Taquería El Comal. Implementación 3500, mensualidad 649 MXN + IVA.
-- Inventario de productos e insumos, recetas, consumos, mermas, ajustes, costos, compras y proveedores; alertas y reportes avanzados, administración por roles y auditoría.
-- Automatizaciones operativas, análisis de ventas y costos, reportes por periodo y módulo; evaluar integraciones, pagos reales y offline avanzado con presupuesto y alcance aprobado.
-- Consolidar El Comal como demo completa, conservando su papel de entorno principal de desarrollo/pruebas con datos sintéticos. La demo pública profesional debe estar aislada del entorno de desarrollo.
-- Piloto y salida propios; conservar estabilidad y compatibilidad de versiones inferiores.
+### Etapa 4 — Páginas web y catálogos (prioridad 5)
+- Página adaptable, marca, horarios, sucursales, ubicación, contacto, catálogo opcional, productos físicos/alimentos/servicios y fotos con ámbito, panel editable, enlaces y QR/NFC opcionales.
+- Primero Café Mirador (cafetería) y piloto P1 Presencia digital, sin esperar P2/P3/P4. Validar plantilla alternativa sencilla con datos ficticios de otro giro sin construir sus módulos avanzados.
+- Alta guiada, accesibilidad, móvil, respaldo de contenido, costo de operación, documentación comercial y soporte.
 
-## 10. Requisitos de salida por versión
-- Funciones del plan utilizables sin depender de módulos futuros; interfaz simple; configuración y soporte documentados.
-- Pruebas de permisos por rol, plan y establecimiento en servidor; pruebas negativas de acceso cruzado y módulos no contratados; no filtrar datos sensibles.
-- Pruebas automatizadas de flujos aplicables, regresión de versiones previas, escenarios concurrentes y fallas de red, recuperación, verificación en navegador real y preview con D1 aislada.
-- Respaldo y restauración verificados; piloto con criterios de aceptación, incidencias críticas resueltas, aprobación explícita de publicación. No vender funcionalidades aún no implementadas.
-- Medir tiempo de alta, lecturas/escrituras D1, CPU, tráfico, almacenamiento, soporte, tiempo de capacitación, margen mensual por plan y costo incremental. No contratar servicios adicionales ni garantizar rentabilidad sin medición.
-- Publicar matriz de funciones y condiciones configurables; cambios de plan preservan datos, no eliminan historial ni bloquean exportación autorizada sin política definida. Suspensión/baja y recuperación documentadas; precios y contratos gestionables desde administración comercial.
+### Etapa 5 — Citas y agendas (prioridad 6)
+- Recursos, empleados, horarios, duración, capacidad, bloqueos, disponibilidad, asignación, cancelación/reprogramación y prevención atómica de traslapes; clientes base y privacidad.
+- Barbería/salón como primer piloto de agenda; reusar para servicios y, con adaptador, reservas de mesa. No exigir mesa/personas a una cita de empleado.
+- P2 Negocio interactivo puede comercializarse con alcance de cita/agenda aprobado y probado, sin esperar pedidos restauranteros completos. No ofrecer módulos pendientes.
 
-## 11. Estado heredado y próximo paso
-Ya existe código de El Comal para menú, catálogo, pedidos, agenda, cocina, cobros, seguimiento, reglas de envío, paginación, límites de API y pruebas parciales. No es certificación comercial ni de aislamiento. Historial financiero 0018 versionado, aplicación remota no confirmada. Revocación individual, concurrencia distribuida, recuperación, respaldo remoto y pruebas completas pendientes.
-Próxima tarea: diseñar ADR y contrato de contexto por establecimiento, catálogo de módulos y esquema inicial, con dos establecimientos ficticios y criterios de aislamiento; implementar solo después de cerrar requisitos críticos de entorno y respaldo correspondientes. No se agrega funcionalidad avanzada de El Comal antes de la base SaaS.
-Referencias: docs/auditoria-multirrestaurante-2026-11-26.md, docs/auditoria-etapa-0-2026-11-26.md, docs/estabilizacion-nucleo-2026-11-26.md, docs/seguridad-nucleo-2026-11-26.md, docs/respaldo-d1.md. Los documentos anteriores son históricos; en caso de conflicto prevalece este ROADMAP actualizado.
+### Etapa 6 — Completar módulos restauranteros (prioridad 7)
+- Reutilizar y adaptar El Comal: catálogo de alimentos, variantes, extras, combos, promociones, pedidos públicos/WhatsApp, mesa/recoger/domicilio, seguimiento, cotización de envío, agenda, cocina, estados, cobros y estadísticas.
+- Mantener reglas de entrega, paginación, reintentos, historial 0018 y funciones existentes; validar diferencias entre agenda genérica y mesa, datos de demostración y comerciales. Mesas y comandas como extensiones; integración POS/caja se completa en etapa siguiente.
+- Validar el canal tradicional y QR opcional. P2 restaurantero disponible cuando sus funciones estén probadas. Demos La Hamburguesería y Mariscos La Bahía anteriores quedan como candidatas opcionales, no compromisos de implementación simultánea.
+
+### Etapa 7 — POS, caja e inventarios compartidos (prioridad 8)
+- POS general para productos/servicios/alimentos, venta y cobro, cuentas, tickets, devoluciones autorizadas y conciliación, turnos, movimientos, cortes/arqueos, roles y auditoría; inventario básico por sucursal, movimientos, unidades, existencias y alertas.
+- Tienda minorista como piloto de venta/stock. Integrar con restaurante para captura interna por empleado/mesero, mesas/cuentas, división de cuentas, comandas y cocina. Sin QR obligatorio.
+- Pruebas de stock/cobro simultáneo, idempotencia, transacciones, reconexión, permisos, impresión y cierres. P3 Gestión comercial vendible por giro aprobado; no esperar P4.
+
+### Etapa 8 — Módulos especializados progresivos (prioridad 9)
+- Taller mecánico: cotizaciones y órdenes de servicio con datos del vehículo, tareas, piezas, mano de obra, aprobación, historial; reutilizar clientes, agenda, POS/caja/inventario. Incorporar servicios generales y emprendedores por plantilla cuando módulos requeridos estén listos.
+- Fidelización, reportes avanzados, inventario avanzado, costos, compras, proveedores, automatizaciones y recetas/mermas restauranteras. Implementar un módulo, probarlo, pilotarlo y luego ampliar el alcance.
+- P4 Gestión profesional: El Comal como demo avanzada de restaurante y otras combinaciones profesionales según módulos probados. Pagos reales, CFDI, offline avanzado e integraciones se evalúan por costos/alcance antes de prometer.
+- Mantener P1/P2/P3 operativos, actualizaciones compatibles y seguridad continua.
+
+## 5. Demostraciones y estrategia de lanzamiento
+| Demo | Giro | Prioridad de construcción | Plan objetivo inicial (propuesto) |
+| --- | --- | --- | --- |
+| Taquería El Comal | Restaurante | Existente; conservar, adaptar y ampliar en etapas 6–8 | P4 |
+| Café Mirador | Cafetería | Etapa 4 | P1 |
+| Barbería ficticia (nombre por definir) | Barbería/salón | Etapa 5 | P2 |
+| Tienda minorista ficticia (nombre por definir) | Tienda | Etapa 7 | P3 |
+| Taller mecánico ficticio (nombre por definir) | Taller | Etapa 8 | Según módulos probados P3/P4 |
+Todas son instancias de la plataforma, con datos sintéticos y entornos aislados. No crear demos ni módulos simultáneamente sin necesidad. Separar El Comal de desarrollo de la demo pública final. Mantener candidatas anteriores de restaurante como opcionales.
+
+## 6. Criterios de salida por módulo y versión
+- Contrato, dependencias y permisos documentados; funcionamiento sin módulos futuros y sin conceptos ajenos al giro.
+- Pruebas de ámbito, acceso cruzado, sucursal, módulo no contratado, límite y sesión revocada; datos personales mínimos y respaldo/restore probado.
+- Pruebas unitarias, integración D1 aislada, concurrencia, recuperación ante fallas, navegador y regresión de El Comal y versiones ya liberadas. No declarar prueba remota si solo es local.
+- Aprovisionamiento y soporte documentados, piloto con criterios de aceptación y aprobación explícita de publicación; no vender funciones no listas.
+- Medir tiempo de alta, CPU, lecturas/escrituras, tráfico, fotos/almacenamiento, soporte, capacitación y margen mensual por plan. No garantizar rentabilidad sin datos.
+- QR/NFC físico y soportes cotizables aparte; módulos adicionales y límites configurables por superadministrador; publicación de condiciones claras.
+
+## 7. Estado heredado y próximo paso
+El Comal cuenta con código de menú, catálogo, pedidos, agenda de mesas, cocina, cobros, seguimiento, envío, paginación y seguridad de entrada; 0018 historial de cobros versionado, aplicación remota no confirmada. Pruebas previas parciales; no se acredita estabilidad comercial ni aislamiento multicomercio.
+Siguiente trabajo: cerrar auditoría de dependencias y diseñar ADR, modelo de datos y contratos de módulos/planes/plantillas. Implementar primero núcleo y aislamiento, después página/catálogo. No cambiar main ni datos remotos.
+Documentos vigentes: docs/arquitectura-multicomercio.md, docs/auditoria-multicomercio-2026-11-26.md. Referencias históricas: docs/auditoria-multirrestaurante-2026-11-26.md, docs/auditoria-etapa-0-2026-11-26.md, docs/estabilizacion-nucleo-2026-11-26.md, docs/seguridad-nucleo-2026-11-26.md, docs/respaldo-d1.md. En caso de conflicto prevalece este ROADMAP.
