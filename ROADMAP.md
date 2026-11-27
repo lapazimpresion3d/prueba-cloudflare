@@ -202,3 +202,7 @@ La galería deja de tener selector global. Café Mirador P1, Barbería Elite P2,
 ### v0.12.0 — Reservaciones y QR de mesas
 - [x] Agenda aislada y cinco mesas, QR SVG Preview P4, carrito y filtro por mesa.
 - [ ] Aplicar 0005_reservaciones.sql en lapaz-demos-desarrollo y comprobar Preview. Cocina y comandas, configuración de mesas y coordinación multidispositivo pendientes.
+
+### v0.12.1 — Cocina y servicio por mesa
+- [x] Cocina P2+, comandas agrupadas P3+, preparación/listo/entrega, aviso al cliente y actualización periódica.
+- [ ] Validación Preview y sesiones; cuenta abierta, captura por mesero, entrega por zonas y cobros.
