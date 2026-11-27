@@ -7,7 +7,7 @@ import {crearPlanCobro,anularMovimiento,resumenPlanCobro} from "../public/demost
 import {cuentaIdValida} from "../public/demostraciones/cuentas-practica.mjs";
 const ahora=()=>Math.floor(Date.now()/1000);
 export async function pagosMultiplesListos(db){
- try{return (await db.prepare("SELECT count(*) AS n FROM sqlite_master WHERE (type='table' AND name='demo_planes_cobro') OR (type='trigger' AND name IN ('demo_pago_multiple_no_nueva_comanda','demo_pago_multiple_no_editar_comanda','demo_pago_multiple_cierre','demo_pago_multiple_anulaciones_v1'))").first())?.n===5;}catch{return false;}
+ try{return (await db.prepare("SELECT count(*) AS n FROM sqlite_master WHERE (type='table' AND name='demo_planes_cobro') OR (type='trigger' AND name IN ('demo_pago_multiple_no_nueva_comanda','demo_pago_multiple_no_editar_comanda','demo_pago_multiple_cierre','demo_pago_multiple_anulaciones_v1','demo_folio_multiple_insert','demo_folio_multiple_update'))").first())?.n===7;}catch{return false;}
 }
 async function contexto(db,s,id,permitirCerrada=false){
  if(!cuentaIdValida(id))throw Error("Cuenta inválida.");
@@ -44,7 +44,7 @@ export async function guardarMovimiento(db,s,id,d){
  AND COALESCE((SELECT revision FROM demo_planes_cobro WHERE sesion_id=? AND cuenta_id=?),0)=?
  ON CONFLICT(sesion_id,cuenta_id) DO UPDATE SET revision=excluded.revision,datos_json=excluded.datos_json
  WHERE demo_planes_cobro.revision=? RETURNING revision`;
- const f=await db.prepare(sql).bind(s.id,id,nuevo.revision,JSON.stringify(nuevo),s.id,ahora(),s.id,id,s.id,id,filas.length,JSON.stringify(filas),s.id,s.id,id,plan.revision,plan.revision).first();
+ let f;try{f=await db.prepare(sql).bind(s.id,id,nuevo.revision,JSON.stringify(nuevo),s.id,ahora(),s.id,id,s.id,id,filas.length,JSON.stringify(filas),s.id,s.id,id,plan.revision,plan.revision).first();}catch(e){if(String(e.message).includes('Folio multiple repetido'))throw Error('Folio repetido.');throw e;}
  if(!f)throw Error("La cuenta cambió o expiró. Actualiza antes de reintentar.");
  return {plan:nuevo,resumen:resumenPlanCobro(nuevo),subcuentas:subcuentas(nuevo)};
 }
