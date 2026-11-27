@@ -1159,25 +1159,29 @@ window.addEventListener("pageshow", actualizarDatosEntrega);
 actualizarDatosEntrega();
 actualizarCarrito();
 
-async function actualizarPreciosDelDia() {
-  const hoy = fechaHoraNegocio().fecha;
-  if (!fechaPreciosCatalogo || hoy === fechaPreciosCatalogo || actualizandoPrecios ||
+// Actualizar también cambios de disponibilidad dentro del mismo día.
+// Evitar reconstruir tarjetas durante una confirmación de pedido.
+async function actualizarMenuVigente() {
+  if (!fechaPreciosCatalogo || actualizandoPrecios ||
       document.hidden || revisandoPedido || revisionPedido.open) return;
   actualizandoPrecios = true;
   try {
     const menu = await obtenerMenu();
+    if (document.hidden || revisandoPedido || revisionPedido.open) return;
     actualizarCatalogo(menu);
     actualizarCarrito();
-    fechaPreciosCatalogo = hoy;
+    fechaPreciosCatalogo = fechaHoraNegocio().fecha;
   } catch (error) {
-    console.warn("No se pudieron actualizar los precios del día", error);
+    console.warn("No se pudo actualizar el menú", error);
   } finally {
     actualizandoPrecios = false;
   }
 }
 
-window.setInterval(actualizarPreciosDelDia, 60000);
-document.addEventListener("visibilitychange", actualizarPreciosDelDia);
+window.setInterval(actualizarMenuVigente, 30000);
+document.addEventListener("visibilitychange", actualizarMenuVigente);
+window.addEventListener("pageshow", actualizarMenuVigente);
+window.addEventListener("focus", actualizarMenuVigente);
 
 /* Preparar el mensaje del pedido */
 document.getElementById("enviar-pedido")
