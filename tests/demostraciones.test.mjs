@@ -8,10 +8,11 @@ test("cinco negocios y cuatro planes con importes exactos en centavos",()=>{
   assert.deepEqual(planes.map(p=>[p.implementacion,p.mensualidad]),[[75000,14900],[150000,29900],[250000,44900],[350000,64900]]);
   assert.equal(new Set(establecimientos.map(e=>e.id)).size,5);
 });
-test("20 combinaciones independientes; solo web y catálogo disponibles",()=>{
+test("20 combinaciones independientes; pedidos de práctica solo en giros y planes compatibles",()=>{
   for(const e of establecimientos)for(const p of planes){
     const lista=capacidades(e,p.id);
-    assert.deepEqual(lista.filter(m=>m.estadoEfectivo==="disponible").map(m=>m.id),["web","catalogo"]);
+    const interactivo=p.id!=="p1"&&["cafeteria","tienda","restaurante"].includes(e.giro);
+    assert.deepEqual(lista.filter(m=>m.estadoEfectivo==="disponible").map(m=>m.id),interactivo?["web","catalogo","pedidos","seguimiento"]:["web","catalogo"]);
     assert.ok(lista.every(m=>m.estadoEfectivo==="otro_plan" || m.desde<=planes.indexOf(p)+1));
     assert.ok(lista.every(m=>!m.giros||m.giros.includes(e.giro)));
   }
