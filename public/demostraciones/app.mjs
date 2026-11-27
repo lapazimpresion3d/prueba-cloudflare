@@ -17,7 +17,8 @@ let negocio=obtenerEstablecimiento(params.get("negocio")) ?? establecimientos[0]
 let plan=planes.find(p=>p.id===params.get("plan")) ?? planes[0];
 const vistaAdmin=params.get("vista")==="administracion";
 let vistaNegocio=false;
-if(params.get("vista")==="negocio"&&obtenerEstablecimiento(params.get("negocio"))&&planes.some(p=>p.id===params.get("plan")))location.replace(enlacesDemo(negocio.id,plan.id).negocio);
+const redirigirNegocio=params.get("vista")==="negocio"&&obtenerEstablecimiento(params.get("negocio"))&&planes.some(p=>p.id===params.get("plan"));
+if(redirigirNegocio)location.replace(enlacesDemo(negocio.id,plan.id).negocio);
 let editorAbierto=vistaAdmin, perfilAbierto=false;
 let editando=null;
 let contextoServidor=null, consultaContexto=0, ocupada=false;
@@ -252,4 +253,4 @@ $("demo-guardar").addEventListener("click",()=>operarServidor("guardar"));
 $("buscar").addEventListener("input",renderCatalogo);
 $("tipo").addEventListener("change",renderCatalogo);
 $("categoria").addEventListener("change",renderCatalogo);
-renderTodo(true);
+if(!redirigirNegocio)renderTodo(true);
