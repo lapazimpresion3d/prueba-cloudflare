@@ -51,8 +51,8 @@ export function retirarEjemplos(storage,id,plan){const key=marca(id,plan),raw=st
  let retirados=0,conservados=0;for(const x of xs){if(storage.getItem(x.k)===x.despues){storage.removeItem(x.k);retirados++;}else conservados++;}storage.removeItem(key);return {retirados,conservados};}
 export function recorridos(disponibles){const tiene=k=>disponibles.includes(k);return [
  {nombre:"Personalizar mi página",pasos:[["admin-catalogo","Edita un producto o servicio y guarda."],["admin-perfil","Cambia la información comercial y revisa tu página."]]},
- ...(tiene("admin-pedidos")?[{nombre:"Atender un pedido",pasos:[["admin-pedidos","Selecciona práctica local y abre un pedido recibido. Avanza su estado."],...(tiene("admin-cocina")?[["admin-cocina","Consulta las comandas y marca un pedido listo."]]:[])]}]:[]),
- ...(tiene("admin-citas")?[{nombre:"Organizar la agenda",pasos:[["admin-citas","Selecciona práctica local y confirma una cita pendiente."]]}]:[]),
+ ...(tiene("admin-pedidos")?[{nombre:"Atender un pedido",pasos:[["admin-pedidos","abre un pedido recibido. Avanza su estado."],...(tiene("admin-cocina")?[["admin-cocina","Consulta las comandas y marca un pedido listo."]]:[])]}]:[]),
+ ...(tiene("admin-citas")?[{nombre:"Organizar la agenda",pasos:[["admin-citas","confirma una cita pendiente."]]}]:[]),
  ...(tiene("admin-pos")?[{nombre:"Realizar una venta",pasos:[["admin-caja","Comprueba que la caja esté abierta."],["admin-pos","Agrega un producto y confirma un cobro simulado."],["admin-comprobantes","Consulta el ticket."],["admin-inventario","Revisa el movimiento de existencias."]]}, {nombre:"Abastecer inventario",pasos:[["admin-compras","Abre la orden de ejemplo y recibe unidades pendientes."],["admin-inventario","Comprueba que las existencias aumentaron."]]}]:[]),
  ...(tiene("admin-recetas")?[{nombre:"Consultar costos",pasos:[["admin-recetas","Consulta los insumos y el costo de una receta. Si no existe, crea una."]]}]:[])
  ].filter(t=>t.pasos.every(([k])=>tiene(k)));}

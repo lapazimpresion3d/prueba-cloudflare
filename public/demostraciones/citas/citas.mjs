@@ -1,3 +1,4 @@
+import {textoDemostracion} from "../modo-demostracion.mjs";
 import {guardiaOperacion,limitarRepositorio,permisoAgenda} from "../guardia-operacion.mjs";
 import {clientesDemo,notasCitaDemo,seleccionCita} from "../clientes-practica.mjs";
 import {importe} from "../config.mjs";
@@ -42,13 +43,13 @@ if(!negocio||!admiteCitas(id,plan)){
  function controles(){
   if(pendiente?.datos.datosCliente){$("cliente-cita").value=pendiente.datos.datosCliente.cliente;$("nota-cita").value=pendiente.datos.datosCliente.nota;contactoCita();}
   $("cliente-cita").required=!pendiente;
-  $("modo-citas").textContent=servidor?"Práctica en servidor · sesión privada":"Práctica local · esta pestaña";
+  $("modo-citas").textContent="Demostración privada";
   $("activar-citas").disabled=comprobando||ocupado||creando||!!pendiente||configurado===false;
-  $("estado-origen").textContent=comprobando?"Comprobando agenda…":configurado===false?"Servidor no configurado. Las citas locales solo se ven en esta pestaña.":configurado===null?"No se pudo comprobar el servidor. No se mezclan las agendas.":servidor?(expira===null&&listaValida?"La primera cita activará una sesión en servidor.":"Agenda privada en servidor; se comparte en este navegador."):"Agenda local: las citas de otras pestañas no aparecen aquí.";
+  $("estado-origen").textContent=textoDemostracion({ocupado:comprobando,verificado:configurado!==null,servidor,locales:repo.leer().length});
   $("cantidad-local").textContent=String(repo.leer().length);
   $("cantidad-remota").textContent=remotoConsultado?String(copiaRemota.length):"—";
   $("citas-locales").textContent="Ver agenda local";
-  $("activar-citas").textContent=remotoDisponible?"Ver agenda del servidor":"Activar agenda en servidor";
+  $("activar-citas").textContent="Consultar agenda de la sesión compartida";$("activar-citas").closest("details").hidden=guardia.restringida;
   const origen="&origen="+(servidor?"servidor":"local");
   $("cambiar-vista").href=base+(admin?"":"&vista=agenda")+origen;
   $("ir-agenda").href=base+"&vista=agenda"+origen;

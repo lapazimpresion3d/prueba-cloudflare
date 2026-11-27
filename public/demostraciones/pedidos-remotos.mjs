@@ -1,3 +1,4 @@
+import {elegirModo} from "./modo-demostracion.mjs";
 // Adaptador de práctica: comparte cookie de sesión entre pestañas del mismo navegador.
 // No usa credenciales ni rutas de pedidos operativos.
 export function crearPedidosRemotos(id,plan,peticion=fetch){
@@ -31,6 +32,6 @@ export async function detectarPedidos(remoto,{preferencia=null,locales=0,persona
   if(!configurado)return {servidor:pendiente||preferencia==="servidor",configurado:false,estado:null};
   let estado=null;
   try{estado=await remoto.leerEstado();}catch(e){if(e.status!==401)throw e;}
-  const servidor=pendiente||preferencia==="servidor"||preferencia!=="local"&&locales===0&&(!!estado||!encargado&&!personalizado);
+  const servidor=elegirModo({preferencia,locales,personalizado,pendiente,encargado,configurado,sesion:!!estado})==="servidor";
   return {servidor,configurado,estado};
 }

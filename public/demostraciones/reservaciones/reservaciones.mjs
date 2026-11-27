@@ -1,3 +1,4 @@
+import {textoDemostracion} from "../modo-demostracion.mjs";
 import {guardiaOperacion,limitarRepositorio,permisoAgenda} from "../guardia-operacion.mjs";
 import {admiteMesas,mesasComal,horariosMesa,validarReserva,crearReservasLocales,estadosReserva,transicionesReserva,relojLocal,sumarDias,horaCita,enlaceMesa} from "../mesas-practica.mjs";
 import {clientesDemo,notasCitaDemo} from "../clientes-practica.mjs";
@@ -35,7 +36,7 @@ else{
  if(admin)for(const m of mesasComal){const card=el("article"),a=el("a","Abrir menú de "+m.nombre);a.href=enlaceMesa(location.origin,plan,m.id);card.append(el("h3",m.nombre),el("p","Capacidad: "+m.capacidad+" personas"),a);if(plan==="p4"&&location.origin==="https://desarrollo-taqueria-el-comal.lapazimpresion3d.workers.dev"){const img=el("img");img.src=qrMesa(m.id);img.alt="QR de "+m.nombre;const dl=el("a","Guardar QR SVG");dl.href=img.src;dl.download="el-comal-mesa-"+m.id+".svg";card.append(img,dl);}else card.append(el("p","QR imprimible disponible en el Preview P4. En este entorno usa el enlace."));$("qr-lista").append(card);}
  function render(){
   const lr=copiaLocal(),r=servidor?remotas:lr;
-  $("modo").textContent=bloqueado?"Procesando…":servidor?(validas?(expira===null?"La primera reserva activará una sesión privada.":"Agenda privada en servidor."):"No se pudo verificar la agenda remota."):configurado===false?"Servidor no configurado: práctica local de esta pestaña.":"Agenda local de esta pestaña.";
+  $("modo").textContent=textoDemostracion({ocupado:bloqueado,verificado:configurado!==null,servidor,locales:lr.length});$("remoto").closest("details").hidden=guardia.restringida;
   $("num-local").textContent=String(lr.length);$("num-remoto").textContent=totalRemoto===null?"—":String(totalRemoto);
   $("remoto").disabled=bloqueado||!!pendiente||configurado!==true;$("local").disabled=bloqueado||!!pendiente;$("actualizar").disabled=bloqueado;
   $("descartar").hidden=!pendiente||admin;$("descartar").disabled=bloqueado;

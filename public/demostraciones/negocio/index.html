@@ -30,7 +30,7 @@
   <section id="seccion-carrito" class="bloque bloque-pedido" hidden aria-labelledby="titulo-carrito">
     <div id="carrito" class="encabezado"><div><p class="sobrelinea">PEDIDOS DE PRÁCTICA</p><h2 id="titulo-carrito">Tu carrito</h2></div><button id="vaciar-carrito" class="boton-pedido" type="button">Vaciar</button></div>
     <p class="nota">Prueba el proceso de pedido con datos de ejemplo. No se envían mensajes ni se realizan cobros reales.</p>
-    <div class="controles-cantidad"><strong id="modo-pedidos" role="status">Práctica local</strong><button id="activar-pedidos" type="button" class="boton-pedido">Activar práctica en servidor</button><button id="pedidos-locales" type="button" class="boton-pedido">Usar práctica local</button></div>
+    <div class="controles-cantidad"><strong id="modo-pedidos" role="status">Demostración privada</strong></div>
     <p class="nota" id="estado-origen-pedidos" role="status"></p><button id="descartar-pedido" type="button" class="boton-pedido" hidden>Descartar reintento</button><p id="carrito-vacio">Aún no has agregado productos.</p><div id="lineas-carrito"></div>
     <div class="resumen-pedido">
       <label>Modalidad <select id="modalidad-pedido"></select></label>
@@ -44,7 +44,7 @@
   <section id="seccion-seguimiento" class="bloque bloque-pedido" hidden aria-labelledby="titulo-seguimiento">
     <div id="seguimiento" class="encabezado"><h2 id="titulo-seguimiento">Mis pedidos de práctica</h2><button id="actualizar-seguimiento" type="button" class="boton-pedido">Actualizar estado</button></div>
     <p class="nota" id="nota-seguimiento">Consulta el estado de tus pedidos.</p><p id="aviso-seguimiento" role="status"></p>
-    <p class="nota">En esta pestaña: <strong id="conteo-local-pedidos">0</strong> · En servidor: <strong id="conteo-remoto-pedidos">—</strong></p><details class="acceso-empresa"><summary>Demostración para la empresa</summary><p>Este acceso simula al encargado del negocio. No forma parte del seguimiento del cliente.</p><a id="abrir-pedidos" href="../pedidos/">Abrir panel de pedidos de la empresa</a></details><p id="sin-pedidos">No hay pedidos registrados.</p><div id="lista-seguimiento"></div>
+    <details class="opciones-demostracion"><summary>Opciones avanzadas de demostración</summary><p class="nota">Las dos copias son independientes. Cambiar de copia no borra ni traslada tus registros.</p><div class="acciones-demo"><button id="activar-pedidos" type="button" class="boton-pedido">Consultar datos de la sesión compartida</button><button id="pedidos-locales" type="button" class="boton-pedido">Consultar datos de esta pestaña</button></div><p class="nota">En esta pestaña: <strong id="conteo-local-pedidos">0</strong> · En servidor: <strong id="conteo-remoto-pedidos">—</strong></p></details><details class="acceso-empresa"><summary>Demostración para la empresa</summary><p>Este acceso simula al encargado del negocio. No forma parte del seguimiento del cliente.</p><a id="abrir-pedidos" href="../pedidos/">Abrir panel de pedidos de la empresa</a></details><p id="sin-pedidos">No hay pedidos registrados.</p><div id="lista-seguimiento"></div>
   </section>
   <section id="nosotros" class="nosotros" aria-labelledby="titulo-nosotros">
     <div><p class="sobrelinea">CONÓCENOS</p><h2 id="titulo-nosotros"></h2><p id="descripcion"></p><p id="historia"></p></div>

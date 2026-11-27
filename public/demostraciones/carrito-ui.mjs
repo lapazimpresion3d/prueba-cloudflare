@@ -1,3 +1,4 @@
+import {textoDemostracion} from "./modo-demostracion.mjs";
 import {estadoCobro,nombresCobro} from "./cobros-practica.mjs";
 import {zonasEntregaDemo,horarioEntregaDemo} from "./entrega-practica.mjs";
 import {nuevosListos} from "./cocina-practica.mjs";
@@ -125,10 +126,10 @@ export function iniciarCarrito(datos,plan,practica,mesa=null,visita=null){
     $("vaciar-carrito").disabled=enviando||!!pendiente||!r.detalle.length;
     $("modalidad-pedido").disabled=enviando||!!pendiente||!!mesa;
     mostrarDatos();
-    $("modo-pedidos").textContent=servidor?"Práctica en servidor · sesión privada":"Práctica local · esta pestaña";
-    $("activar-pedidos").hidden=!!visita;$("activar-pedidos").disabled=!!visita||comprobando||enviando||conectando||!!pendiente||configurado===false;
+    $("modo-pedidos").textContent="Demostración privada";
+    $("activar-pedidos").closest("details").hidden=!!visita;$("activar-pedidos").hidden=!!visita;$("activar-pedidos").disabled=!!visita||comprobando||enviando||conectando||!!pendiente||configurado===false;
     $("pedidos-locales").hidden=!!visita;$("pedidos-locales").disabled=!!visita||comprobando||enviando||conectando||!!pendiente||(!servidor&&preferencia==="local");
-    $("estado-origen-pedidos").textContent=comprobando?"Comprobando sesión…":configurado===false?"Servidor no configurado.":configurado===null?"No se pudo comprobar el servidor.":servidor?(expira===null?"El primer pedido activará una sesión privada.":"Pedidos en sesión privada."):"Pedidos locales de esta pestaña.";
+    $("estado-origen-pedidos").textContent=textoDemostracion({ocupado:comprobando,verificado:configurado!==null,servidor,locales:repo.leer().length});
     $("conteo-local-pedidos").textContent=String(repo.leer().length);$("conteo-remoto-pedidos").textContent=totalRemoto===null?"—":String(totalRemoto);
     $("descartar-pedido").hidden=!pendiente;$("descartar-pedido").disabled=comprobando||enviando||conectando;
     $("abrir-pedidos").href="/demostraciones/pedidos/?"+new URLSearchParams({negocio:datos.id,plan,origen:servidor?"servidor":"local"});
@@ -137,7 +138,7 @@ export function iniciarCarrito(datos,plan,practica,mesa=null,visita=null){
   let estadosVistos=new Map(),origenVisto=null,consultaAutomatica=false;
   async function seguimiento(){
     const n=++consultando,modo=servidor;
-    let pedidos;try{if(modo&&configurado!==true)throw Error("No se ha comprobado la agenda de pedidos del servidor.");if(modo&&expira===null&&!pendiente&&preferencia!=="servidor")pedidos=[];else if(modo){const v=await remoto.leerEstado();if(n!==consultando||!servidor)return;expira=v.expira;totalRemoto=v.pedidos.length;pedidos=v.pedidos;if(visita)visitaAbierta=!!v.cuentas?.some(x=>x.cuenta_id===visita.cuenta&&x.mesa===mesa&&x.cerrado===null);}else pedidos=repo.leer();}catch(e){if(n===consultando){totalRemoto=null;render();$("lista-seguimiento").replaceChildren();$("sin-pedidos").hidden=true;$("aviso-seguimiento").textContent=e.message+" Activa la práctica en servidor o actualiza."; }return;}
+    let pedidos;try{if(modo&&configurado!==true)throw Error("No se ha comprobado la agenda de pedidos del servidor.");if(modo&&expira===null&&!pendiente&&preferencia!=="servidor")pedidos=[];else if(modo){const v=await remoto.leerEstado();if(n!==consultando||!servidor)return;expira=v.expira;totalRemoto=v.pedidos.length;pedidos=v.pedidos;if(visita)visitaAbierta=!!v.cuentas?.some(x=>x.cuenta_id===visita.cuenta&&x.mesa===mesa&&x.cerrado===null);}else pedidos=repo.leer();}catch(e){if(n===consultando){totalRemoto=null;render();$("lista-seguimiento").replaceChildren();$("sin-pedidos").hidden=true;$("aviso-seguimiento").textContent=e.message+" Actualiza para consultar tus pedidos."; }return;}
     if(n!==consultando||modo!==servidor)return;
     const origen=modo?"servidor:"+expira:"local";
     const visibles=visita?pedidos.filter(p=>p.cuenta===visita.cuenta):mesa?pedidos.filter(p=>p.modalidad==="local"&&p.datosCliente?.mesa===mesa):pedidos;
@@ -193,7 +194,7 @@ export function iniciarCarrito(datos,plan,practica,mesa=null,visita=null){
         if(!p||p.solicitud!==pendiente.datos.solicitud)throw Error("No se pudo confirmar el pedido. Reintenta con el mismo identificador.");
         guardarPendiente(null);
       }else{p=repo.crear(datos.catalogo,lineas,$("modalidad-pedido").value,clienteNuevo,modoHorario());guardarModo();}
-      lineas=[];persistir();await seguimiento();aviso("Pedido de práctica "+(servidor?"guardado en servidor":"creado localmente")+". "+p.folio+" · No se envió a un negocio real.");
+      lineas=[];persistir();await seguimiento();aviso("Pedido de práctica "+"registrado"+". "+p.folio+" · No se envió a un negocio real.");
       $("seccion-seguimiento").scrollIntoView({block:"start"});
     }catch(e){
       // Un 5xx o fallo de red no confirma el resultado: conservar la misma solicitud.

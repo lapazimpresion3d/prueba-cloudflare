@@ -31,7 +31,7 @@
       <p id="admin-plan"></p><div id="admin-selector-rol"></div><p class="nota">Modo demostración · No uses datos personales.</p>
       <button type="button" id="admin-menu" aria-expanded="true" aria-controls="admin-nav">Menú de administración</button><nav id="admin-nav" aria-label="Panel administrativo"><div class="admin-grupo"><h2>Operación diaria</h2><button type="button" id="admin-resumen">Inicio</button><a id="admin-pos" class="accion-admin" href="./pos/" hidden>Punto de venta</a><a id="admin-pedidos" class="accion-admin" href="./pedidos/" hidden>Pedidos</a><a id="admin-citas" class="accion-admin" href="./citas/" hidden>Agenda y citas</a><a id="admin-cocina" class="accion-admin" href="./cocina/" hidden>Cocina</a><a id="admin-cuentas" class="accion-admin" href="./cuentas/" hidden>Cuentas de mesa</a><a id="admin-comandas" class="accion-admin" href="./cocina/" hidden>Comandas por mesa</a><a id="admin-mesas" class="accion-admin" href="./reservaciones/" hidden>Reservaciones y mesas</a><a id="admin-caja" class="accion-admin" href="./caja/" hidden>Caja y turnos</a><a id="admin-comprobantes" class="accion-admin" href="./comprobantes/" hidden>Tickets y comprobantes</a></div><div class="admin-grupo"><h2>Productos y abastecimiento</h2><button type="button" id="admin-catalogo">Productos y servicios</button><a id="admin-inventario" class="accion-admin" href="./inventario/" hidden>Inventario</a><a id="admin-almacen" class="accion-admin" href="./almacen/" hidden>Almacenes y traspasos</a><a id="admin-compras" class="accion-admin" href="./compras/" hidden>Proveedores y compras</a><a id="admin-recetas" class="accion-admin" href="./recetas/" hidden>Recetas y costos</a></div><div class="admin-grupo"><h2>Configuración</h2><button type="button" id="admin-empresa">Personal y sucursales</button><button type="button" id="admin-perfil">Información del negocio</button><a id="admin-terminales" href="./terminales/" hidden>Terminales de cobro</a></div><div class="admin-grupo admin-enlaces"><a id="admin-salir" href="./">← Volver a página del negocio</a><a id="admin-ver-negocio" class="accion-admin" href="./negocio/">Ver página editada</a><a id="ver-original" href="./">Ver página original</a><a href="/demostraciones/ejemplos/">Otras demostraciones</a></div></nav>
     </section>
-    <section id="admin-inicio" hidden aria-labelledby="admin-inicio-titulo"><p class="sobrelinea">TU NEGOCIO</p><h1 id="admin-inicio-titulo">Inicio</h1><p id="admin-intro">Elige una tarea para comenzar.</p><a id="admin-ver-pagina" class="accion-admin" href="./negocio/">Ver mi página como cliente</a><p class="nota">Indicadores locales de esta pestaña; los datos de servidor se consultan en su módulo.</p><div id="admin-indicadores" class="admin-indicadores"></div><section id="admin-ejemplos-seccion" class="admin-ejemplos" aria-labelledby="ejemplos-titulo"><h2 id="ejemplos-titulo">Prueba el sistema con ejemplos</h2><p>Carga operaciones de ejemplo en los módulos vacíos de esta pestaña. No sustituye tus registros.</p><div class="acciones-demo"><button type="button" id="cargar-ejemplos" class="principal">Cargar datos de ejemplo</button><button type="button" id="retirar-ejemplos">Quitar ejemplos sin cambios</button></div><p id="ejemplos-aviso" role="status"></p><details><summary>Aprende paso a paso</summary><div id="recorridos-admin"></div></details></section><h2>Acciones principales</h2><div id="admin-rapidas" class="admin-rapidas"></div><details class="admin-ayuda"><summary>Cómo funciona esta demostración</summary><p id="admin-ayuda-texto"></p><p>Ninguna operación mueve dinero real.</p></details></section>
+    <section id="admin-inicio" hidden aria-labelledby="admin-inicio-titulo"><p class="sobrelinea">TU NEGOCIO</p><h1 id="admin-inicio-titulo">Inicio</h1><p id="admin-intro">Elige una tarea para comenzar.</p><a id="admin-ver-pagina" class="accion-admin" href="./negocio/">Ver mi página como cliente</a><p class="nota">Tus cambios son de demostración. Consulta cada herramienta para ver sus operaciones.</p><div id="admin-indicadores" class="admin-indicadores"></div><section id="admin-ejemplos-seccion" class="admin-ejemplos" aria-labelledby="ejemplos-titulo"><h2 id="ejemplos-titulo">Prueba el sistema con ejemplos</h2><p>Carga operaciones de ejemplo en los módulos vacíos de esta pestaña. No sustituye tus registros.</p><div class="acciones-demo"><button type="button" id="cargar-ejemplos" class="principal">Cargar datos de ejemplo</button><button type="button" id="retirar-ejemplos">Quitar ejemplos sin cambios</button></div><p id="ejemplos-aviso" role="status"></p><details><summary>Aprende paso a paso</summary><div id="recorridos-admin"></div></details></section><h2>Acciones principales</h2><div id="admin-rapidas" class="admin-rapidas"></div><details class="admin-ayuda"><summary>Cómo funciona esta demostración</summary><p id="admin-ayuda-texto"></p><p>Ninguna operación mueve dinero real.</p></details></section>
     <section id="empresa-contexto" class="editor" hidden aria-labelledby="empresa-titulo">
       <h2 id="empresa-titulo">Personal y sucursales</h2>
       <p class="nota">Práctica local, sin inicio de sesión real. El selector de sucursal es ilustrativo: no cambia el alcance de los pedidos, catálogo ni agendas existentes.</p>
@@ -76,7 +76,7 @@
       <p id="resultado" class="nota" role="status"></p><div id="catalogo" class="catalogo"></div>
     </section>
     <section id="editor-perfil" class="editor" aria-labelledby="titulo-editor-perfil" hidden>
-      <div class="encabezado"><h2 id="titulo-editor-perfil">Personalizar página · práctica local</h2><button type="button" id="cerrar-perfil">Cerrar</button></div>
+      <div class="encabezado"><h2 id="titulo-editor-perfil">Personalizar página</h2><button type="button" id="cerrar-perfil">Cerrar</button></div>
       <p>Los cambios se aplican solo a tu copia de práctica. No introduzcas información real ni datos personales.</p>
       <form id="form-perfil">
         <div class="campos-editor">
@@ -101,15 +101,15 @@
         <div class="acciones-demo"><button type="submit" class="principal">Aplicar personalización</button><button type="button" id="restaurar-perfil">Restaurar identidad original</button></div>
       </form>
       <p id="aviso-perfil" role="status" aria-live="polite"></p>
-      <div class="editor-servidor" id="perfil-remoto">
+      <details class="opciones-demostracion"><summary>Opciones avanzadas de demostración</summary><div class="editor-servidor" id="perfil-remoto">
         <h3>Mi copia de práctica</h3>
         <p class="nota">Guarda o recupera tu identidad de ejemplo durante la sesión temporal de este navegador. No modifica la página pública.</p>
         <div class="acciones-demo"><button type="button" id="perfil-conectar" disabled>Activar sesión de práctica</button><button type="button" id="perfil-cargar" disabled>Recuperar cambios</button><button type="button" id="perfil-guardar" disabled>Guardar identidad</button></div>
         <p id="perfil-remoto-aviso" role="status" aria-live="polite">Comprobando disponibilidad…</p>
-      </div>
+      </div></details>
     </section>
     <section id="editor" class="editor" aria-labelledby="titulo-editor" hidden>
-      <div class="encabezado"><h2 id="titulo-editor">Editor de catálogo · práctica local</h2><button type="button" id="cerrar-editor">Cerrar editor</button></div>
+      <div class="encabezado"><h2 id="titulo-editor">Editor de catálogo</h2><button type="button" id="cerrar-editor">Cerrar editor</button></div>
       <p>Modifica el catálogo y abre <strong>Ver catálogo editado</strong> para comprobar los cambios en la página del cliente. La página original permanece intacta para otros visitantes. Para conservar una copia temporal, utiliza las opciones de guardado.</p><p><a id="ver-catalogo-editado" class="accion-admin" href="./negocio/">Ver catálogo editado</a></p>
       <form id="form-oferta">
         <h3 id="titulo-form-oferta">Agregar elemento</h3>
@@ -132,12 +132,12 @@
         <div class="acciones-demo"><button type="submit" class="principal">Guardar elemento</button><button type="button" id="cancelar-edicion" hidden>Cancelar edición</button></div>
       </form>
       <p id="aviso-editor" role="status" aria-live="polite"></p>
-      <div class="editor-servidor" id="editor-servidor">
+      <details class="opciones-demostracion"><summary>Opciones avanzadas de demostración</summary><div class="editor-servidor" id="editor-servidor">
         <h3>Mi catálogo de práctica</h3>
         <p class="nota">Copia privada de demostración por navegador, caduca a las dos horas. No publica el catálogo ni modifica los datos de otros visitantes. Cargar reemplaza únicamente la copia de práctica de este negocio.</p>
         <div class="acciones-demo"><button type="button" id="demo-sesion">Activar sesión de práctica</button><button type="button" id="demo-cargar" disabled>Recuperar catálogo</button><button type="button" id="demo-guardar" disabled>Guardar catálogo</button></div>
         <p id="demo-servidor-aviso" role="status" aria-live="polite">Comprobando servicio de práctica…</p>
-      </div>
+      </div></details>
       <div id="lista-editor" class="lista-editor"></div>
       <button type="button" id="restaurar-catalogo">Restaurar catálogo original</button>
     </section>

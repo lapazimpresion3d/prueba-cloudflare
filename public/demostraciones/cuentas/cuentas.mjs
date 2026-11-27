@@ -53,7 +53,7 @@ else{
   }else throw Error("No se pudo verificar la operación pendiente.");
  }
  function controles(){
-  $("estado").textContent=ocupado?"Consultando…":!configurado?"Falta configurar demo_cuentas o demo_pedidos en D1.":!valida?"Activa la sesión de servidor o actualiza.":"Sesión privada de servidor activa.";
+  $("estado").textContent=ocupado?"Preparando tu demostración…":!configurado?"Esta herramienta no está disponible en esta demostración.":!valida?"No se pudo preparar la demostración. Intenta nuevamente.":"Demostración privada. No se realizan cobros reales.";$("activar").hidden=valida||!configurado;
   $("activar").disabled=ocupado||!configurado||valida;$("actualizar").disabled=ocupado;
   for(const b of document.querySelectorAll("#mesas button,#historial button"))b.disabled=ocupado||!valida||b.dataset.bloqueado==="1";
  }
@@ -138,7 +138,7 @@ else{
   if(pendiente&&(pendiente.expira!==expira||cuentas.some(c=>c.cuenta_id===pendiente.datos.cuenta))){sessionStorage.removeItem(clave);pendiente=null;}
  }
  async function operar(fn){if(ocupado)return;ocupado=true;controles();try{await fn();}catch(e){valida=false;aviso(e.message+" Actualiza para recuperar el estado.");}finally{ocupado=false;render();}}
- async function detectar(){if(dialogo.open||document.activeElement?.closest(".pagos-multiples"))return;await operar(async()=>{const ctx=await api("/api/demo/contexto?"+query);configurado=ctx.cuentasConfiguradas===true;valida=false;if(configurado){try{await cargar();}catch(e){if(e.status!==401)throw e;}}});}
+ async function detectar(){if(dialogo.open||document.activeElement?.closest(".pagos-multiples"))return;await operar(async()=>{const ctx=await api("/api/demo/contexto?"+query);configurado=ctx.cuentasConfiguradas===true;valida=false;if(configurado){try{await cargar();}catch(e){if(e.status!==401)throw e;await api("/api/demo/sesion","POST");await cargar();}}});}
  $("activar").addEventListener("click",()=>operar(async()=>{await api("/api/demo/sesion","POST");await cargar();aviso("Sesión de práctica activa.");}));
  $("actualizar").addEventListener("click",()=>{document.activeElement?.blur();detectar();});window.addEventListener("focus",detectar);window.addEventListener("pageshow",e=>{if(e.persisted)detectar();});
  setInterval(()=>{if(!document.hidden&&!ocupado)detectar();},20000);

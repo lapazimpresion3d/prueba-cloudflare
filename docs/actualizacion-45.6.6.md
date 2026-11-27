@@ -1,0 +1,2 @@
+# 45.6.6 · Simplificación del modo de demostración
+Controles de origen desplazados a opciones avanzadas cerradas, mensajes privados sencillos, selección automática conservadora, cuentas inicia sesión al recibir 401 y permite reintentar. No fusiona ni migra registros; se mantienen preferencias y ejemplos, vistas de empleado locales. Los módulos de servidor no disponibles muestran indisponibilidad. No se cambió autorización de servidor, main ni migraciones. Pruebas visuales pendientes.

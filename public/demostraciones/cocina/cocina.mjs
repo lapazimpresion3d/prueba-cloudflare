@@ -1,3 +1,4 @@
+import {textoDemostracion} from "../modo-demostracion.mjs";
 import {guardiaOperacion,limitarRepositorio,permisoPedido} from "../guardia-operacion.mjs";
 import {estadoCobro,nombresCobro,validarCambioPedido} from "../cobros-practica.mjs";
 import {admiteCocina,admiteComandas,accionesCocina,comandasActivas,agruparComandas} from "../cocina-practica.mjs";
@@ -25,9 +26,9 @@ else{
  $("alternar").hidden=!admiteComandas(id,plan);$("alternar").textContent=mesas?"Ir a cocina":"Ver comandas por mesa";
  if(id==="taqueria-el-comal"){$("filtro-mesa").hidden=false;$("mesa").replaceChildren(new Option("Todas",""),...["1","2","3","4","5","6"].map(m=>new Option("Mesa "+m+(m==="6"?" (histórica)":""),m)),new Option("Local sin mesa","sin-mesa"));}
  function controles(){
-  $("origen").textContent=ocupado?"Consultando o actualizando…":servidor?(valida?"Agenda privada en servidor.":"No se pudo verificar el historial remoto."):(configurado===false?"Servidor no configurado. ":"")+"Práctica local de esta pestaña.";
+  $("origen").textContent=textoDemostracion({ocupado,verificado:!servidor||valida,servidor,locales:repo.leer().length});
   $("locales").textContent=String(repo.leer().length);$("remotos").textContent=totalRemoto===null?"—":String(totalRemoto);
-  $("servidor").hidden=guardia.restringida;$("servidor").disabled=ocupado||configurado!==true;$("local").disabled=ocupado;$("actualizar").disabled=ocupado;
+  $("servidor").hidden=guardia.restringida;$("servidor").closest("details").hidden=guardia.restringida;$("servidor").disabled=ocupado||configurado!==true;$("local").disabled=ocupado;$("actualizar").disabled=ocupado;
   $("pedidos").href="/demostraciones/pedidos/?"+new URLSearchParams({negocio:id,plan,origen:servidor?"servidor":"local"});$("alternar").href=ruta(!mesas);
   for(const b of $("comandas").querySelectorAll("button"))b.disabled=ocupado||!valida;
  }

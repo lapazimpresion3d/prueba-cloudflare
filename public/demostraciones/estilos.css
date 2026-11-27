@@ -22,3 +22,5 @@ main{max-width:1152px;margin:auto;padding:24px 16px 48px}.introduccion{padding:1
 
 /* Mantener el enlace de regreso primero en orden visual y de teclado. */
 .barra>a:first-child{font-weight:700}.cabecera-admin #admin-salir{font-weight:700}
+
+.opciones-demostracion{margin:10px 0;font-size:.85rem;opacity:.9}.opciones-demostracion summary{cursor:pointer;font-weight:600}.opciones-demostracion[open]{padding:10px;border:1px solid currentColor;border-radius:8px}.opciones-demostracion .acciones-demo{margin-top:8px}
