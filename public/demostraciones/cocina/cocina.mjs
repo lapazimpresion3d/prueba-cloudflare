@@ -1,3 +1,4 @@
+import {guardiaOperacion,limitarRepositorio,permisoPedido} from "../guardia-operacion.mjs";
 import {estadoCobro,nombresCobro,validarCambioPedido} from "../cobros-practica.mjs";
 import {admiteCocina,admiteComandas,accionesCocina,comandasActivas,agruparComandas} from "../cocina-practica.mjs";
 import {obtenerEstablecimiento} from "../establecimientos.mjs";
@@ -10,13 +11,13 @@ const el=(t,s,c)=>{const n=document.createElement(t);if(s!==undefined)n.textCont
 if(!(mesas?admiteComandas(id,plan):admiteCocina(id,plan))){$("error").textContent="Esta vista no está incluida en el negocio o paquete.";$("error").hidden=false;}
 else{
  let almacen;try{almacen=sessionStorage;}catch{}
- const repo=crearPedidosPractica(almacen,id,plan),remoto=crearPedidosRemotos(id,plan),links=enlacesDemo(id,plan),clave="lapaz:demo:pedidos:modo:"+id;
+ const guardia=guardiaOperacion(id,plan,q,localStorage),repo=limitarRepositorio(crearPedidosPractica(almacen,id,plan),guardia,{cambiar:permisoPedido}),remoto=crearPedidosRemotos(id,plan),links=enlacesDemo(id,plan),clave="lapaz:demo:pedidos:modo:"+id;
  let preferencia=null,servidor=false,configurado=null,ocupado=false,datos=[],valida=false,totalRemoto=null,ultima=null,firma=null,expira=null;
  try{preferencia=["local","servidor"].includes(q.get("origen"))?q.get("origen"):almacen?.getItem(clave);}catch{}
- servidor=preferencia==="servidor";
+ servidor=preferencia==="servidor";if(guardia.restringida){preferencia="local";servidor=false;}
  const aviso=s=>{$("aviso").textContent=s;};
  const ruta=(vista)=>"/demostraciones/cocina/?"+new URLSearchParams({negocio:id,plan,...(vista?{vista:"mesas"}:{}),origen:servidor?"servidor":"local"});
- function guardarModo(){preferencia=servidor?"servidor":"local";try{almacen?.setItem(clave,preferencia);}catch{}}
+ function guardarModo(){if(guardia.restringida)return;preferencia=servidor?"servidor":"local";try{almacen?.setItem(clave,preferencia);}catch{}}
  $("titulo").textContent=mesas?"Servicio y comandas por mesa":"Pantalla de cocina";
  $("negocio").textContent=obtenerEstablecimiento(id).nombre;
  $("intro").textContent=mesas?"Agrupa pedidos activos del salón. Marca cada pedido listo como entregado. Los pedidos asociados a una cuenta abierta pueden entregarse antes del cobro. Los independientes requieren cobro conciliado.":"Recibe comandas, consulta cantidades, ingredientes y extras, inicia preparación y marca listo. No contiene datos de contacto, cobros ni cancelaciones.";
@@ -26,7 +27,7 @@ else{
  function controles(){
   $("origen").textContent=ocupado?"Consultando o actualizando…":servidor?(valida?"Agenda privada en servidor.":"No se pudo verificar el historial remoto."):(configurado===false?"Servidor no configurado. ":"")+"Práctica local de esta pestaña.";
   $("locales").textContent=String(repo.leer().length);$("remotos").textContent=totalRemoto===null?"—":String(totalRemoto);
-  $("servidor").disabled=ocupado||configurado!==true;$("local").disabled=ocupado;$("actualizar").disabled=ocupado;
+  $("servidor").hidden=guardia.restringida;$("servidor").disabled=ocupado||configurado!==true;$("local").disabled=ocupado;$("actualizar").disabled=ocupado;
   $("pedidos").href="/demostraciones/pedidos/?"+new URLSearchParams({negocio:id,plan,origen:servidor?"servidor":"local"});$("alternar").href=ruta(!mesas);
   for(const b of $("comandas").querySelectorAll("button"))b.disabled=ocupado||!valida;
  }
@@ -47,7 +48,7 @@ else{
     card.append(el("h4",g.destino),estado,el("p",p.folio,"folio"),el("p","Recibido: "+new Date(p.creado).toLocaleTimeString("es-MX")),lista);
     if(p.datosCliente?.nota&&p.datosCliente.nota!=="Sin instrucciones")card.append(el("p","Instrucciones: "+p.datosCliente.nota));
     if(mesas)card.append(el("p",nombresCobro[estadoCobro(p)]));
-    for(const destino of accionesCocina(p.estado,mesas)){try{validarCambioPedido(p,destino);}catch(e){card.append(el("p",e.message,"nota"));continue;}const b=el("button",({preparando:"Iniciar preparación",listo:"Pedido listo",entregado:"Marcar entregado"})[destino]);b.type="button";b.addEventListener("click",()=>cambiar(p,destino));card.append(b);}
+    for(const destino of accionesCocina(p.estado,mesas)){if(!guardia.permite(permisoPedido(destino)))continue;try{validarCambioPedido(p,destino);}catch(e){card.append(el("p",e.message,"nota"));continue;}const b=el("button",({preparando:"Iniciar preparación",listo:"Pedido listo",entregado:"Marcar entregado"})[destino]);b.type="button";b.addEventListener("click",()=>cambiar(p,destino));card.append(b);}
     tarjetas.append(card);
    }return grupo;
   }));
@@ -59,9 +60,9 @@ else{
   valida=true;ultima=Date.now();
  }
  async function operar(fn){if(ocupado)return;ocupado=true;controles();try{aviso("");await fn();}catch(e){valida=false;datos=[];if(servidor)totalRemoto=null;aviso(e.message);}finally{ocupado=false;render();}}
- async function detectar(){await operar(async()=>{const v=await detectarPedidos(remoto,{preferencia,locales:repo.leer().length,encargado:true});configurado=v.configurado;servidor=v.servidor;totalRemoto=v.estado?.pedidos.length??null;expira=v.estado?.expira??null;await cargar();});}
+ async function detectar(){if(guardia.restringida){servidor=false;await operar(cargar);return;}await operar(async()=>{const v=await detectarPedidos(remoto,{preferencia,locales:repo.leer().length,encargado:true});configurado=v.configurado;servidor=v.servidor;totalRemoto=v.estado?.pedidos.length??null;expira=v.estado?.expira??null;await cargar();});}
  async function cambiar(p,destino){if(ocupado||!valida||!accionesCocina(p.estado,mesas).includes(destino))return;await operar(async()=>{if(servidor){const actual=await remoto.leerEstado();if(actual.expira!==expira)throw Error("La sesión cambió. Actualiza antes de continuar.");await remoto.cambiar(p.solicitud,p.estado,destino);}else repo.cambiar(p.folio,p.estado,destino);aviso("Pedido actualizado: "+nombresEstado[destino]+".");await cargar();});}
- $("servidor").addEventListener("click",()=>operar(async()=>{await remoto.conectar();servidor=true;expira=null;guardarModo();await cargar();aviso("Sesión privada activa.");}));
+ $("servidor").addEventListener("click",()=>{if(guardia.restringida)return;return operar(async()=>{await remoto.conectar();servidor=true;expira=null;guardarModo();await cargar();aviso("Sesión privada activa.");});});
  $("local").addEventListener("click",()=>operar(async()=>{servidor=false;expira=null;guardarModo();await cargar();aviso("Práctica local activa.");}));
  $("actualizar").addEventListener("click",detectar);$("estado").addEventListener("change",render);$("mesa").addEventListener("change",render);
  const refrescar=()=>{if(!ocupado&&!document.hidden){if(!preferencia&&!servidor&&!repo.leer().length)detectar();else operar(cargar);}};

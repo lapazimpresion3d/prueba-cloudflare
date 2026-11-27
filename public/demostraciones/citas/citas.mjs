@@ -1,3 +1,4 @@
+import {guardiaOperacion,limitarRepositorio,permisoAgenda} from "../guardia-operacion.mjs";
 import {clientesDemo,notasCitaDemo,seleccionCita} from "../clientes-practica.mjs";
 import {importe} from "../config.mjs";
 import {obtenerEstablecimiento} from "../establecimientos.mjs";
@@ -14,7 +15,7 @@ if(!negocio||!admiteCitas(id,plan)){
 }else{
  let almacen;try{almacen=sessionStorage;}catch{}
  const catalogo=personalizada?crearCatalogosLocales(almacen).leer(id):negocio.catalogo;
- const servicios=serviciosCita(catalogo),recursos=recursosCita(id),repo=crearCitasPractica(almacen,id,plan);
+ const servicios=serviciosCita(catalogo),recursos=recursosCita(id),guardia=guardiaOperacion(id,plan,admin?q:new URLSearchParams(),localStorage),repo=limitarRepositorio(crearCitasPractica(almacen,id,plan),guardia,{cambiar:d=>permisoAgenda("citas",d)});
  const links=enlacesDemo(id,plan,personalizada),base="/demostraciones/citas/?"+new URLSearchParams({negocio:id,plan,...(personalizada?{practica:"1"}:{})});
  $("nombre").textContent=negocio.nombre;$("volver-negocio").href=links.negocio;$("volver-panel").href=links.administracion;
  $("cambiar-vista").href=admin?base:base+"&vista=agenda";$("cambiar-vista").textContent=admin?"Probar como cliente":"Abrir agenda del encargado";
@@ -34,7 +35,8 @@ if(!negocio||!admiteCitas(id,plan)){
  let elegido=null,creando=false,servidor=false,ocupado=false,lectura=0,copiaRemota=[],listaValida=false,expira=null,pendiente=null,preferencia=null,configurado=null,comprobando=true;
  let remotoDisponible=false,remotoConsultado=false;
  try{preferencia=["local","servidor"].includes(q.get("origen"))?q.get("origen"):almacen?.getItem(claveModo);servidor=preferencia==="servidor";const v=JSON.parse(almacen?.getItem(clavePendiente)||"null");if(v?.datos?.solicitud&&Number.isSafeInteger(v.expira)){pendiente=v;servidor=true;}}catch{}
- function modo(){preferencia=servidor?"servidor":"local";try{almacen?.setItem(claveModo,preferencia);}catch{}}
+ if(guardia.restringida){preferencia="local";servidor=false;pendiente=null;$("activar-citas").hidden=true;$("restaurar").hidden=true;}
+ function modo(){if(guardia.restringida)return;preferencia=servidor?"servidor":"local";try{almacen?.setItem(claveModo,preferencia);}catch{}}
  function guardarPendiente(v){if(!almacen)throw Error("Habilita el almacenamiento para conservar la solicitud.");if(v)almacen.setItem(clavePendiente,JSON.stringify(v));else almacen.removeItem(clavePendiente);pendiente=v;}
  const citasActuales=()=>servidor?copiaRemota:repo.leer();
  function controles(){
@@ -82,7 +84,7 @@ if(!negocio||!admiteCitas(id,plan)){
    else a.append(el("p","Cita anterior sin datos de cliente.","nota"));
    const acciones=el("div",undefined,"acciones-demo"),est=admin?transicionesCita(c.estado):transicionesCita(c.estado).filter(s=>s==="cancelada");
    const etiquetas={confirmada:"Confirmar",atendida:"Marcar atendida",no_asistio:"No asistió",cancelada:"Cancelar"};
-   for(const destino of est){const b=el("button",etiquetas[destino]);b.type="button";b.disabled=ocupado||creando||servidor&&!listaValida;b.addEventListener("click",async()=>{if(ocupado||creando||servidor&&!listaValida)return;if(destino==="cancelada"&&!confirm("¿Cancelar la cita de práctica?"))return;ocupado=true;render();try{if(servidor)await remoto.cambiar(c.solicitud,c.estado,destino);else repo.cambiar(c.folio,c.estado,destino);aviso("Cita actualizada: "+nombresCita[destino]+".");}catch(e){aviso(e.message);}finally{ocupado=false;await actualizar();}});acciones.append(b);}
+   for(const destino of est){if(!guardia.permite(permisoAgenda("citas",destino)))continue;const b=el("button",etiquetas[destino]);b.type="button";b.disabled=ocupado||creando||servidor&&!listaValida;b.addEventListener("click",async()=>{if(ocupado||creando||servidor&&!listaValida)return;if(destino==="cancelada"&&!confirm("¿Cancelar la cita de práctica?"))return;ocupado=true;render();try{if(servidor)await remoto.cambiar(c.solicitud,c.estado,destino);else repo.cambiar(c.folio,c.estado,destino);aviso("Cita actualizada: "+nombresCita[destino]+".");}catch(e){aviso(e.message);}finally{ocupado=false;await actualizar();}});acciones.append(b);}
    a.append(acciones);if(admin){const details=el("details"),ul=el("ul");for(const h of c.historial)ul.append(el("li",nombresCita[h.estado]+" · "+new Date(h.fecha).toLocaleString("es-MX",{timeZone:"America/Mazatlan"})));details.append(el("summary","Historial"),ul);a.append(details);}return a;
   }));
   if(!lista.length)$("citas").append(el("p",comprobando?"Consultando agenda…":servidor&&!listaValida?"No se pudo consultar la agenda del servidor. Actualiza o activa la sesión.":servidor?"No hay citas en esta sesión del servidor con estos filtros.":"No hay citas locales en esta pestaña con estos filtros.","nota"));
@@ -97,7 +99,7 @@ if(!negocio||!admiteCitas(id,plan)){
   catch(e){if(n!==lectura)return;copiaRemota=[];listaValida=false;remotoConsultado=false;remotoDisponible=false;aviso(e.message+" Actualiza o activa la sesión.");}
   render();
  }
- async function abrirRemoto(){
+ async function abrirRemoto(){if(guardia.restringida)return;
  if(comprobando||ocupado||creando||pendiente)return;
  ocupado=true;render();
  try{const v=await remoto.conectar();servidor=true;configurado=true;listaValida=true;remotoDisponible=true;remotoConsultado=true;expira=v.expira;copiaRemota=v.citas;modo();aviso("Agenda en servidor activa. Las citas locales siguen disponibles por separado.");}
@@ -106,7 +108,7 @@ if(!negocio||!admiteCitas(id,plan)){
  $("activar-citas").addEventListener("click",abrirRemoto);
  // El encargado detecta la sesión ya existente incluso en otra pestaña.
  // Nunca migrar ni borrar citas locales. Si hay ambas, las dos se indican con sus conteos.
- async function iniciarAgenda(){
+ async function iniciarAgenda(){if(guardia.restringida){servidor=false;comprobando=false;configurado=false;listaValida=true;render();$("restaurar").hidden=true;return;}
  const n=++lectura;comprobando=true;render();
  try{
   configurado=await remoto.disponibilidad();
@@ -147,7 +149,7 @@ if(!negocio||!admiteCitas(id,plan)){
  });
  for(const k of ["filtro-fecha","filtro-recurso","filtro-estado"])$(k).addEventListener("change",render);
  $("actualizar").addEventListener("click",()=>{if(!comprobando&&!ocupado&&!creando)iniciarAgenda();});
- $("restaurar").addEventListener("click",()=>{if(!admin||servidor||ocupado||creando||!confirm("¿Restablecer las citas de práctica de este negocio?"))return;try{repo.restaurar();aviso("Agenda restablecida.");}catch(e){aviso(e.message);}render();});
+ $("restaurar").addEventListener("click",()=>{if(guardia.restringida||!admin||servidor||ocupado||creando||!confirm("¿Restablecer las citas de práctica de este negocio?"))return;try{repo.restaurar();aviso("Agenda restablecida.");}catch(e){aviso(e.message);}render();});
  window.addEventListener("pageshow",e=>{if(e.persisted&&!comprobando&&!ocupado&&!creando)iniciarAgenda();});
  window.addEventListener("focus",()=>{if(!comprobando&&!ocupado&&!creando)iniciarAgenda();});
  document.title=(admin?"Agenda · ":"Citas · ")+negocio.nombre;render();$("contenido").hidden=false;iniciarAgenda();

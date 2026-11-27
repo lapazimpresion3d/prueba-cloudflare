@@ -1,0 +1,6 @@
+import {contextoVista} from "./vista-rol.mjs";
+import {tienePermiso} from "./permisos-practica.mjs";
+export const permisoPedido=destino=>({preparando:"pedidos.preparar",listo:"pedidos.listo",entregado:"pedidos.entregar",cancelado:"pedidos.cancelar"})[destino];
+export const permisoAgenda=(grupo,destino)=>grupo+"."+({confirmada:"confirmar",atendida:"atender",cancelada:"cancelar",no_asistio:"ausencia"})[destino];
+export function guardiaOperacion(id,plan,q,storage){const v=contextoVista(id,plan,q,storage);return {restringida:v.activa,permite(p){if(!v.activa)return true;const actual=contextoVista(id,plan,q,storage);return !actual.invalida&&tienePermiso(actual.d,actual.i,p);}};}
+export function limitarRepositorio(repo,guardia,{cambiar,cobrar}={}){if(!guardia.restringida)return repo;const exigir=p=>{if(!p||!guardia.permite(p))throw Error("El puesto no tiene permiso para esta operación.");};return {...repo,cambiar:(...args)=>{exigir(cambiar?.(args[2]));return repo.cambiar(...args);},cobrar:(...args)=>{exigir(cobrar?.(args[1]?.accion));return repo.cobrar(...args);},crear:()=>{throw Error("La creación corresponde a la vista del cliente.");},restaurar:()=>{throw Error("Solo el propietario puede restablecer el historial.");}};}
