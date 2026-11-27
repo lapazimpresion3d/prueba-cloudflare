@@ -1,7 +1,8 @@
 import {planes,capacidades,importe} from "./config.mjs";
 import {establecimientos,obtenerEstablecimiento,filtrarCatalogo} from "./establecimientos.mjs";
 import {crearCatalogosLocales,centavosDesdeTexto} from "./catalogo-local.mjs";
-import {crearPerfilesLocales,perfilPlano} from "./perfil-local.mjs";
+import {crearPerfilesLocales,perfilPlano,validarImagenPerfil} from "./perfil-local.mjs";
+import {optimizarImagenPerfil} from "./imagenes-perfil.mjs";
 import {enlacesDemo} from "./presentaciones.mjs";
 let almacenamiento;
 try { almacenamiento=window.sessionStorage; } catch {}
@@ -23,7 +24,7 @@ let editorAbierto=vistaAdmin, perfilAbierto=false;
 let editando=null;
 let contextoServidor=null, consultaContexto=0, ocupada=false;
 const revisiones=new Map(), revisionesPerfil=new Map();
-let perfilActivo=false, perfilOcupado=false;
+let perfilActivo=false, perfilOcupado=false, imagenPendiente=0, generacionImagen=0;
 let practicaActiva=false;
 const catalogoActual=()=>({...negocio,catalogo:catalogos.leer(negocio.id)});
 const campo=n=>$("form-oferta").elements.namedItem(n);
@@ -150,16 +151,39 @@ $("admin-catalogo").addEventListener("click",()=>{perfilAbierto=false;editorAbie
 $("admin-perfil").addEventListener("click",()=>{editorAbierto=false;reiniciarFormulario();perfilAbierto=true;cargarPerfil();$("aviso-perfil").textContent="";renderVista();$("form-perfil").elements.namedItem("nombre").focus();});
 function cargarPerfil(){
   const p=perfilPlano(perfiles.leer(negocio.id));
+  generacionImagen++;
   for(const [k,v] of Object.entries(p))$("form-perfil").elements.namedItem(k).value=v;
+  for(const tipo of ["logo","portada"]){$("archivo-"+tipo).value="";mostrarImagen(tipo);}
+  $("aviso-imagenes").textContent="";
 }
 $("abrir-perfil").addEventListener("click",()=>{
   editorAbierto=false;reiniciarFormulario();perfilAbierto=true;cargarPerfil();$("aviso-perfil").textContent="";
   renderVista();$("form-perfil").elements.namedItem("nombre").focus();
 });
 $("cerrar-perfil").addEventListener("click",()=>{perfilAbierto=false;renderVista();$(vistaAdmin?"admin-perfil":"abrir-perfil").focus();});
+function mostrarImagen(tipo){
+  const valor=$("form-perfil").elements.namedItem(tipo).value,img=$("prev-"+tipo);
+  img.hidden=!valor;if(valor)img.src=valor;else img.removeAttribute("src");
+}
+for(const tipo of ["logo","portada"]){
+  $("archivo-"+tipo).addEventListener("change",async e=>{
+    const archivo=e.currentTarget.files?.[0];if(!archivo)return;
+    const actual=++generacionImagen;imagenPendiente++;
+    $("aviso-imagenes").textContent="Optimizando imagen…";
+    try{
+      const valor=validarImagenPerfil(await optimizarImagenPerfil(archivo,tipo));
+      if(actual!==generacionImagen)return;
+      $("form-perfil").elements.namedItem(tipo).value=valor;mostrarImagen(tipo);
+      $("aviso-imagenes").textContent="Imagen lista. Aplica la personalización para conservarla.";
+    }catch(error){if(actual===generacionImagen)$("aviso-imagenes").textContent=error.message;}
+    finally{imagenPendiente--;e.target.value="";}
+  });
+  $("quitar-"+tipo).addEventListener("click",()=>{generacionImagen++;$("form-perfil").elements.namedItem(tipo).value="";mostrarImagen(tipo);});
+}
 $("form-perfil").addEventListener("submit",e=>{
   e.preventDefault();
   try{
+    if(imagenPendiente)throw Error("Espera a que termine la optimización de la imagen.");
     const guardado=perfiles.guardar(negocio.id,Object.fromEntries(new FormData(e.currentTarget)));
     renderPerfil();renderVista();$("aviso-perfil").textContent=guardado?"Identidad actualizada en esta pestaña.":"Identidad actualizada en memoria; se perderá al recargar.";
   }catch(error){$("aviso-perfil").textContent=error.message;}
