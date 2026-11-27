@@ -27,16 +27,16 @@ export async function crearAdministradorCentral(env,{autenticarCentral,habilitad
   return q("SELECT (SELECT count(*) FROM empresas) AS clientes,(SELECT count(*) FROM comercial_suscripciones s JOIN empresas e ON e.id=s.empresa WHERE e.activa=1 AND s.estado='activa' AND s.inicio<=? AND s.vence>?) AS vigentes,(SELECT COALESCE(sum(p.mensualidad),0) FROM comercial_suscripciones s JOIN empresas e ON e.id=s.empresa JOIN comercial_planes p ON p.id=s.plan AND p.version=s.version WHERE e.activa=1 AND s.estado='activa' AND s.inicio<=? AND s.vence>?) AS mrr_centavos,(SELECT COALESCE(sum(importe),0) FROM central_pagos_servicio) AS registrado_centavos WHERE "+guard,n,n,n,n,a).first();
  },
  async versionPlan(r,d){
-  const a=await actor(r);if(!["p1","p2","p3","p4"].includes(d.id)||!id(d.nombre)||!Number.isSafeInteger(d.version)||d.version<2||![d.implementacion,d.mensualidad].every(x=>Number.isSafeInteger(x)&&x>=0&&x<=100000000)||![d.usuarios,d.sucursales].every(x=>Number.isSafeInteger(x)&&x>0&&x<=10000)||!Array.isArray(d.modulos)||!d.modulos.every(x=>modulos.some(m=>m.id===x)))throw Error("Plan inválido.");
+  const a=await actor(r;if(!["p1","p2","p3","p4"].includes(d.id)||!id(d.nombre)||!Number.isSafeInteger(d.version)||d.version<2||![d.implementacion,d.mensualidad].every(x=>Number.isSafeInteger(x)&&x>=0&&x<=100000000)||![d.usuarios,d.sucursales].every(x=>Number.isSafeInteger(x)&&x>0&&x<=10000)||!Array.isArray(d.modulos)||!d.modulos.every(x=>modulos.some(m=>m.id===x)))throw Error("Plan inválido.");
   return escribir(q("INSERT INTO comercial_planes SELECT ?,?,?,?,?,'MXN',?,?,? WHERE "+guard+" AND ?=(SELECT COALESCE(MAX(version),0)+1 FROM comercial_planes WHERE id=?) RETURNING version",d.id,d.version,d.nombre,d.implementacion,d.mensualidad,d.usuarios,d.sucursales,JSON.stringify([...new Set(d.modulos)]),a,d.version,d.id),a,null,"plan.version",d.id+":"+d.version);
  },
  async implementacion(r,d){
-  const a=await actor(r);if(!id(d.empresa)||!["pendiente","configuracion","revision","entregada"].includes(d.estado)||!Number.isSafeInteger(d.revision)||d.revision<0)throw Error("Implementación inválida.");
+  const a=await actor(r;if(!id(d.empresa)||!["pendiente","configuracion","revision","entregada"].includes(d.estado)||!Number.isSafeInteger(d.revision)||d.revision<0)throw Error("Implementación inválida.");
   const s=d.revision===0?q("INSERT INTO central_implementaciones SELECT ?,?,1 WHERE "+guard+" ON CONFLICT(empresa) DO NOTHING RETURNING revision",d.empresa,d.estado,a):q("UPDATE central_implementaciones SET estado=?,revision=revision+1 WHERE empresa=? AND revision=? AND "+guard+" RETURNING revision",d.estado,d.empresa,d.revision,a);
   return escribir(s,a,d.empresa,"implementacion.estado",d.estado);
  },
  async registrarPago(r,d){
-  const a=await actor(r);if(!id(d.id)||!id(d.empresa)||!["implementacion","mensualidad","adicional"].includes(d.concepto)||!Number.isSafeInteger(d.importe)||d.importe<1||d.importe>100000000||typeof d.referencia!=="string"||!d.referencia.trim()||d.referencia.trim().length>120)throw Error("Registro inválido.");
+  const a=await actor(r;if(!id(d.id)||!id(d.empresa)||!["implementacion","mensualidad","adicional"].includes(d.concepto)||!Number.isSafeInteger(d.importe)||d.importe<1||d.importe>100000000||typeof d.referencia!=="string"||!d.referencia.trim()||d.referencia.trim().length>120)throw Error("Registro inválido.");
   return escribir(q("INSERT INTO central_pagos_servicio SELECT ?,?,?,?,?,?,? WHERE "+guard+" RETURNING id",d.id,d.empresa,d.concepto,d.importe,reloj(),d.referencia.trim(),a,a),a,d.empresa,"pago.registrado",d.id);
  },
  async pagos(r,empresa){const a=await actor(r);if(!id(empresa))throw Error("Empresa inválida.");return (await q("SELECT id,concepto,importe,fecha,referencia FROM central_pagos_servicio WHERE empresa=? AND "+guard+" ORDER BY fecha DESC,id LIMIT 100",empresa,a).all()).results;}
