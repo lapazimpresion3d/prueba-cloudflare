@@ -10,3 +10,6 @@ El propietario informó que creó demo_perfiles en DEMO_DB. Falta verificar /api
 24/24 comprobaciones de lógica ejecutadas con fuentes de GitHub y aserciones equivalentes a los tests; 20/20 vistas públicas y 20/20 filtros en DOM simulado, 3/3 direcciones inválidas y 1/1 visualización de foto de práctica. Sintaxis de controladores y optimizador, IDs DOM comprobados. Se añadieron casos de pruebas Node con D1 adaptada a SQLite (no ejecutados en este bloque). Pendiente decodificación real de JPG/PNG/WebP, verificación del navegador y guardado/recuperación en D1 desplegada. No afirmar que los paquetes superiores están listos.
 ## Siguiente
 Validar P1 de extremo a extremo; mejorar presentación de catálogos con fotografías ilustrativas propias; comenzar carrito y pedidos/citas de P2 en entorno de práctica aislado. No cambiar main ni el sitio comercial sin autorización.
+
+## Continuación v0.8
+Se inicia P2 con carrito/pedidos y seguimiento local en tres giros. Ver docs/pedidos-practica.md. No añade persistencia de pedidos D1. Confirmar P1 en navegador antes de comercializar.
