@@ -8,7 +8,7 @@ export function elegirModo({preferencia=null,locales=0,pendiente=false,personali
 export function textoDemostracion({ocupado=false,verificado=true,servidor=false,locales=0}={}){
  if(ocupado)return "Preparando tu demostración…";
  if(!verificado)return "No se pudo actualizar. Intenta nuevamente.";
- return "Demostración privada. Tus operaciones son de prueba."; puedes consultarlos en opciones avanzadas.":"Demostración privada. Tus operaciones son de prueba.";
+ return "Demostración privada. Tus operaciones son de prueba.";
 }
 
 export function origenDemostracion({visita=false,pendiente=false,cuenta=false}={}){return visita||pendiente||cuenta?"servidor":"local";}

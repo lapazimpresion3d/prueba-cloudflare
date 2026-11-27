@@ -4,7 +4,7 @@ const entero=(n,max=100000000)=>Number.isSafeInteger(n)&&n>=0&&n<=max;
 const unidades={g:1,kg:1000,ml:1,l:1000,pza:1};
 export function cantidadBase(n,u){if(!Object.hasOwn(unidades,u)||typeof n!=="number"||!Number.isFinite(n)||n<0)throw Error("Cantidad inválida.");const x=n*unidades[u],v=Math.round(x);if(Math.abs(x-v)>1e-7||!entero(v))throw Error("Usa cantidades enteras en g, ml o piezas.");return v;}
 export const recetasVacias=()=>({insumos:[],recetas:[],movimientos:[],subrecetas:[],lotes:[]});
-export function validarRecetas(r){if(!r||!Array.isArray(r.insumos)||r.insumos.length>150||!Array.isArray(r.recetas)||r.recetas.length>300||!Array.isArray(r.movimientos)||r.movimientos.length>4000||r.insumos.some(x=>!x||typeof x.id!=="string"||!["g","ml","pza"].includes(x.unidad)||!entero(x.stock)||!entero(x.valor))||new Set(r.insumos.map(x=>x.sucursal+":"+x.id)).size!==r.insumos.length)throw Error("Registro de insumos inválido.");r.subrecetas??=[];r.lotes??=[];if(!Array.isArray(r.subrecetas)||r.subrecetas.length>150||!Array.isArray(r.lotes)||r.lotes.length>300)throw Error("Historial de producción inválido.");return r;}
+export function validarRecetas(r){if(!r||!Array.isArray(r.insumos)||r.insumos.length>150||!Array.isArray(r.recetas)||r.recetas.length>300||!Array.isArray(r.movimientos)||r.movimientos.length>4000||r.insumos.some(x=>!x||typeof x.id!=="string"||!["g","ml","pza"].includes(x.unidad)||!entero(x.stock)||!entero(x.valor))||new Set(r.insumos.map(x=>x.sucursal+":"+x.id)).size!==r.insumos.length)throw Error("Registro de insumos inválido.");r.traspasos??=[];if(!Array.isArray(r.traspasos)||r.traspasos.length>300||new Set(r.traspasos.map(t=>t.folio)).size!==r.traspasos.length)throw Error("Traspasos de insumos inválidos.");r.subrecetas??=[];r.lotes??=[];if(!Array.isArray(r.subrecetas)||r.subrecetas.length>150||!Array.isArray(r.lotes)||r.lotes.length>300)throw Error("Historial de producción inválido.");return r;}
 const ins=(r,s,id)=>r.insumos.find(x=>x.sucursal===s&&x.id===id);
 const receta=(r,s,id)=>r.recetas.find(x=>x.sucursal===s&&x.id===id);
 function mover(r,p,a,delta,valor,tipo,fecha,ref=""){if(r.movimientos.length>=4000||!entero(p.stock+delta)||!entero(p.valor+valor))throw Error("Existencias o valor insuficiente, o límite alcanzado.");if(p.stock+delta===0&&p.valor+valor!==0)throw Error("Valor residual inválido.");p.stock+=delta;p.valor+=valor;r.movimientos.unshift({id:p.id,sucursal:a.sucursal,empleado:a.empleado,delta,valor,tipo,fecha,ref,stock:p.stock});}
@@ -86,3 +86,21 @@ export function producirLote(r,a,id,d,folio,fecha){
  mover(r,salida,a,d.real,costo,"produccion_entrada",fecha,folio);
  const lote={folio,id,nombre:salida.nombre,unidad:salida.unidad,sucursal:a.sucursal,empleado:a.empleado,rol:a.rol,fecha,repeticiones:d.repeticiones,previsto,real:d.real,merma:Math.max(0,previsto-d.real),indirecto,costo,consumo};r.lotes.unshift(lote);return lote;
 }
+
+// El ID del insumo se conserva al crear su ficha en destino. No se copian fórmulas.
+export function enviarInsumo(r,a,destino,id,n,folio,fecha){
+ const p=ins(r,a.sucursal,id);r.traspasos??=[];
+ if(!p||!Number.isInteger(destino)||destino<1||destino>3||destino===a.sucursal||!entero(n)||!n||!/^TI-[a-zA-Z0-9-]{1,80}$/.test(folio)||r.traspasos.length>=300||r.traspasos.some(t=>t.folio===folio))throw Error("Traspaso de insumo inválido.");
+ const d=ins(r,destino,id);if(d&&d.unidad!==p.unidad)throw Error("Unidades incompatibles.");
+ const costo=costoSalida(p,n);mover(r,p,a,-n,-costo,"traspaso_salida",fecha,folio);
+ const t={folio,id,nombre:p.nombre,unidad:p.unidad,origen:a.sucursal,destino,cantidad:n,costo,estado:"transito",envio:{fecha,empleado:a.empleado,rol:a.rol}};r.traspasos.unshift(t);return t;
+}
+export function recibirInsumo(r,a,folio,n,motivo,fecha){
+ const t=r.traspasos?.find(x=>x.folio===folio&&x.destino===a.sucursal);
+ if(!t||t.estado!=="transito"||!entero(n)||n>t.cantidad||n<t.cantidad&&!["Faltante de traslado","Daño de traslado"].includes(motivo))throw Error("Recepción de insumo inválida.");
+ let p=ins(r,a.sucursal,t.id);if(p&&p.unidad!==t.unidad)throw Error("Unidades incompatibles.");const costo=Math.round(t.costo*n/t.cantidad);
+ if(n){if(!p){if(r.insumos.length>=150||r.movimientos.length>=4000)throw Error("Límite de insumos o movimientos.");p={id:t.id,sucursal:a.sucursal,nombre:t.nombre,unidad:t.unidad,stock:0,valor:0};r.insumos.push(p);}mover(r,p,a,n,costo,"traspaso_entrada",fecha,folio);}
+ Object.assign(t,{estado:"recibido",recibido:n,faltante:t.cantidad-n,costoRecibido:costo,costoPerdida:t.costo-costo,motivo:n<t.cantidad?motivo:"",recepcion:{fecha,empleado:a.empleado,rol:a.rol}});return t;
+}
+export function cancelarInsumo(r,a,folio,fecha){const t=r.traspasos?.find(x=>x.folio===folio&&x.origen===a.sucursal),p=t&&ins(r,a.sucursal,t.id);if(!p||t.estado!=="transito")throw Error("Solo se cancela un envío pendiente desde el origen.");mover(r,p,a,t.cantidad,t.costo,"traspaso_cancelacion",fecha,folio);t.estado="cancelado";t.cancelacion={fecha,empleado:a.empleado,rol:a.rol};return t;}
+export function consolidarInsumos(r,alcance){const m=new Map();for(const p of r.insumos.filter(p=>alcance.includes(p.sucursal))){if(!m.has(p.id))m.set(p.id,{id:p.id,nombre:p.nombre,unidad:p.unidad,stock:0,valor:0,transito:0,valorTransito:0});const f=m.get(p.id);f.stock+=p.stock;f.valor+=p.valor;}for(const t of (r.traspasos??[]).filter(t=>t.estado==="transito"&&alcance.includes(t.origen))){const f=m.get(t.id);if(f){f.transito+=t.cantidad;f.valorTransito+=t.costo;}}return [...m.values()];}
