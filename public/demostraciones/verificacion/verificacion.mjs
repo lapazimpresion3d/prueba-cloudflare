@@ -24,7 +24,7 @@ async function comprobar(){
     if(admitePedidos(e.id,plan))flags.push(["Pedidos",v.pedidosConfigurados]);
     if(admiteCitas(e.id,plan))flags.push(["Citas",v.citasConfiguradas]);
     if(admiteMesas(e.id,plan))flags.push(["Reservaciones",v.reservacionesConfiguradas]);
-    if(admiteCuentas(e.id,plan))flags.push(["Cuentas",v.cuentasConfiguradas]);
+    if(admiteCuentas(e.id,plan))flags.push(["Cuentas",v.cuentasConfiguradas],["Pagos múltiples",v.pagosMultiplesConfigurados],["Terminales",v.terminalesConfiguradas]);
     const listo=flags.every(x=>x[1]===true);
     if(listo)correctos++;
     p.append(el("strong",listo?"Configuración correcta":"Configuración pendiente"),el("span"," · "+flags.map(([n,b])=>n+": "+(b===true?"sí":"no")).join(" / ")));
