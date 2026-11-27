@@ -103,14 +103,21 @@
           <label id="campo-duracion" hidden>Duración en minutos <input name="duracion" type="number" min="5" max="1440" step="1" disabled></label>
           <label class="check-editor"><input type="checkbox" name="disponible" checked> Disponible</label>
           <label class="campo-ancho">Descripción <textarea name="descripcion" maxlength="300" rows="2"></textarea></label>
+          <div class="campo-ancho imagenes-perfil">
+            <label>Foto del producto o servicio <input type="file" id="archivo-producto" accept="image/jpeg,image/png,image/webp"></label>
+            <input name="imagen" type="hidden">
+            <img id="prev-producto" alt="Vista previa de la foto" width="180" hidden>
+            <button type="button" id="quitar-producto">Quitar foto</button>
+            <p id="aviso-producto" role="status" class="nota">JPG, PNG o WebP de hasta 8 MB. Se reduce automáticamente para la práctica.</p>
+          </div>
         </div>
         <div class="acciones-demo"><button type="submit" class="principal">Guardar elemento</button><button type="button" id="cancelar-edicion" hidden>Cancelar edición</button></div>
       </form>
       <p id="aviso-editor" role="status" aria-live="polite"></p>
       <div class="editor-servidor" id="editor-servidor">
-        <h3>Guardar práctica en servidor</h3>
+        <h3>Mi catálogo de práctica</h3>
         <p class="nota">Copia privada de demostración por navegador, caduca a las dos horas. No publica el catálogo ni modifica los datos de otros visitantes. Cargar reemplaza únicamente la copia de práctica de este negocio.</p>
-        <div class="acciones-demo"><button type="button" id="demo-sesion">Conectar práctica</button><button type="button" id="demo-cargar" disabled>Cargar copia guardada</button><button type="button" id="demo-guardar" disabled>Guardar copia actual</button></div>
+        <div class="acciones-demo"><button type="button" id="demo-sesion">Activar sesión de práctica</button><button type="button" id="demo-cargar" disabled>Recuperar catálogo</button><button type="button" id="demo-guardar" disabled>Guardar catálogo</button></div>
         <p id="demo-servidor-aviso" role="status" aria-live="polite">Comprobando servicio de práctica…</p>
       </div>
       <div id="lista-editor" class="lista-editor"></div>
