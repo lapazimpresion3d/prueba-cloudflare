@@ -1,3 +1,4 @@
+import {cambiosEmpresa,agregarEventos,leerAuditoria,evento} from "./auditoria-practica.mjs";
 import {gruposPermisos,permisosBase,validarPermisos} from "./permisos-practica.mjs";
 import {obtenerEstablecimiento} from "./establecimientos.mjs";
 import {planes,capacidades,limitesPlanes as limites} from "./config.mjs";
@@ -51,8 +52,8 @@ function validar(c,d){
 export function almacenEmpresa(c,storage){
  return {
  leer(){try{const s=storage?.getItem(c.clave);return s?validar(c,JSON.parse(s)):inicial(c);}catch{return inicial(c);}},
- guardar(d){const v=validar(c,d);if(!storage)throw Error("Almacenamiento no disponible.");storage.setItem(c.clave,JSON.stringify(v));return v;},
- restaurar(){if(!storage)throw Error("Almacenamiento no disponible.");storage.removeItem(c.clave);return inicial(c);}
+ guardar(d){const v=validar(c,d);if(!storage)throw Error("Almacenamiento no disponible.");const anterior=this.leer();const auditoria=agregarEventos(leerAuditoria(storage,c.clave),cambiosEmpresa(anterior,v));storage.setItem(c.clave,JSON.stringify({...v,auditoria}));return v;},
+ restaurar(){if(!storage)throw Error("Almacenamiento no disponible.");const v=inicial(c),anterior=this.leer();const auditoria=agregarEventos(leerAuditoria(storage,c.clave),[...cambiosEmpresa(anterior,v),evento({modulo:"Configuración",objetivo:"Restablecimiento de personal y sucursales"})]);storage.setItem(c.clave,JSON.stringify({...v,auditoria}));return v;}
  };
 }
 export function montarEmpresa(root,id,plan,storage){
