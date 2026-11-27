@@ -210,3 +210,7 @@ La galería deja de tener selector global. Café Mirador P1, Barbería Elite P2,
 ### v0.12.2 — Entrega por zonas
 - [x] Tres colonias ficticias, costos y mínimos por zona, cobertura, horario y validación de servidor.
 - [ ] Editor de reglas de entrega, validación Preview, registro y conciliación de cobros.
+
+### v0.12.3 — Cobros conciliados
+- [x] Registro efectivo/transferencia, folio de práctica, correcciones, filtros y resumen, bloqueo de entrega/cancelación cuando corresponde.
+- [ ] Cuenta abierta por mesa, captura por mesero, aviso transferencia cliente, caja/cortes y prueba de Preview.
