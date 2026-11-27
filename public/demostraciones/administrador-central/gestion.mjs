@@ -9,7 +9,7 @@ export function saldoMensual(c,pagos,periodo){
  return Math.max(0,c.mensualidad-pagos.filter(p=>p.id===c.id&&p.concepto==="mensualidad"&&p.periodo===periodo).reduce((n,p)=>n+p.importe,0));
 }
 export function csv(filas){
- return "\ufeff"+filas.map(f=>f.map(v=>{let s=String(v??"");if(/^[\s]*[=+@-]/.test(s)||/^[\t\r\n]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"'}).join(",")).join("\r\n");
+ return "\ufeff"+filas.map(f=>f.map(v=>{let s=String(v??"");if(/^[\s\u0000-\u001f\u007f\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff]*[=+@\-＝＋＠－]/u.test(s)||/^[\u0000-\u001f\u007f]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"'}).join(",")).join("\r\n");
 }
 export function registrarCambio(datos,c,d,fecha){
  const anterior={plan:c.plan,estado:c.estado,vence:c.vence,mensualidad:c.mensualidad};

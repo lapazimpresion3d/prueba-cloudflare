@@ -4,7 +4,11 @@ import {tienePermiso} from "./permisos-practica.mjs";
 export const preferenciasCliente=["Sin preferencia","Productos","Servicios","Promociones","Atención personalizada"];
 export const notasCliente=["Sin notas","Solicita información","Dar seguimiento","Cliente frecuente","Prefiere atención programada"];
 const copia=x=>JSON.parse(JSON.stringify(x));
-export function leerDirectorio(storage,id){const raw=storage.getItem("lapaz:directorio:v1:"+id);if(!raw)return clientesDemo.map(c=>({...c,activo:true,preferencia:preferenciasCliente[0],nota:notasCliente[0]}));const v=JSON.parse(raw);if(!Array.isArray(v)||v.length>100||new Set(v.map(x=>x.id)).size!==v.length||clientesDemo.some(c=>!v.some(x=>x.id===c.id)))throw Error("Directorio inválido.");return v;}
+export function leerDirectorio(storage,id){const raw=storage.getItem("lapaz:directorio:v1:"+id);if(!raw)return clientesDemo.map(c=>({...c,activo:true,preferencia:preferenciasCliente[0],nota:notasCliente[0]}));if(raw.length>100000)throw Error("Directorio inválido.");const v=JSON.parse(raw);if(!Array.isArray(v)||v.length>100||v.some(x=>!x||typeof x.id!=="string")||new Set(v.map(x=>x.id)).size!==v.length||clientesDemo.some(c=>!v.some(x=>x.id===c.id)))throw Error("Directorio inválido.");
+ return v.map((x,i)=>{const base=clientesDemo.find(c=>c.id===x.id);if(!base&&!/^CLI-[a-zA-Z0-9-]{1,80}$/.test(x.id)||typeof x.activo!=="boolean"||!preferenciasCliente.includes(x.preferencia)||!notasCliente.includes(x.nota))throw Error("Directorio inválido.");
+ const identidad=base??{id:x.id,nombre:"Cliente de ejemplo "+(i+1),telefono:"000 000 0000",correo:"cliente-"+(i+1)+"@example.invalid"};
+ // Never propagate arbitrary stored personal fields or additional properties.
+ return {...identidad,activo:x.activo,preferencia:x.preferencia,nota:x.nota};});}
 export function crearDirectorio(storage,empresaStorage,id,plan,{folio=()=>crypto.randomUUID()}={}){
  if(!["p2","p3","p4"].includes(plan))throw Error("Clientes incluidos desde P2.");
  const empresa=almacenEmpresa(contextoEmpresa(id,plan),empresaStorage),key="lapaz:directorio:v1:"+id;

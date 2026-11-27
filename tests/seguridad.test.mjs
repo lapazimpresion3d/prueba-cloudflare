@@ -71,3 +71,5 @@ test('reinicia ventana vencida y separa orígenes', async () => {
     assert.equal(nuevo.vence, 220);
   } finally { db.sqlite.close(); }
 });
+
+test("JSON rechaza claves peligrosas anidadas, profundidad y números no finitos",async()=>{for(const body of ['{"a":{"__proto__":{}}}','{"constructor":{"prototype":{}}}','{"a":1e999}',"[".repeat(40)+"0"+"]".repeat(40)])await assert.rejects(leerJsonLimitado(req(body)),errorStatus(400));assert.deepEqual(await leerJsonLimitado(req('{"a":[1,{"nombre":"válido"}]}')),{a:[1,{nombre:"válido"}]});});
