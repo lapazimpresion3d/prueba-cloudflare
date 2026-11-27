@@ -28,10 +28,10 @@ export function cuerpoPoint(i){
 export function verificarOrdenPoint(i,o,idEsperado=null){
  cuerpoPoint(i);
  const p=o?.transactions?.payments;
- if(!ordenId(o?.id)||idEsperado!==null&&o.id!==idEsperado||o.type!=="point"||String(o.user_id)!==i.comercio||o.currency!=="MXN"||o.country_code!=="MEX"||o.external_reference!==i.referencia||o.config?.point?.terminal_id!==i.terminal||!Array.isArray(p)||p.length!==1||centavos(p[0].amount)!==i.importeCentavos||typeof p[0].id!=="string"||!/^PAY[A-Z0-9]{5,80}$/.test(p[0].id))throw Error("Orden no coincide con el intento autorizado. Revisión manual.");
+ if(!ordenId(o?.id)||idEsperado!==null&&o.id!==idEsperado||o.type!=="point"||String(o.user_id)!==i.comercio||(o.currency!==undefined&&o.currency!=="MXN")||o.country_code!=="MEX"||o.external_reference!==i.referencia||o.config?.point?.terminal_id!==i.terminal||!Array.isArray(p)||p.length!==1||centavos(p[0].amount)!==i.importeCentavos||typeof p[0].id!=="string"||!/^PAY[A-Z0-9]{5,80}$/.test(p[0].id))throw Error("Orden no coincide con el intento autorizado. Revisión manual.");
  const pago=p[0],base={orden:o.id,pago:pago.id,estado:o.status,detalle:o.status_detail??null};
  if(o.status==="processed"){
-  if(o.status_detail!=="accredited"||pago.status!=="processed"||pago.status_detail!=="accredited"||centavos(pago.paid_amount)!==i.importeCentavos||centavos(o.total_paid_amount)!==i.importeCentavos)throw Error("Importe o acreditación no conciliados. Revisión manual.");
+  if(o.status_detail!=="accredited"||pago.status!=="processed"||pago.status_detail!=="accredited"||centavos(pago.paid_amount)!==i.importeCentavos||(o.total_paid_amount!==undefined&&centavos(o.total_paid_amount)!==i.importeCentavos)||(pago.refunded_amount!==undefined&&centavos(pago.refunded_amount)!==0)||(pago.tip_amount!==undefined&&centavos(pago.tip_amount)!==0)||(o.transactions.refunds!==undefined&&(!Array.isArray(o.transactions.refunds)||o.transactions.refunds.length>0)))throw Error("Importe o acreditación no conciliados. Revisión manual.");
   return {...base,resultado:"acreditado",importeCentavos:i.importeCentavos};
  }
  if(["failed","canceled","expired","refunded"].includes(o.status))return {...base,resultado:o.status};
