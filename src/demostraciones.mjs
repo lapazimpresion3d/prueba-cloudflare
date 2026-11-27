@@ -1,3 +1,4 @@
+import {atenderTerminales} from "./terminales-api.mjs";
 import {atenderPagosMultiples} from "./pagos-multiples-api.mjs";
 import {atenderCuentasDemo,cuentasListas} from "./cuentas-demo.mjs";
 import {atenderReservasDemo,reservasListas} from "./reservaciones-demo.mjs";
@@ -110,14 +111,18 @@ export async function atenderDemo(request,env,url,json){
     const ctx=contextoDemo(url.searchParams.get("negocio"),url.searchParams.get("plan"));
     return ctx?json({...ctx,persistenciaConfigurada:await esquemaListo(env),perfilConfigurado:await perfilListo(env),pedidosConfigurados:await esquemaListo(env)&&await pedidosListos(env.DEMO_DB),citasConfiguradas:await esquemaListo(env)&&await citasListas(env.DEMO_DB),reservacionesConfiguradas:await esquemaListo(env)&&await reservasListas(env.DEMO_DB),cuentasConfiguradas:await esquemaListo(env)&&await pedidosListos(env.DEMO_DB)&&await cuentasListas(env.DEMO_DB)}):error(json,"Establecimiento o plan desconocido.",404);
   }
-  if(!["/api/demo/sesion","/api/demo/catalogo","/api/demo/perfil","/api/demo/pedidos","/api/demo/citas","/api/demo/reservaciones","/api/demo/cuentas","/api/demo/pagos-multiples"].includes(ruta))return error(json,"Ruta de demo no disponible.",404);
+  if(!["/api/demo/sesion","/api/demo/catalogo","/api/demo/perfil","/api/demo/pedidos","/api/demo/citas","/api/demo/reservaciones","/api/demo/cuentas","/api/demo/pagos-multiples","/api/demo/terminales"].includes(ruta))return error(json,"Ruta de demo no disponible.",404);
   if(ruta==="/api/demo/sesion"&&metodo!=="POST"||["/api/demo/catalogo","/api/demo/perfil"].includes(ruta)&&!["GET","PUT"].includes(metodo)||["/api/demo/pedidos","/api/demo/citas","/api/demo/reservaciones","/api/demo/cuentas"].includes(ruta)&&!["GET","POST","PATCH"].includes(metodo))return error(json,"Método no permitido.",405);
-  if(ruta==="/api/demo/pagos-multiples"&&!["GET","POST","PATCH"].includes(metodo))return error(json,"Método no permitido.",405);
+  if(["/api/demo/pagos-multiples","/api/demo/terminales"].includes(ruta)&&!["GET","POST","PATCH"].includes(metodo))return error(json,"Método no permitido.",405);
   if(metodo!=="GET"&&request.headers.get("Origin")!==url.origin)return error(json,"Origen no permitido.",403);
   if(!await esquemaListo(env))return error(json,"Persistencia de demostración no configurada o esquema no preparado.",503);
   if(ruta==="/api/demo/sesion")return iniciar(request,env,json);
   const ctx=contextoDemo(url.searchParams.get("negocio"),url.searchParams.get("plan"));
   if(!ctx)return error(json,"Establecimiento o plan desconocido.",404);
+  if(ruta==="/api/demo/terminales"){
+    const s=await sesion(request,env.DEMO_DB,segundos());if(!s)return error(json,"Inicia una sesión de práctica.",401);
+    return atenderTerminales(request,env.DEMO_DB,s,ctx,json);
+  }
   if(ruta==="/api/demo/pagos-multiples"){
     const s=await sesion(request,env.DEMO_DB,segundos());if(!s)return error(json,"Inicia una sesión de práctica.",401);
     return atenderPagosMultiples(request,env.DEMO_DB,s,ctx,url,json);
