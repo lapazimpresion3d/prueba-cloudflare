@@ -1,3 +1,4 @@
+import {datosCitaDemo} from "./clientes-practica.mjs";
 // Agenda local ficticia. Nunca consulta ni modifica la agenda operativa de El Comal.
 import {obtenerEstablecimiento} from "./establecimientos.mjs";
 import {capacidades} from "./config.mjs";
@@ -65,7 +66,7 @@ export function crearCitasPractica(almacen,id,plan,{ahora=()=>Date.now(),folio=(
    if(!p||!slot)throw Error("Horario no disponible. Selecciona otro.");
    if(citas.length>=MAX)throw Error("Límite de 60 citas de práctica. Restablece la agenda desde el panel.");
    const f="CITA-"+folio();if(!/^CITA-[a-zA-Z0-9-]{1,80}$/.test(f)||citas.some(c=>c.folio===f))throw Error("Folio inválido o repetido.");
-   const c={folio:f,servicio:p.id,nombreServicio:p.nombre,precioCentavos:p.precioCentavos,recurso:datos.recurso,fecha:datos.fecha,...slot,estado:"pendiente",historial:[{estado:"pendiente",fecha:ahora()}]};
+   const c={...(datos.datosCliente===undefined?{}:{datosCliente:datosCitaDemo(datos.datosCliente)}),folio:f,servicio:p.id,nombreServicio:p.nombre,precioCentavos:p.precioCentavos,recurso:datos.recurso,fecha:datos.fecha,...slot,estado:"pendiente",historial:[{estado:"pendiente",fecha:ahora()}]};
    guardar([c,...citas]);return copia(c);
  }
  function cambiar(folio,esperado,destino){
