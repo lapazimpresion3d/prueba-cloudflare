@@ -5,7 +5,7 @@ const err=(json,error,status)=>json({error},status);
 export async function cuentasListas(db){try{return (await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='demo_cuentas'").first())?.name==="demo_cuentas";}catch{return false;}}
 export async function atenderCuentasDemo(request,db,s,ctx,json){
  if(!admiteCuentas(ctx.establecimiento.id,ctx.plan.id))return err(json,"Cuentas no incluidas.",403);
- if(!await cuentasListas(db))return err(json,"Falta configurar las cuentas de práctica.",503);
+ if(!await cuentasListas(db)||!(await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='demo_pedidos'").first()))return err(json,"Falta configurar las cuentas de práctica.",503);
  const buscar=id=>db.prepare("SELECT cuenta_id,mesa,personas,abierto,cerrado FROM demo_cuentas WHERE sesion_id=? AND cuenta_id=?").bind(s.id,id).first();
  if(request.method==="GET"){
   const cuentas=await db.prepare("SELECT cuenta_id,mesa,personas,abierto,cerrado FROM demo_cuentas WHERE sesion_id=? AND EXISTS(SELECT 1 FROM demo_sesiones WHERE id=? AND expira>?) ORDER BY abierto DESC,cuenta_id LIMIT 30").bind(s.id,s.id,segundos()).all();
