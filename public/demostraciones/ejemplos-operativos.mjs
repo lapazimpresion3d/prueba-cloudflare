@@ -33,7 +33,7 @@ export function cargarEjemplos(storage,empresaStorage,id,plan,catalogo,{ahora=Da
  if(admitePos(id,plan)){
  const k="lapaz:pos:practica:v1:"+id+":"+plan;
  if(libre(k)&&cat.length){const p=crearPosPractica(staged,id,plan,{...opts,empresaStorage}),s=p.empresa().sucursal,e=0,rec=plan==="p4"?recetas[id]:null;
- const bienes=cat.filter(x=>x.tipo!=="servicio"&&x.id!==rec?.producto).slice(0,5);
+ const bienes=cat.filter(x=>x.tipo!=="servicio"&&x.id!==rec?.producto&&!(id==="taqueria-el-comal"&&plan==="p4"&&x.id==="combo-el-comal")).slice(0,5);
  for(let j=0;j<bienes.length;j++)p.configurarStock(s,e,cat,bienes[j].id,{activo:true,sku:"DEMO-"+(j+1),minimo:5,inicial:[25,3,0,12,8][j]});
  if(bienes.length){const art=bienes.slice(0,3).map(x=>({id:x.id,costo:Math.round(x.precioCentavos*.55)})),pr=p.proveedor(s,e,"",{nombre:"Distribuidora de ejemplo",activo:true,articulos:art},cat),o=p.ordenar(s,e,pr.id,[{id:art[0].id,cantidad:10}]);p.recibirOrden(s,e,o.folio,art[0].id,4);resultados.push("Inventario, proveedor y compra parcial");}
  if(rec&&cat.some(x=>x.id===rec.producto)){const componentes=rec.insumos.map(([nombre,unidad,stock,valor,cantidad])=>({id:p.nuevoInsumo(s,e,{nombre,unidad,stock,valor}).id,cantidad}));p.editarReceta(s,e,cat,rec.producto,{rendimiento:1,merma:0,indirecto:0,componentes});resultados.push("Receta e insumos");}
