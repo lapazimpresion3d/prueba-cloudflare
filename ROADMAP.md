@@ -198,3 +198,7 @@ La galería deja de tener selector global. Café Mirador P1, Barbería Elite P2,
 ### v0.11.9 — Menú original y personalización
 - [x] Nueve productos originales, ingredientes, extras, tamaños, combos y partidas diferenciadas, precios validados en servidor.
 - [ ] Reservaciones y QR de mesa; precios especiales y edición de opciones. Ver docs/recuperacion-el-comal.md.
+
+### v0.12.0 — Reservaciones y QR de mesas
+- [x] Agenda aislada y cinco mesas, QR SVG Preview P4, carrito y filtro por mesa.
+- [ ] Aplicar 0005_reservaciones.sql en lapaz-demos-desarrollo y comprobar Preview. Cocina y comandas, configuración de mesas y coordinación multidispositivo pendientes.
