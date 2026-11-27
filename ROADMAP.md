@@ -230,3 +230,6 @@ La galería deja de tener selector global. Café Mirador P1, Barbería Elite P2,
 
 ## Puerta de aceptación de cobros de práctica (2026-11-27)
 Pagos múltiples, subcuentas, anulaciones, reasignaciones y comprobantes programados en desarrollo. Antes de integrar Point: completar recuperación de operaciones inciertas, validar migraciones 0007–0009 y pruebas de concurrencia, aislamiento y navegador. Ver docs/auditoria-cobros-demo-2026-11-27.md. No considerar disponible comercialmente hasta aceptación.
+
+## 2026-11-27 — Aceptación financiera
+- GitHub Actions ejecución 45990031779: SQLite 9/9, JavaScript 129/131. Dos fallos por fixtures de comandas entregadas sin cuenta; corregidos en 687e60e, con una prueba negativa adicional. Segunda ejecución pendiente de confirmación. D1 remoto y navegador pendientes; mantener Point simulado.
