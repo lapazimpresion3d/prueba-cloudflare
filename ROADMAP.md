@@ -182,3 +182,8 @@ Documentos vigentes: docs/arquitectura-multicomercio.md, docs/auditoria-multicom
 - [x] Pedidos: detección de sesión, selección de origen y acceso directo al encargado, guardado de solicitud pendiente y comprobación de vencimiento, indicadores de error y conteos. Pruebas simuladas de flujo (6) y selector (7) correctas; pendiente validación final en navegador.
 - [x] /demostraciones/verificacion/ ofrece comprobaciones GET de 10 contextos P1/P2, indicadores de catálogo, identidad, pedidos y citas según giro; no crea sesiones ni comprueba escrituras. Acceso desde comparador. Sintaxis e IDs comprobados; sin prueba real de Cloudflare.
 - [ ] Propietario verifica Preview actual, tabla demo_citas (aplicación aún no confirmada) y operación de las cinco demos. P1 primero; publicar solo con aprobación explícita y destino estable. No cambiar main ni sitio comercial.
+
+### v0.11.4 — Galería comercial P1
+- [x] Galería de cinco ejemplos sin laboratorio; aviso de práctica visible, categorías destacadas corregidas y ajustes móviles. Revisión identificable en verificación técnica.
+- [x] Tres pruebas de presentación, cinco tarjetas/enlaces/páginas y quince filtros simulados correctos.
+- [ ] Validación real de Preview y criterios de publicación de docs/publicacion-p1.md; destino estable y aprobación explícita pendientes.
