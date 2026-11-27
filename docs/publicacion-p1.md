@@ -18,3 +18,6 @@ El destino estable aún no está configurado; demos.lapazimpresion3d.com es prop
 5. Registrar fecha, URL, revisión y resultado por giro. Solo entonces decidir publicación P1. P2 necesita además pruebas de pedidos y citas entre pestañas, disponibilidad y seguimiento. P3/P4 no listos.
 ## Evidencia
 Tres pruebas de presentación con aserciones equivalentes ejecutadas sobre fuentes GitHub; cinco tarjetas, cinco URLs diferentes, cinco páginas P1 y quince accesos rápidos correctos en DOM simulado. Sintaxis de módulos comprobada. No se ha ejecutado navegador real ni la suite integrada completa. El Preview nominal no fue accesible desde la herramienta web. No se han tocado D1, main, DNS ni sitio comercial.
+
+## v0.11.6 — Galería con selector de paquetes
+La galería ahora admite los cuatro planes; sin parámetro o con plan inválido comienza en P1. Cambiar plan actualiza las cinco URLs y capacidades por giro, distinguiendo funciones disponibles de pendientes. Explorar otras demostraciones conserva el plan de la página anterior. Para publicar únicamente P1, los enlaces directos P1 siguen siendo válidos; la galería permite explorar versiones no terminadas, no acredita disponibilidad comercial. Se comprobaron 20/20 enlaces y 20/20 listas de capacidades, cuatro selecciones y recuperación del plan en DOM simulado. Pendiente navegador y despliegue. No se modifica D1 ni main.
