@@ -9,19 +9,24 @@ function texto(v,max,obligatorio=true){
   return s;
 }
 function color(v){if(typeof v!=="string"||!/^#[0-9a-f]{6}$/i.test(v))throw Error("Color inválido.");return v.toLowerCase();}
+export function validarImagenPerfil(valor){
+  if(valor===undefined||valor==="")return "";
+  if(typeof valor!=="string"||valor.length>100000||!/^data:image\/jpeg;base64,\/9j\/[A-Za-z0-9+/]+={0,2}$/.test(valor)||valor.slice(23).length%4!==0)throw Error("Imagen inválida: utiliza JPEG optimizado de hasta 100 KB codificados.");
+  return valor;
+}
 export function validarPerfil(id,datos){
   const e=obtenerEstablecimiento(id);
   if(!e||!datos||typeof datos!=="object")throw Error("Perfil inválido.");
   const iconos=["☕","✂️","🐾","🌮","🔧","🏪","⭐","🌿","💼"];
   if(!iconos.includes(datos.icono))throw Error("Elige un icono de la lista.");
-  return {nombre:texto(datos.nombre,80),marca:{icono:datos.icono,color:color(datos.color),fondo:color(datos.fondo),lema:texto(datos.lema,100),descripcion:texto(datos.descripcion,280)},horario:texto(datos.horario,120),ubicacion:texto(datos.ubicacion,140),contacto:texto(datos.contacto??"",140,false)};
+  return {nombre:texto(datos.nombre,80),marca:{icono:datos.icono,color:color(datos.color),fondo:color(datos.fondo),lema:texto(datos.lema,100),descripcion:texto(datos.descripcion,280)},horario:texto(datos.horario,120),ubicacion:texto(datos.ubicacion,140),contacto:texto(datos.contacto??"",140,false),logo:validarImagenPerfil(datos.logo),portada:validarImagenPerfil(datos.portada)};
 }
 function inicial(id){
   const e=obtenerEstablecimiento(id);
   if(!e)throw Error("Establecimiento desconocido.");
-  return {nombre:e.nombre,marca:copiar(e.marca),horario:e.horario,ubicacion:e.ubicacion,contacto:"Contacto ficticio · sin atención real"};
+  return {nombre:e.nombre,marca:copiar(e.marca),horario:e.horario,ubicacion:e.ubicacion,contacto:"Contacto ficticio · sin atención real",logo:"",portada:""};
 }
-export function perfilPlano(p){return {nombre:p.nombre,icono:p.marca.icono,color:p.marca.color,fondo:p.marca.fondo,lema:p.marca.lema,descripcion:p.marca.descripcion,horario:p.horario,ubicacion:p.ubicacion,contacto:p.contacto??""};}
+export function perfilPlano(p){return {nombre:p.nombre,icono:p.marca.icono,color:p.marca.color,fondo:p.marca.fondo,lema:p.marca.lema,descripcion:p.marca.descripcion,horario:p.horario,ubicacion:p.ubicacion,contacto:p.contacto??"",logo:p.logo??"",portada:p.portada??""};}
 export function crearPerfilesLocales(almacen){
   const memoria=new Map();
   function leer(id){
@@ -30,7 +35,7 @@ export function crearPerfilesLocales(almacen){
     let perfil=base;
     try{
       const raw=almacen?.getItem(prefijo+id);
-      if(raw&&raw.length<=5000){
+      if(raw&&raw.length<=220000){
         const v=JSON.parse(raw);
         if(v.version===1&&v.establecimiento===id)perfil=validarPerfil(id,perfilPlano(v.perfil));
       }
