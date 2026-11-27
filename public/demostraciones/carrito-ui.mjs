@@ -20,12 +20,12 @@ export function iniciarCarrito(datos,plan,practica){
   $("seccion-carrito").hidden=false;$("nav-carrito").hidden=false;$("nav-seguimiento").hidden=false;$("seccion-seguimiento").hidden=false;
   $("modalidad-pedido").replaceChildren(...modos.map(m=>new Option(m.nombre+(m.cargo?" · "+importe(m.cargo):""),m.id)));
   const aviso=m=>{$("aviso-carrito").textContent=m;};
-  function persistir(){try{almacen?.setItem(clave,JSON.stringify(lineas));}catch{}}
+  function persistir(){try{almacen?.setItem(clave,JSON.stringify(lineas));return !!almacen;}catch{return false;}}
   function cambiar(id,delta){
     const copia=lineas.map(x=>({...x})),i=copia.findIndex(l=>l.id===id);
     if(i<0){if(delta<=0)return;copia.push({id,cantidad:delta});}
     else{copia[i].cantidad+=delta;if(copia[i].cantidad<=0)copia.splice(i,1);}
-    try{resumirCarrito(datos.id,datos.catalogo,copia,$("modalidad-pedido").value);lineas=copia;persistir();render();aviso("Carrito actualizado.");}
+    try{resumirCarrito(datos.id,datos.catalogo,copia,$("modalidad-pedido").value);lineas=copia;const guardado=persistir();render();aviso(guardado?"Carrito actualizado.":"Carrito temporal: el navegador no conserva la copia.");}
     catch(e){aviso(e.message);}
   }
   function render(){
