@@ -227,3 +227,6 @@ La galería deja de tener selector global. Café Mirador P1, Barbería Elite P2,
 ### v0.12.6 — Cobro acumulado y libertad de proveedor
 - [x] Cobro de saldo completo, distribución y anulación atómicas; tarjeta externa simulada individual y grupal.
 - [ ] División de cuenta, propina, Point sandbox privado, caja/POS, fidelización QR/NFC y línea Digital complementaria; evaluación continua de Soft Restaurant y Last.app. Ver docs/estrategia-competitiva.md.
+
+## Puerta de aceptación de cobros de práctica (2026-11-27)
+Pagos múltiples, subcuentas, anulaciones, reasignaciones y comprobantes programados en desarrollo. Antes de integrar Point: completar recuperación de operaciones inciertas, validar migraciones 0007–0009 y pruebas de concurrencia, aislamiento y navegador. Ver docs/auditoria-cobros-demo-2026-11-27.md. No considerar disponible comercialmente hasta aceptación.
