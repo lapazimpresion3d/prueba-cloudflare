@@ -40,3 +40,5 @@ a.boton-agregar{display:block;text-align:center;text-decoration:none}a.boton-agr
 .acceso-empresa{margin:12px 0;padding:10px 14px;border:1px solid var(--borde);border-radius:8px;font-size:.85rem;color:var(--suave)}.acceso-empresa summary{cursor:pointer;font-weight:700}.acceso-empresa p{margin:8px 0}
 @media(max-width:480px){.carrito-flotante{left:12px;right:12px;max-width:none;justify-content:space-between}.aviso-flotante-carrito{left:12px;right:12px;max-width:none}}
 @media(prefers-reduced-motion:reduce){.entrada-carrito,.pulso-carrito{animation:none}}
+
+.datos-pedido-demo{display:grid;gap:10px;border:1px solid var(--borde);border-radius:8px;padding:12px;min-width:0}.datos-pedido-demo legend{font-weight:750}.datos-pedido-demo input,.datos-pedido-demo select{width:100%;min-width:0;border:1px solid #aab5b7;padding:10px;border-radius:8px;background:white;color:var(--tinta);font:inherit}.datos-pedido-demo input[readonly]{background:#f0f2f3}.datos-pedido-demo [hidden]{display:none!important}
