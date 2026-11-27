@@ -1,5 +1,5 @@
 import {datosPedidoDemo,seleccionPedido} from "../public/demostraciones/clientes-practica.mjs";
-import {admitePedidos,resumirCarrito,transicionesPedido} from "../public/demostraciones/pedidos-practica.mjs";
+import {admitePedidos,resumirPedidoConfirmado,transicionesPedido} from "../public/demostraciones/pedidos-practica.mjs";
 import {leerJsonLimitado} from "./seguridad.mjs";
 const error=(json,m,status)=>json({error:m},status);
 const ahora=()=>Math.floor(Date.now()/1000);
@@ -25,7 +25,8 @@ export async function atenderPedidosDemo(request,db,s,ctx,json){
     const lineas=datos.lineas.map(l=>({id:l?.id,cantidad:l?.cantidad,precioEsperado:l?.precioEsperado,...(l?.opciones!==undefined?{opciones:l.opciones}:{})}));
     if(lineas.some(l=>typeof l.id!=="string"||!/^[a-z0-9-]{1,80}$/.test(l.id)||!Number.isSafeInteger(l.cantidad)||l.cantidad<1||l.cantidad>20||!Number.isSafeInteger(l.precioEsperado)||l.precioEsperado<0))return error(json,"Líneas inválidas.",400);
     let seleccion,cliente;try{if(datos.datosCliente!==undefined){seleccion=seleccionPedido(datos.datosCliente,datos.modalidad,ctx.establecimiento.giro);cliente=datosPedidoDemo(seleccion,datos.modalidad,ctx.establecimiento.giro);}}catch(e){return error(json,e.message,400);}
-    const firma=await huella({...(seleccion?{datosCliente:seleccion}:{}),catalogo:datos.catalogo,lineas,modalidad:datos.modalidad,totalEsperado:datos.totalEsperado});
+    if(datos.horarioEntrega!==undefined&&(id!=="taqueria-el-comal"||datos.modalidad!=="domicilio"||!["actual","simulado"].includes(datos.horarioEntrega)))return error(json,"Modo de entrega inválido.",400);
+    const firma=await huella({...(seleccion?{datosCliente:seleccion}:{}),...(datos.horarioEntrega!==undefined?{horarioEntrega:datos.horarioEntrega}:{}),catalogo:datos.catalogo,lineas,modalidad:datos.modalidad,totalEsperado:datos.totalEsperado});
     const previo=await buscar(datos.solicitud);
     if(previo)return previo.huella===firma?json({pedido:leerFila(previo),repetido:true}):error(json,"Esta solicitud ya corresponde a otro pedido.",409);
     let catalogo=ctx.establecimiento.catalogo,revision=0;
@@ -34,7 +35,7 @@ export async function atenderPedidosDemo(request,db,s,ctx,json){
       if(!fila)return error(json,"Guarda primero el catálogo personalizado en el servidor.",409);
       catalogo=JSON.parse(fila.datos_json);revision=fila.revision;
     }
-    let resumen;try{resumen=resumirCarrito(id,catalogo,lineas,datos.modalidad);}catch(e){return error(json,e.message,400);}
+    let resumen;try{resumen=resumirPedidoConfirmado(id,catalogo,lineas,datos.modalidad,seleccion,datos.horarioEntrega??"actual");}catch(e){return error(json,e.message,400);}
     if(resumen.total!==datos.totalEsperado||resumen.detalle.some((l,i)=>l.precioCentavos!==lineas[i].precioEsperado))return error(json,"Los precios del catálogo guardado cambiaron. Revisa y recupera el catálogo antes de pedir.",409);
     const fecha=Date.now(),pedido={...resumen,...(cliente?{datosCliente:cliente}:{}),folio:"DEMO-"+datos.solicitud,solicitud:datos.solicitud,estado:"recibido",creado:fecha,historial:[{estado:"recibido",fecha}]};
     // El límite y la revisión del catálogo se verifican dentro del mismo INSERT atómico.
