@@ -13,7 +13,7 @@ test("20 combinaciones independientes; pedidos de práctica solo en giros y plan
     const lista=capacidades(e,p.id);
     const interactivo=p.id!=="p1"&&["cafeteria","tienda","restaurante"].includes(e.giro);
     const citas=p.id!=="p1"&&["barberia","taller"].includes(e.giro);
-    assert.deepEqual(lista.filter(m=>m.estadoEfectivo==="disponible").map(m=>m.id),interactivo?["web","catalogo","pedidos","seguimiento",...(e.giro==="restaurante"?["reservaciones","qr_mesa"]:[]),...(["restaurante","cafeteria"].includes(e.giro)?["cocina"]:[]),"pagos",...(["p3","p4"].includes(p.id)?["pos","caja","comprobantes","inventario","almacen"]:[]),...(e.giro==="restaurante"&&["p3","p4"].includes(p.id)?["mesas"]:[])]:citas?["web","catalogo","citas","agendas",...(["p3","p4"].includes(p.id)?["pos","caja","comprobantes","inventario","almacen"]:[])]:["web","catalogo"]);
+    assert.deepEqual(lista.filter(m=>m.estadoEfectivo==="disponible").map(m=>m.id),interactivo?["web","catalogo","pedidos","seguimiento",...(e.giro==="restaurante"?["reservaciones","qr_mesa"]:[]),...(["restaurante","cafeteria"].includes(e.giro)?["cocina"]:[]),"pagos",...(["p3","p4"].includes(p.id)?["pos","caja","comprobantes","inventario","almacen","compras"]:[]),...(e.giro==="restaurante"&&["p3","p4"].includes(p.id)?["mesas"]:[])]:citas?["web","catalogo","citas","agendas",...(["p3","p4"].includes(p.id)?["pos","caja","comprobantes","inventario","almacen","compras"]:[])]:["web","catalogo"]);
     assert.ok(lista.every(m=>m.estadoEfectivo==="otro_plan" || m.desde<=planes.indexOf(p)+1));
     assert.ok(lista.every(m=>!m.giros||m.giros.includes(e.giro)));
   }

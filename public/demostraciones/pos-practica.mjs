@@ -1,3 +1,4 @@
+import {comprasVacias,validarCompras,guardarProveedor,crearOrden,recibirCompra,devolverCompra,cerrarCompra,pagarCompra,resumenCompra,sugerirCompras} from "./compras-practica.mjs";
 import {enviarTraspaso,recibirTraspaso,cancelarTraspaso,consolidarInventario} from "./almacen-practica.mjs";
 import {inventarioVacio,validarInventario,configurarInventario,movimientoInventario,consumoVenta,registrarConsumo} from "./inventario-practica.mjs";
 // POS local de práctica. No transmite ventas ni usa proveedores financieros.
@@ -46,11 +47,11 @@ export function crearPosPractica(storage,id,plan,{empresaStorage=storage,ahora=D
  // Un único registro de almacenamiento evita escrituras separadas de caja y ventas.
  function leerEstado(){
   if(!storage)throw Error("Almacenamiento no disponible.");
-  const raw=storage.getItem(key);if(!raw)return {version:2,ventas:[],turnos:[],inventario:inventarioVacio()};
+  const raw=storage.getItem(key);if(!raw)return {version:2,ventas:[],turnos:[],inventario:inventarioVacio(),compras:comprasVacias()};
   if(raw.length>2000000)throw Error("Historial de práctica demasiado grande.");
   const v=JSON.parse(raw),d=Array.isArray(v)?{version:2,ventas:v,turnos:[]}:v;
   if(!d||d.version!==2||!Array.isArray(d.ventas)||d.ventas.length>LIM||!Array.isArray(d.turnos)||d.turnos.length>50||d.ventas.some(x=>!x||typeof x.folio!=="string"||!Array.isArray(x.detalle)||!["vendido","cancelado"].includes(x.estado))||d.turnos.some(t=>!t||typeof t.id!=="string"||!dinero(t.fondo)||!Array.isArray(t.movimientos)||t.movimientos.length>100||!["abierto","cerrado"].includes(t.estado)))throw Error("Historial de práctica inválido.");
-  d.inventario=validarInventario(d.inventario??inventarioVacio());return copy(d);
+  d.inventario=validarInventario(d.inventario??inventarioVacio());d.compras=validarCompras(d.compras??comprasVacias());return copy(d);
  }
  function guardar(d){storage.setItem(key,JSON.stringify(d));}
  function abierto(d,s){return d.turnos.find(t=>t.sucursal===s&&t.estado==="abierto");}
@@ -64,7 +65,14 @@ export function crearPosPractica(storage,id,plan,{empresaStorage=storage,ahora=D
  function enviarStock(sucursal,empleado,destino,id,cantidad){const a=contexto(sucursal,empleado,true),d=leerEstado();if(!empresa.leer().activas.includes(destino))throw Error("Destino inactivo.");const t=enviarTraspaso(d.inventario,a,destino,id,cantidad,"TR-"+folio(),ahora());guardar(d);return copy(t);}
  function recibirStock(sucursal,empleado,f,cantidad,motivo){const a=contexto(sucursal,empleado,true),d=leerEstado(),t=recibirTraspaso(d.inventario,a,f,cantidad,motivo,ahora());guardar(d);return copy(t);}
  function cancelarStock(sucursal,empleado,f){const a=contexto(sucursal,empleado,true),d=leerEstado(),t=cancelarTraspaso(d.inventario,a,f,ahora());guardar(d);return copy(t);}
- function configurarStock(sucursal,empleado,catalogo,id,config){const a=contexto(sucursal,empleado,true),d=leerEstado(),p=(()=>{if(!config.activo&&d.inventario.traspasos.some(t=>t.estado==="transito"&&t.id===id&&(t.origen===sucursal||t.destino===sucursal)))throw Error("Hay traspasos pendientes para este producto.");return configurarInventario(d.inventario,a,catalogo,id,config,ahora());})();guardar(d);return copy(p);}
+ function consultarCompras(sucursal,empleado){const a=contexto(sucursal,empleado,true),d=leerEstado();return {proveedores:d.compras.proveedores,ordenes:d.compras.ordenes.filter(o=>o.sucursal===sucursal).map(o=>({...o,resumen:resumenCompra(o)})),sugerencias:sugerirCompras(d.compras,d.inventario,sucursal),editarProveedores:["propietario","administrador"].includes(a.rol)};}
+ function proveedor(sucursal,empleado,id,datos,catalogo){const a=contexto(sucursal,empleado,true),d=leerEstado();if(!["propietario","administrador"].includes(a.rol))throw Error("Solo administración edita proveedores.");if(id&&!d.compras.proveedores.some(p=>p.id===id))throw Error("Proveedor desconocido.");const p=guardarProveedor(d.compras,id||"PROV-"+folio(),datos,catalogo);guardar(d);return copy(p);}
+ function ordenar(sucursal,empleado,proveedor,lineas){const a=contexto(sucursal,empleado,true),d=leerEstado(),o=crearOrden(d.compras,d.inventario,a,proveedor,lineas,"OC-"+folio(),ahora());guardar(d);return copy(o);}
+ function recibirOrden(sucursal,empleado,f,id,n){const a=contexto(sucursal,empleado,true),d=leerEstado(),o=recibirCompra(d.compras,d.inventario,a,f,id,n,ahora());guardar(d);return copy(o);}
+ function devolverOrden(sucursal,empleado,f,id,n){const a=contexto(sucursal,empleado,true),d=leerEstado(),o=devolverCompra(d.compras,d.inventario,a,f,id,n,ahora());guardar(d);return copy(o);}
+ function cerrarOrden(sucursal,empleado,f){const a=contexto(sucursal,empleado,true),d=leerEstado(),o=cerrarCompra(d.compras,a,f,ahora());guardar(d);return copy(o);}
+ function pagarOrden(sucursal,empleado,f,n,ref){const a=contexto(sucursal,empleado,true),d=leerEstado();if(!["propietario","administrador"].includes(a.rol))throw Error("Solo administración registra pagos ficticios.");const o=pagarCompra(d.compras,a,f,n,ref,ahora());guardar(d);return copy(o);}
+ function configurarStock(sucursal,empleado,catalogo,id,config){const a=contexto(sucursal,empleado,true),d=leerEstado(),p=(()=>{if(!config.activo&&d.compras.ordenes.some(o=>o.sucursal===sucursal&&o.estado==="abierta"&&o.lineas.some(l=>l.id===id&&l.recibido<l.cantidad)))throw Error("Hay compras pendientes para este producto.");if(!config.activo&&d.inventario.traspasos.some(t=>t.estado==="transito"&&t.id===id&&(t.origen===sucursal||t.destino===sucursal)))throw Error("Hay traspasos pendientes para este producto.");return configurarInventario(d.inventario,a,catalogo,id,config,ahora());})();guardar(d);return copy(p);}
  function moverStock(sucursal,empleado,id,tipo,cantidad,motivo){const a=contexto(sucursal,empleado,true),d=leerEstado(),p=movimientoInventario(d.inventario,a,id,tipo,cantidad,motivo,ahora());guardar(d);return copy(p);}
  function vender(catalogo,lineas,d){
   const actor=contexto(d.sucursal,d.empleado,d.descuento>0),r=resumirVenta(id,catalogo,lineas,d.descuento??0);
@@ -88,5 +96,5 @@ export function crearPosPractica(storage,id,plan,{empresaStorage=storage,ahora=D
   registrarConsumo(dEstado.inventario,actor,v.consumoInventario??[],f,ahora(),true);
   v.estado="cancelado";v.cancelacion={...actor,motivo,fecha:ahora()};guardar(dEstado);return copy(v);
  }
- return {contexto,leer:s=>{contexto(s.sucursal,s.empleado);return leerEstado().ventas.filter(v=>v.sucursal===s.sucursal);},vender,cancelar,abrir,mover,cerrar,consultarCaja,consultarInventario,configurarStock,moverStock,consultarAlmacen,enviarStock,recibirStock,cancelarStock,empresa:()=>empresa.leer()};
+ return {contexto,leer:s=>{contexto(s.sucursal,s.empleado);return leerEstado().ventas.filter(v=>v.sucursal===s.sucursal);},vender,cancelar,abrir,mover,cerrar,consultarCaja,consultarInventario,configurarStock,moverStock,consultarAlmacen,enviarStock,recibirStock,cancelarStock,consultarCompras,proveedor,ordenar,recibirOrden,devolverOrden,cerrarOrden,pagarOrden,empresa:()=>empresa.leer()};
 }

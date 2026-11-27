@@ -51,6 +51,7 @@ function guardarURL(){
   $("ver-catalogo-editado").href=enlacesDemo(negocio.id,plan.id,true).negocio;
   $("ver-original").href=enlaces.negocio;
   $("admin-comprobantes").hidden=!admitePos(negocio.id,plan.id);$("admin-comprobantes").href="/demostraciones/comprobantes/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
+  $("admin-compras").hidden=!admitePos(negocio.id,plan.id);$("admin-compras").href="/demostraciones/compras/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
   $("admin-almacen").hidden=!admitePos(negocio.id,plan.id);$("admin-almacen").href="/demostraciones/almacen/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
   $("admin-inventario").hidden=!admitePos(negocio.id,plan.id);$("admin-inventario").href="/demostraciones/inventario/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
   $("admin-caja").hidden=!admitePos(negocio.id,plan.id);$("admin-caja").href="/demostraciones/caja/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
