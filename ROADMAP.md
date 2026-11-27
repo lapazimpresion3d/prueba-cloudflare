@@ -223,3 +223,7 @@ La galería deja de tener selector global. Café Mirador P1, Barbería Elite P2,
 - [x] Adaptador privado Orders API, referencia e idempotencia, consulta y validación de acreditación; siete grupos de pruebas simuladas correctos.
 - [ ] Sandbox oficial privado, intentos persistentes, webhook autenticado, conciliación, OAuth por comercio y permisos reales. Sin tráfico ni credenciales reales en demo.
 - [ ] Cobro acumulado y dividido, POS/caja, inventario/recetas, reportes, impresoras, recuperación y piloto. Ver docs/mercado-pago-point.md y docs/estrategia-competitiva.md. No se publican cambios de precio.
+
+### v0.12.6 — Cobro acumulado y libertad de proveedor
+- [x] Cobro de saldo completo, distribución y anulación atómicas; tarjeta externa simulada individual y grupal.
+- [ ] División de cuenta, propina, Point sandbox privado, caja/POS, fidelización QR/NFC y línea Digital complementaria; evaluación continua de Soft Restaurant y Last.app. Ver docs/estrategia-competitiva.md.
