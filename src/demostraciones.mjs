@@ -60,6 +60,16 @@ async function iniciar(request,env,json){
   await db.prepare("INSERT INTO demo_sesiones (id, expira) VALUES (?, ?)").bind(await hash(token),expira).run();
   return json({activa:true,expira},201,{"Set-Cookie":COOKIE+"="+token+"; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age="+DURACION});
 }
+function configurado(env){
+  return Boolean(env.DEMO_DB&&env.DEMO_DB!==env.DB&&typeof env.DEMO_RATE_SECRET==="string"&&env.DEMO_RATE_SECRET.length>=32);
+}
+async function esquemaListo(env){
+  if(!configurado(env))return false;
+  try{
+    const fila=await env.DEMO_DB.prepare("SELECT version FROM demo_identidad WHERE clave = 'lapaz-demo-practica'").first();
+    return fila?.version===1;
+  }catch{return false;}
+}
 export async function atenderDemo(request,env,url,json){
   const ruta=url.pathname,metodo=request.method;
   if(ruta==="/api/demo/registro"){
@@ -69,12 +79,12 @@ export async function atenderDemo(request,env,url,json){
   if(ruta==="/api/demo/contexto"){
     if(metodo!=="GET")return error(json,"Método no permitido.",405);
     const ctx=contextoDemo(url.searchParams.get("negocio"),url.searchParams.get("plan"));
-    return ctx?json({...ctx,persistenciaConfigurada:Boolean(env.DEMO_DB&&env.DEMO_DB!==env.DB&&typeof env.DEMO_RATE_SECRET==="string"&&env.DEMO_RATE_SECRET.length>=32)}):error(json,"Establecimiento o plan desconocido.",404);
+    return ctx?json({...ctx,persistenciaConfigurada:await esquemaListo(env)}):error(json,"Establecimiento o plan desconocido.",404);
   }
   if(!["/api/demo/sesion","/api/demo/catalogo"].includes(ruta))return error(json,"Ruta de demo no disponible.",404);
   if(ruta==="/api/demo/sesion"&&metodo!=="POST"||ruta==="/api/demo/catalogo"&&!["GET","PUT"].includes(metodo))return error(json,"Método no permitido.",405);
   if(metodo!=="GET"&&request.headers.get("Origin")!==url.origin)return error(json,"Origen no permitido.",403);
-  if(!env.DEMO_DB||env.DEMO_DB===env.DB||typeof env.DEMO_RATE_SECRET!=="string"||env.DEMO_RATE_SECRET.length<32)return error(json,"Persistencia de demostración no configurada.",503);
+  if(!await esquemaListo(env))return error(json,"Persistencia de demostración no configurada o esquema no preparado.",503);
   if(ruta==="/api/demo/sesion")return iniciar(request,env,json);
   const ctx=contextoDemo(url.searchParams.get("negocio"),url.searchParams.get("plan"));
   if(!ctx)return error(json,"Establecimiento o plan desconocido.",404);
