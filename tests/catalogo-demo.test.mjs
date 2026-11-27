@@ -1,3 +1,4 @@
+import {jpegPrueba} from "./fixtures/jpeg-prueba.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import {crearCatalogosLocales,validarOferta,centavosDesdeTexto,imagenOfertaSegura,validarTamanoCatalogo} from "../public/demostraciones/catalogo-local.mjs";
@@ -81,7 +82,7 @@ test("límite y unicidad de IDs, permite restaurar catálogo vacío",()=>{
 test("foto local validada y eliminada explícitamente, incluso en semillas",()=>{
   const id="taqueria-el-comal",store=almacenamiento(),c=crearCatalogosLocales(store),original=c.leer(id)[0];
   assert.ok(imagenOfertaSegura(original.imagen));
-  const muestra="data:image/jpeg;base64,/9j/AA==";
+  const muestra=jpegPrueba();
   c.editar(id,original.id,{...original,imagen:muestra});
   assert.equal(crearCatalogosLocales(store).leer(id)[0].imagen,muestra);
   c.editar(id,original.id,{...original,imagen:""});
@@ -93,7 +94,7 @@ test("foto local validada y eliminada explícitamente, incluso en semillas",()=>
   assert.throws(()=>validarTamanoCatalogo(["á".repeat(160000)]));
 });
 test("límite total mantiene intacta la copia ante una nueva foto demasiado grande",()=>{
-  const c=crearCatalogosLocales(almacenamiento()),id="cafe-mirador",foto="data:image/jpeg;base64,/9j/"+"A".repeat(44000);
+  const c=crearCatalogosLocales(almacenamiento()),id="cafe-mirador",foto=jpegPrueba({relleno:32500});
   for(let i=0;i<6;i++)c.crear(id,{...datos,imagen:foto});
   const antes=c.leer(id);
   assert.throws(()=>c.crear(id,{...datos,imagen:foto}));

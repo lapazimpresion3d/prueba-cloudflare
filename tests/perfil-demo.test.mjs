@@ -1,3 +1,4 @@
+import {jpegPrueba} from "./fixtures/jpeg-prueba.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import {crearPerfilesLocales,validarPerfil,perfilPlano,validarImagenPerfil} from "../public/demostraciones/perfil-local.mjs";
@@ -36,7 +37,7 @@ test("almacenamiento corrupto o ajeno se descarta y copia en memoria",()=>{
 
 test("imágenes limitadas, sin URL externa ni SVG, persistencia de campos opcionales",()=>{
   const id="cafe-mirador",a=almacen(),p=crearPerfilesLocales(a);
-  const muestra="data:image/jpeg;base64,/9j/AA==";
+  const muestra=jpegPrueba();
   // Fixture sintética del formato de transporte, no una fotografía decodificable.
   assert.equal(validarImagenPerfil(muestra),muestra);
   assert.equal(validarImagenPerfil(undefined),"");

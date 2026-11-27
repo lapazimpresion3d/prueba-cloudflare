@@ -1,3 +1,4 @@
+import {jpegPrueba} from "./fixtures/jpeg-prueba.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
@@ -126,7 +127,7 @@ test("catálogo remoto conserva fotografía y eliminación explícita sin compar
   const env=envDemo(),ruta="/api/demo/catalogo?negocio=taqueria-el-comal&plan=p1";
   const a=await iniciar(env,"192.0.2.10"),b=await iniciar(env,"192.0.2.11"),catalogo=seed("taqueria-el-comal");
   const original=catalogo[0].imagen;
-  catalogo[0].imagen="data:image/jpeg;base64,/9j/AA==";
+  catalogo[0].imagen=jpegPrueba();
   assert.equal((await llamar(env,ruta,"PUT",a,{revision:0,catalogo})).status,200);
   assert.equal((await (await llamar(env,ruta,"GET",a)).json()).catalogo[0].imagen,catalogo[0].imagen);
   assert.equal((await (await llamar(env,ruta,"GET",b)).json()).catalogo[0].imagen,original);

@@ -1,6 +1,9 @@
+import {inspeccionarJpeg} from "./seguridad-imagen.mjs";
 // Optimización en el navegador: no se envía el original, ni se conserva EXIF.
 export async function optimizarImagenPerfil(archivo,tipo){
+  if(!["logo","producto","portada"].includes(tipo))throw Error("Tipo de imagen inválido.");
   if(!archivo||!["image/jpeg","image/png","image/webp"].includes(archivo.type)||archivo.size>8*1024*1024||archivo.size<1)throw Error("Selecciona JPG, PNG o WebP de hasta 8 MB.");
+  const bytes=new Uint8Array(await archivo.slice(0,12).arrayBuffer());const firma=archivo.type==="image/jpeg"?bytes[0]===255&&bytes[1]===216&&bytes[2]===255:archivo.type==="image/png"?[137,80,78,71,13,10,26,10].every((v,j)=>bytes[j]===v):String.fromCharCode(...bytes.slice(0,4))==="RIFF"&&String.fromCharCode(...bytes.slice(8,12))==="WEBP";if(!firma)throw Error("El contenido no coincide con el tipo de archivo.");
   const url=URL.createObjectURL(archivo);
   try{
     const img=new Image();
@@ -17,7 +20,7 @@ export async function optimizarImagenPerfil(archivo,tipo){
       ctx.fillStyle="#fff";ctx.fillRect(0,0,w,h);ctx.drawImage(img,0,0,w,h);
       for(const calidad of [.85,.7,.55,.4]){
         const data=canvas.toDataURL("image/jpeg",calidad);
-        if(data.startsWith("data:image/jpeg;base64,")&&data.length<=limite)return data;
+        if(data.startsWith("data:image/jpeg;base64,")&&data.length<=limite){inspeccionarJpeg(data,{maximo:limite,lado:max});return data;}
       }
       w=Math.max(1,Math.round(w*.75));h=Math.max(1,Math.round(h*.75));
     }

@@ -1,3 +1,4 @@
+import {inspeccionarJpeg} from "./seguridad-imagen.mjs";
 // Módulo de práctica local: no es un repositorio SaaS ni una autorización.
 import { obtenerEstablecimiento } from "./establecimientos.mjs";
 import { validarImagenPerfil } from "./perfil-local.mjs";
@@ -10,7 +11,8 @@ export function validarTamanoCatalogo(lista){
   return lista;
 }
 export function imagenOfertaSegura(valor){
-  return typeof valor==="string"&&(/^\/imagenes\/[a-z0-9_-]+\.webp$/i.test(valor)||valor.length<=LIMITE_FOTO&&/^data:image\/jpeg;base64,\/9j\/[A-Za-z0-9+/]+={0,2}$/.test(valor)&&valor.slice(23).length%4===0);
+  if(typeof valor==="string"&&/^\/imagenes\/[a-z0-9_-]+\.webp$/i.test(valor))return true;
+  try{inspeccionarJpeg(valor,{maximo:LIMITE_FOTO,lado:640});return true;}catch{return false;}
 }
 const PREFIJO = "lapaz:demo:catalogo:v1:";
 const tipos = new Set(["fisico","alimento","servicio"]);
@@ -38,7 +40,7 @@ export function validarOferta(datos,id,anterior=null) {
   if(imagen==="")oferta.imagen="";
   else if(imagen!==undefined){
     if(imagen===anterior?.imagen&&/^\/imagenes\/[a-z0-9_-]+\.webp$/i.test(imagen))oferta.imagen=imagen;
-    else if(typeof imagen==="string"&&imagen.length<=LIMITE_FOTO&&imagen.startsWith("data:image/jpeg;base64,"))oferta.imagen=validarImagenPerfil(imagen);
+    else if(typeof imagen==="string"&&imagen.length<=LIMITE_FOTO&&imagen.startsWith("data:image/jpeg;base64,"))oferta.imagen=validarImagenPerfil(imagen,640);
     else if(imagen===anterior?.imagen&&imagenOfertaSegura(imagen))oferta.imagen=imagen;
     else if(datos.imagen!==undefined)throw Error("Selecciona una foto local válida y optimizada.");
   }

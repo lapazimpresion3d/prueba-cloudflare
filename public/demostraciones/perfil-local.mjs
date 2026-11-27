@@ -1,3 +1,4 @@
+import {inspeccionarJpeg} from "./seguridad-imagen.mjs";
 // Personalización de práctica. No altera la identidad publicada ni permite URLs externas.
 import {obtenerEstablecimiento} from "./establecimientos.mjs";
 const prefijo="lapaz:demo:perfil:v1:";
@@ -9,9 +10,9 @@ function texto(v,max,obligatorio=true){
   return s;
 }
 function color(v){if(typeof v!=="string"||!/^#[0-9a-f]{6}$/i.test(v))throw Error("Color inválido.");return v.toLowerCase();}
-export function validarImagenPerfil(valor){
+export function validarImagenPerfil(valor,lado=1000){
   if(valor===undefined||valor==="")return "";
-  if(typeof valor!=="string"||valor.length>100000||!/^data:image\/jpeg;base64,\/9j\/[A-Za-z0-9+/]+={0,2}$/.test(valor)||valor.slice(23).length%4!==0)throw Error("Imagen inválida: utiliza JPEG optimizado de hasta 100 KB codificados.");
+  inspeccionarJpeg(valor,{lado});
   return valor;
 }
 export function validarPerfil(id,datos){
@@ -19,7 +20,7 @@ export function validarPerfil(id,datos){
   if(!e||!datos||typeof datos!=="object")throw Error("Perfil inválido.");
   const iconos=["☕","✂️","🐾","🌮","🔧","🏪","⭐","🌿","💼"];
   if(!iconos.includes(datos.icono))throw Error("Elige un icono de la lista.");
-  return {nombre:texto(datos.nombre,80),marca:{icono:datos.icono,color:color(datos.color),fondo:color(datos.fondo),lema:texto(datos.lema,100),descripcion:texto(datos.descripcion,280)},horario:texto(datos.horario,120),ubicacion:texto(datos.ubicacion,140),contacto:texto(datos.contacto??"",140,false),logo:validarImagenPerfil(datos.logo),portada:validarImagenPerfil(datos.portada)};
+  return {nombre:texto(datos.nombre,80),marca:{icono:datos.icono,color:color(datos.color),fondo:color(datos.fondo),lema:texto(datos.lema,100),descripcion:texto(datos.descripcion,280)},horario:texto(datos.horario,120),ubicacion:texto(datos.ubicacion,140),contacto:texto(datos.contacto??"",140,false),logo:validarImagenPerfil(datos.logo,320),portada:validarImagenPerfil(datos.portada)};
 }
 function inicial(id){
   const e=obtenerEstablecimiento(id);
