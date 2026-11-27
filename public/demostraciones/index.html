@@ -28,7 +28,7 @@
     <section id="cabecera-admin" class="cabecera-admin" hidden>
       <p class="sobrelinea">PANEL DE LA EMPRESA · DEMOSTRACIÓN</p>
       <h1 id="nombre-admin"></h1>
-      <p>Prueba a editar los productos y la información de tu negocio. Los cambios de práctica son privados y no se publican. No utilices datos personales.</p>
+      <p>Prueba a editar los productos y la información de tu negocio. Los cambios de práctica no se publican ni constituyen administración privada real. No utilices datos personales.</p>
       <nav class="acciones-demo" aria-label="Panel administrativo">
         <a id="admin-ver-negocio" class="accion-admin" href="./negocio/">Ver página del cliente (práctica)</a>
         <button type="button" id="admin-catalogo">Catálogo</button>
@@ -42,6 +42,26 @@
         <a id="admin-salir" href="./">Volver a mi página de práctica</a>
         <a id="ver-original" href="./">Ver página original sin cambios</a>
       </nav>
+    </section>
+    <section id="empresa-contexto" class="editor" hidden aria-labelledby="empresa-titulo">
+      <h2 id="empresa-titulo">Administración de empresa</h2>
+      <p class="nota">Práctica local, sin inicio de sesión real. El selector de sucursal es ilustrativo: no cambia el alcance de los pedidos, catálogo ni agendas existentes.</p>
+      <div class="campos-editor">
+        <label>Empresa ficticia <select id="empresa-negocio"></select></label>
+        <label>Paquete de práctica <select id="empresa-plan"></select></label>
+        <label>Sucursal ilustrativa <select id="empresa-sucursal"></select></label>
+      </div>
+      <p id="empresa-limites"></p>
+      <details><summary>Personal y roles de práctica</summary>
+        <p class="nota">Los roles son ficticios y no conceden permisos reales.</p>
+        <ul id="empresa-personal"></ul>
+        <div class="acciones-demo"><label>Rol <select id="empresa-rol"></select></label><button type="button" id="empresa-agregar">Agregar empleado ficticio</button></div>
+      </details>
+      <details><summary>Módulos del paquete</summary><ul id="empresa-modulos"></ul></details>
+      <details><summary>Proveedores de pago</summary><p>Mercado Pago Point: integración real pendiente. No introducir credenciales. Utiliza los módulos de cobro simulado existentes cuando estén disponibles.</p></details>
+      <p class="nota">Para horarios, identidad y configuración comercial utiliza Información del negocio; para productos, el editor Catálogo. Sus copias existentes se conservan por negocio.</p>
+      <button type="button" id="empresa-restaurar">Restablecer personal y contexto</button>
+      <p id="empresa-aviso" role="status"></p>
     </section>
     <div id="estado" role="status" aria-live="polite"></div>
     <nav class="acciones-demo" id="acciones-comparador" aria-label="Vistas de demostración">

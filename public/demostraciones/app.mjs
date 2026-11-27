@@ -1,3 +1,4 @@
+import {montarEmpresa} from "./empresa-practica.mjs";
 import {admiteCuentas} from "./cuentas-practica.mjs";
 import {admiteCocina,admiteComandas} from "./cocina-practica.mjs";
 import {admiteMesas} from "./mesas-practica.mjs";
@@ -360,4 +361,4 @@ $("demo-guardar").addEventListener("click",()=>operarServidor("guardar"));
 $("buscar").addEventListener("input",renderCatalogo);
 $("tipo").addEventListener("change",renderCatalogo);
 $("categoria").addEventListener("change",renderCatalogo);
-if(!redirigirNegocio)renderTodo(true);
+if(!redirigirNegocio){renderTodo(true);if(vistaAdmin){$("empresa-contexto").hidden=false;let local;try{local=window.localStorage;}catch{}montarEmpresa($("empresa-contexto"),negocio.id,plan.id,local);}}
