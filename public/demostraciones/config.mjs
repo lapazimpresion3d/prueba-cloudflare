@@ -36,7 +36,7 @@ export const modulos = [
   {id:"ordenes_servicio", nombre:"Órdenes de servicio", desde:3, estado:"en_desarrollo", giros:["taller"], detalle:"Trabajos, refacciones, mano de obra e historial."},
   {id:"fidelizacion", nombre:"Fidelización", desde:4, estado:"en_desarrollo", depende:["clientes"], detalle:"Beneficios e historial de clientes."},
   {id:"costos", nombre:"Costos y administración avanzada", desde:4, estado:"en_desarrollo", detalle:"Costos, compras y reportes profesionales."},
-  {id:"recetas", nombre:"Recetas e insumos", desde:4, estado:"en_desarrollo", giros:["restaurante","cafeteria"], depende:["inventario"], detalle:"Consumo, mermas y costos de alimentos."},
+  {id:"recetas", nombre:"Recetas e insumos", desde:4, estado:"disponible", depende:["inventario"], detalle:"Insumos, recetas por producto o servicio, rendimiento, merma, costo promedio de entradas manuales y consumo POS."},
   {id:"automatizaciones", nombre:"Automatizaciones", desde:4, estado:"en_desarrollo", detalle:"Flujos especializados y notificaciones."}
 ];
 
