@@ -125,6 +125,16 @@ Taquería El Comal conserva su demostración original y su papel de referencia a
 No esperar a completar todos los módulos para mostrar los giros; sí exigir pruebas de integración antes de activar funciones operativas. Cada incorporación verificada al registro central se refleja en demos compatibles. Mantener demo pública final separada del entorno de desarrollo y producción.
 Ver docs/demostraciones-multicomercio.md.
 
+### Integración con la página comercial oficial
+- El repositorio lapazimpresion3d/lapazimpresion3d-web (main) y lapazimpresion3d.com son el catálogo comercial y punto de captación: tarjetas de los cuatro planes en #paginas-web, selector de giro/paquete, enlaces a demostraciones verificadas y cotizacion-web.html con preselección. Conservar las secciones de impresión 3D y la navegación existente.
+- Este repositorio (prueba-cloudflare, desarrollo) mantiene el SaaS y las demostraciones, sus datos ficticios y el registro de capacidades. No duplicar una aplicación operativa en el sitio comercial. Los enlaces de entrada deben permitir abrir directamente el establecimiento y plan seleccionados.
+- Contrato actual del escaparate: ruta relativa /demostraciones/ con negocio (cafe-mirador, barberia-elite, mundo-mascotas, taqueria-el-comal, auto-servicio-bahia) y plan (p1, p2, p3, p4). No equivale a una URL pública verificada ni a un paquete listo para contratar. El giro y plan siguen siendo independientes.
+- Propuesta de intercambio con cotizacion-web.html: paquete=p1|p2|p3|p4 y giro=cafeteria|barberia|tienda|restaurante|taller (ampliable); acordar con el proyecto comercial, validar valores y no confundir el negocio ficticio con el nombre real del prospecto. El formulario no debe enviar datos hasta decisión expresa del usuario.
+- Distinguir estado de desarrollo de módulo, disponibilidad de la demo publicada y disponibilidad comercial del paquete. Solo activar enlaces de demos funcionales y anunciar contratación cuando se hayan verificado el despliegue, las funciones ofertadas, el aislamiento y las pruebas del paquete/giro. Mostrar «En desarrollo» cuando falte una demostración funcional y probada; una vista informativa no acredita un POS ni una suscripción operativa.
+- Mantener registro de publicación por combinación establecimiento/plan: URL verificada, entorno, commit, fecha de verificación, alcance probado y estado comercial. Por ahora no hay URLs nuevas verificadas para publicar desde este trabajo. No inventar dominios o enlaces; no sustituir enlaces existentes sin comprobarlos. Los enlaces deben retornar a la página comercial.
+- Cada demo aprobada se entrega al proyecto comercial con URL y evidencia de pruebas; los cambios de la página comercial se preparan en una rama independiente de lapazimpresion3d-web, sin modificar main ni publicar producción sin autorización. No intervenir en ese repositorio desde este proyecto salvo solicitud específica.
+- Ver docs/integracion-comercial.md.
+
 ## 6. Criterios de salida por módulo y versión
 - Contrato, dependencias y permisos documentados; funcionamiento sin módulos futuros y sin conceptos ajenos al giro.
 - Pruebas de ámbito, acceso cruzado, sucursal, módulo no contratado, límite y sesión revocada; datos personales mínimos y respaldo/restore probado.
