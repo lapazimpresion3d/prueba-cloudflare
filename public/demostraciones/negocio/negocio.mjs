@@ -72,7 +72,7 @@ if(!base||!plan||!t){
         if(opciones.extras.length)lista.append(el("p","Máximo "+opciones.maxExtras+" extras por unidad","nota"));
         const total=el("p",undefined,"precio-personalizado"),estado=el("p",undefined,"nota");lista.append(total,estado);
         const seleccion=()=>({omitir:camposIngredientes.filter(x=>!x.ch.checked).map(x=>x.id),extras:camposExtras.filter(x=>x.ch.checked).map(x=>x.id),variante:variante?.value||""});
-        function actualizar(){try{const v=normalizarOpciones(base.id,p,datos.catalogo,seleccion());total.textContent="Precio por unidad: "+importe(v.precio);estado.textContent="";b.disabled=false;}catch(e){estado.textContent=e.message;b.disabled=true;}}
+        function actualizar(){try{const v=normalizarOpciones(base.id,p,datos.catalogo,seleccion());total.textContent="Precio por unidad: "+importe(v.precio);cuerpo.querySelector(".precio").textContent=importe(v.precio);estado.textContent="";b.disabled=false;}catch(e){estado.textContent=e.message;b.disabled=true;}}
         lista.addEventListener("change",actualizar);
         b.addEventListener("click",()=>carrito.agregar(p,b,seleccion()));cuerpo.append(bloque);actualizar();
        }else b.addEventListener("click",()=>carrito.agregar(p,b));
