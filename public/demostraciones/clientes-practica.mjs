@@ -6,7 +6,8 @@ export const clientesDemo=Object.freeze([
 ]);
 export const direccionesDemo=Object.freeze([
  Object.freeze({id:"domicilio-1",calle:"Calle de ejemplo 101",colonia:"Colonia de demostración A",referencias:"Puerta azul (ejemplo)"}),
- Object.freeze({id:"domicilio-2",calle:"Avenida de ejemplo 202",colonia:"Colonia de demostración B",referencias:"Entrada principal (ejemplo)"})
+ Object.freeze({id:"domicilio-2",calle:"Avenida de ejemplo 202",colonia:"Colonia de demostración B",referencias:"Entrada principal (ejemplo)"}),
+ Object.freeze({id:"domicilio-3",calle:"Calle de ejemplo 303",colonia:"Colonia de demostración C",referencias:"Portón de ejemplo"})
 ]);
 export const notasPedidoDemo=Object.freeze([
  {id:"",nombre:"Sin instrucciones"},{id:"sin-cubiertos",nombre:"Sin cubiertos desechables"},{id:"separado",nombre:"Empacar por separado"},{id:"contactar",nombre:"Confirmar detalles antes de preparar"}
