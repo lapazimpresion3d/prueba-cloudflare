@@ -57,7 +57,8 @@ Evaluar ADR entre D1 compartida con ámbito obligatorio/relaciones compuestas, D
 - [x] Pruebas de las 20 combinaciones, filtros, dependencias y estados; pendientes navegador real y despliegue de desarrollo.
 - [ ] Conectar el escaparate a un registro central de capacidades verificadas en servidor cuando el núcleo y el sistema de módulos estén listos. El selector no cambia suscripciones reales ni concede permisos.
 - [ ] Reutilizar componentes operativos de El Comal mediante adaptadores con ámbito y datos ficticios, validar cada módulo antes de habilitarlo en giros compatibles.
-- [ ] Implementar administración y operaciones interactivas aisladas, sesiones y reinicio controlado de datos demo; nunca usar datos de clientes reales. Las nuevas funciones verificadas se incorporarán al registro compartido, no a cinco copias independientes.
+- [x] Vista individual por negocio (?vista=negocio), editor de práctica local del catálogo con alta, edición, disponibilidad, baja y restauración por establecimiento. Persistencia en sessionStorage con fallback a memoria, sin datos reales ni API. 15 pruebas lógicas en total aprobadas; navegador/preview pendientes.
+- [ ] Implementar administración autorizada en servidor y operaciones interactivas aisladas, sesiones y reinicio controlado de datos demo; nunca usar datos de clientes reales. El editor local no sustituye la administración SaaS. Las nuevas funciones verificadas se incorporarán al registro compartido, no a cinco copias independientes.
 - La galería inicial no equivale a cinco instalaciones SaaS operativas ni a certificación de seguridad. No mostrar como funcional un módulo no implementado o no adaptado.
 ### Etapa 0 — Auditoría del código existente (prioridad 1, actual)
 - [x] Verificar SHA de desarrollo/main, leer ROADMAP y auditoría previa; revisar módulos críticos de negocio, catálogo, pedidos, reservas y Worker.
