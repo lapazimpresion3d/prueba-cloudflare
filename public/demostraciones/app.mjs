@@ -50,6 +50,7 @@ function guardarURL(){
   $("admin-ver-negocio").href=enlacesDemo(negocio.id,plan.id,true).negocio;$("admin-salir").href=enlacesDemo(negocio.id,plan.id,true).negocio;
   $("ver-catalogo-editado").href=enlacesDemo(negocio.id,plan.id,true).negocio;
   $("ver-original").href=enlaces.negocio;
+  $("admin-comprobantes").hidden=!admitePos(negocio.id,plan.id);$("admin-comprobantes").href="/demostraciones/comprobantes/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
   $("admin-caja").hidden=!admitePos(negocio.id,plan.id);$("admin-caja").href="/demostraciones/caja/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
   $("admin-pos").hidden=!admitePos(negocio.id,plan.id);$("admin-pos").href="/demostraciones/pos/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
   $("admin-pedidos").hidden=!admitePedidos(negocio.id,plan.id);$("admin-pedidos").href="/demostraciones/pedidos/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});

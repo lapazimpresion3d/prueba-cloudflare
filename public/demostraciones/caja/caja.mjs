@@ -1,3 +1,5 @@
+import {comprobanteCorte} from "../comprobantes-practica.mjs";
+import {montarComprobante} from "../comprobantes-ui.mjs";
 import {crearPosPractica,motivosCaja} from "../pos-practica.mjs";
 import {centavosCobro} from "../cobros-practica.mjs";
 import {obtenerEstablecimiento} from "../establecimientos.mjs";
@@ -14,10 +16,11 @@ try{
  empleados();if([...$("empleado").options].some(o=>o.value===q.get("empleado")))$("empleado").value=q.get("empleado");
  const aviso=t=>$("aviso").textContent=t;
  const campos={fondo:"Fondo inicial",efectivo:"Ventas efectivo",transferencia:"Transferencias",tarjeta_externa:"Tarjeta",ingresos:"Ingresos",retiros:"Retiros",totalVentas:"Ventas netas",esperado:"Efectivo esperado"};
+ const recibo=montarComprobante($("corte-texto"),id,plan);
  let actual=null;
  function motivos(){$("motivo").replaceChildren(...motivosCaja[$("tipo").value].map(m=>opt(m,m)));}
  function diferencia(){try{$("diferencia").textContent=actual?"Diferencia: "+importe(centavosCobro($("contado").value)-actual.resumen.esperado):"";}catch{$("diferencia").textContent="Introduce el efectivo contado.";}}
- function corte(t){$("corte").hidden=false;$("corte-texto").textContent=[e.nombre,"CORTE FICTICIO · NO FISCAL",t.id,"Sucursal "+t.sucursal,"Apertura "+new Date(t.apertura).toLocaleString("es-MX"),"Cierre "+new Date(t.cierre.fecha).toLocaleString("es-MX"),"Empleado apertura "+(t.empleado+1),"Empleado cierre "+(t.cierre.empleado+1),...Object.entries(campos).map(([k,n])=>n+": "+importe(t.resumen[k])),"Ventas: "+t.resumen.ventas,"Canceladas: "+t.resumen.canceladas,"Contado: "+importe(t.cierre.contado),"Diferencia: "+importe(t.cierre.diferencia)].join("\n");}
+ function corte(t){$("corte").hidden=false;recibo.mostrar(comprobanteCorte(t));}
  function render(){
   const a=actor(),ctx=store.contexto(...a),ts=store.consultarCaja(...a);actual=ts.find(t=>t.estado==="abierto")??null;
   $("pos").href="../pos/?"+new URLSearchParams({negocio:id,plan,sucursal:a[0],empleado:a[1]});
@@ -30,5 +33,5 @@ try{
  $("abrir").onclick=()=>hacer(()=>store.abrir(...actor(),centavosCobro($("fondo").value)));
  $("mover").onclick=()=>hacer(()=>{store.mover(...actor(),$("tipo").value,centavosCobro($("importe").value),$("motivo").value);$("importe").value="";});
  $("cerrar").onclick=()=>{if(confirm("¿Cerrar turno ficticio? No podrá modificarse después."))hacer(()=>{const t=store.cerrar(...actor(),centavosCobro($("contado").value));corte({...t,resumen:t.cierre.resumen});$("contado").value="";});};
- $("imprimir").onclick=()=>print();motivos();render();$("contenido").hidden=false;
+ motivos();render();$("contenido").hidden=false;
 }catch(e){$("aviso").textContent=e.message;}
