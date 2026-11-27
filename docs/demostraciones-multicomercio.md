@@ -30,3 +30,6 @@ El escaparate consulta /api/demo/contexto y ofrece conectar/cargar/guardar una c
 
 ## Personalización local de página
 Editor compartido para nombre comercial, icono predefinido, colores, lema, descripción, horario, ubicación ficticia y contacto textual. Sin carga de imágenes, enlaces externos, datos reales ni edición de IDs/giro. Los cambios quedan en sessionStorage por establecimiento y se pueden restaurar; si falla almacenamiento se conservan en memoria. La página individual refleja la práctica local, no publica cambios. La persistencia remota de perfil sigue pendiente; la copia de catálogo en D1 requiere configurar base dedicada. Ver tests/perfil-demo.test.mjs.
+
+## Presentación pública separada
+Nueva ruta /demostraciones/negocio/ con negocio/plan, portadas sectoriales y panel de práctica sin controles técnicos. Página pública limpia; vista explícita de práctica con practica=1. El comparador original se mantiene como laboratorio. Ver docs/presentacion-publica-demos.md. Pendientes fotografías de giros, despliegue actualizado y pruebas reales; no implica disponibilidad comercial de paquetes superiores.
