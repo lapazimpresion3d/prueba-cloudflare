@@ -14,10 +14,15 @@ export async function crearAdministradorCentral(env,{autenticarCentral,habilitad
   const a=await q("SELECT id FROM central_operadores WHERE emisor=? AND sujeto=? AND activo=1",i.emisor,i.sujeto).first();
   if(!a)throw Error("Acceso central denegado.");return a.id;
  }
- const log=(a,e,accion,o)=>q("INSERT INTO central_auditoria(actor,empresa,accion,objetivo,fecha) SELECT ?,?,?,?,? WHERE changes()=1",a,e,accion,o,reloj());
- async function escribir(stmt,a,e,accion,o){const r=await db.batch([stmt,log(a,e,accion,o)]);if(!r[0].results?.length)throw Error("Conflicto o acceso denegado.");return r[0].results[0];}
+ const log=(a,e,accion,o,anterior,posterior)=>q("INSERT INTO central_auditoria(actor,empresa,accion,objetivo,fecha,anterior,posterior) SELECT ?,?,?,?,?,("+anterior.sql+"),("+posterior.sql+") WHERE changes()=1",a,e,accion,o,reloj(),...anterior.args,...posterior.args);
+ async function escribir(stmt,a,e,accion,o,anterior,posterior){const r=await db.batch([stmt,log(a,e,accion,o,anterior,posterior)]);if(!r[0].results?.length)throw Error("Conflicto o acceso denegado.");return r[0].results[0];}
+ const plan=(id,version)=>({sql:"SELECT json_object('version',version,'implementacion',implementacion,'mensualidad',mensualidad,'moneda',moneda,'usuarios',usuarios,'sucursales',sucursales,'modulos',json(modulos)) FROM comercial_planes WHERE id=? AND version=?",args:[id,version]});
+ const implementacion=(empresa,revision)=>({sql:"SELECT json_object('estado',estado,'revision',revision) FROM central_implementacion_historial WHERE empresa=? AND revision=?",args:[empresa,revision]});
+
  return Object.freeze({
  async autorizarOperador(r){try{await actor(r,true);return true}catch{return false}},
+ async identificarOperador(r){return actor(r,true);},
+ async auditoria(r,{empresa=null,limite=50,offset=0}={}){if(r.method!=="GET"||(empresa!==null&&!id(empresa))||!Number.isSafeInteger(limite)||limite<1||limite>100||!Number.isSafeInteger(offset)||offset<0)throw Error("Consulta inválida.");const a=await actor(r);return (await q("SELECT id,actor,empresa,accion,objetivo,fecha,anterior,posterior FROM central_auditoria WHERE "+guard+" AND (? IS NULL OR empresa=?) ORDER BY fecha DESC,id DESC LIMIT ? OFFSET ?",a,empresa,empresa,limite,offset).all()).results;},
  async directorio(r,{limite=50,offset=0}={}){
   const a=await actor(r);if(!Number.isSafeInteger(limite)||limite<1||limite>100||!Number.isSafeInteger(offset)||offset<0)throw Error("Paginación inválida.");
   return (await q("SELECT e.id,e.nombre,e.activa,s.plan,s.version,s.estado,s.inicio,s.vence,s.revision,i.estado AS implementacion,i.revision AS revision_implementacion FROM empresas e LEFT JOIN comercial_suscripciones s ON s.empresa=e.id LEFT JOIN central_implementaciones i ON i.empresa=e.id WHERE "+guard+" ORDER BY e.nombre,e.id LIMIT ? OFFSET ?",a,limite,offset).all()).results;
@@ -28,16 +33,16 @@ export async function crearAdministradorCentral(env,{autenticarCentral,habilitad
  },
  async versionPlan(r,d){
   const a=await actor(r,true);if(!["p1","p2","p3","p4"].includes(d.id)||!id(d.nombre)||!Number.isSafeInteger(d.version)||d.version<2||![d.implementacion,d.mensualidad].every(x=>Number.isSafeInteger(x)&&x>=0&&x<=100000000)||![d.usuarios,d.sucursales].every(x=>Number.isSafeInteger(x)&&x>0&&x<=10000)||!Array.isArray(d.modulos)||!d.modulos.every(x=>modulos.some(m=>m.id===x)))throw Error("Plan inválido.");
-  return escribir(q("INSERT INTO comercial_planes SELECT ?,?,?,?,?,'MXN',?,?,? WHERE "+guard+" AND ?=(SELECT COALESCE(MAX(version),0)+1 FROM comercial_planes WHERE id=?) RETURNING version",d.id,d.version,d.nombre,d.implementacion,d.mensualidad,d.usuarios,d.sucursales,JSON.stringify([...new Set(d.modulos)]),a,d.version,d.id),a,null,"plan.version",d.id+":"+d.version);
+  return escribir(q("INSERT INTO comercial_planes SELECT ?,?,?,?,?,'MXN',?,?,? WHERE "+guard+" AND ?=(SELECT COALESCE(MAX(version),0)+1 FROM comercial_planes WHERE id=?) RETURNING version",d.id,d.version,d.nombre,d.implementacion,d.mensualidad,d.usuarios,d.sucursales,JSON.stringify([...new Set(d.modulos)]),a,d.version,d.id),a,null,"plan.version",d.id+":"+d.version,plan(d.id,d.version-1),plan(d.id,d.version));
  },
  async implementacion(r,d){
   const a=await actor(r,true);if(!id(d.empresa)||!["pendiente","configuracion","revision","entregada"].includes(d.estado)||!Number.isSafeInteger(d.revision)||d.revision<0)throw Error("Implementación inválida.");
   const s=d.revision===0?q("INSERT INTO central_implementaciones SELECT ?,?,1 WHERE "+guard+" ON CONFLICT(empresa) DO NOTHING RETURNING revision",d.empresa,d.estado,a):q("UPDATE central_implementaciones SET estado=?,revision=revision+1 WHERE empresa=? AND revision=? AND "+guard+" RETURNING revision",d.estado,d.empresa,d.revision,a);
-  return escribir(s,a,d.empresa,"implementacion.estado",d.estado);
+  return escribir(s,a,d.empresa,"implementacion.estado",d.empresa,implementacion(d.empresa,d.revision),implementacion(d.empresa,d.revision+1));
  },
  async registrarPago(r,d){
   const a=await actor(r,true);if(!id(d.id)||!id(d.empresa)||!["implementacion","mensualidad","adicional"].includes(d.concepto)||!Number.isSafeInteger(d.importe)||d.importe<1||d.importe>100000000||typeof d.referencia!=="string"||!d.referencia.trim()||d.referencia.trim().length>120)throw Error("Registro inválido.");
-  return escribir(q("INSERT INTO central_pagos_servicio SELECT ?,?,?,?,?,?,? WHERE "+guard+" RETURNING id",d.id,d.empresa,d.concepto,d.importe,reloj(),d.referencia.trim(),a,a),a,d.empresa,"pago.registrado",d.id);
+  return escribir(q("INSERT INTO central_pagos_servicio SELECT ?,?,?,?,?,?,? WHERE "+guard+" RETURNING id",d.id,d.empresa,d.concepto,d.importe,reloj(),d.referencia.trim(),a,a),a,d.empresa,"pago.registrado",d.id,{sql:"SELECT NULL",args:[]},{sql:"SELECT json_object('concepto',concepto,'importe',importe) FROM central_pagos_servicio WHERE id=? AND empresa=?",args:[d.id,d.empresa]});
  },
  async pagos(r,empresa){const a=await actor(r);if(!id(empresa))throw Error("Empresa inválida.");return (await q("SELECT id,concepto,importe,fecha,referencia FROM central_pagos_servicio WHERE empresa=? AND "+guard+" ORDER BY fecha DESC,id LIMIT 100",empresa,a).all()).results;}
  });

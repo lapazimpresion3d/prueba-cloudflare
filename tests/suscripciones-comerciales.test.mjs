@@ -5,11 +5,11 @@ import {readFileSync} from "node:fs";
 import {crearGestorSuscripciones,catalogoInicial} from "../src/suscripciones-comerciales.mjs";
 async function fixture(){
  const sql=new DatabaseSync(":memory:");sql.exec("PRAGMA foreign_keys=ON");
- for(const f of ["0001_identidad.sql","0002_sesiones.sql","0003_altas.sql","0004_administracion.sql","0005_suscripciones.sql"])sql.exec(readFileSync(new URL("../migrations-comercios/"+f,import.meta.url),"utf8"));
- sql.exec("INSERT INTO empresas(id,nombre) VALUES('a','A'),('b','B'); INSERT INTO sucursales(empresa,id,nombre) VALUES('a','s','Centro')");
- const db={prepare(q){return {first:async()=>sql.prepare(q).get()??null,bind(...a){return {q,a,first:async()=>sql.prepare(q).get(...a)??null}}}},async batch(stm){sql.exec("BEGIN");try{const r=stm.map(({q,a})=>sql.prepare(q).run(...a));sql.exec("COMMIT");return r}catch(e){sql.exec("ROLLBACK");throw e}}};
+ for(const f of ["0001_identidad.sql","0002_sesiones.sql","0003_altas.sql","0004_administracion.sql","0005_suscripciones.sql","0006_administrador_central.sql","0007_auditoria_detalle.sql","0008_auditoria_personal.sql","0009_auditoria_central.sql"])sql.exec(readFileSync(new URL("../migrations-comercios/"+f,import.meta.url),"utf8"));
+ sql.exec("INSERT INTO empresas(id,nombre) VALUES('a','A'),('b','B'); INSERT INTO sucursales(empresa,id,nombre) VALUES('a','s','Centro'); INSERT INTO central_operadores VALUES('op','issuer','operador',1)");
+ const db={prepare(q){return {first:async()=>sql.prepare(q).get()??null,bind(...a){return {q,a,first:async()=>sql.prepare(q).get(...a)??null}}}},async batch(stm){sql.exec("BEGIN");try{const r=stm.map(({q,a})=>/RETURNING/i.test(q)?{results:sql.prepare(q).all(...a)}:{meta:sql.prepare(q).run(...a)});sql.exec("COMMIT");return r}catch(e){sql.exec("ROLLBACK");throw e}}};
  let now=1000;
- const g=await crearGestorSuscripciones({COMMERCE_DB:db},{habilitado:true,reloj:()=>now,modulosOperativos:["web","pos"],autorizarOperador:async r=>r.headers.get("X-Test")==="operador",autorizarComercial:async(r,d)=>{if(r.headers.get("X-Test")!=="cliente"||d.empresa!=="a")throw Error("Denegado");return {actor:"u",empresa:d.empresa};}});
+ const g=await crearGestorSuscripciones({COMMERCE_DB:db},{habilitado:true,reloj:()=>now,modulosOperativos:["web","pos"],identificarOperador:async r=>r.headers.get("X-Test")==="operador"?"op":null,autorizarComercial:async(r,d)=>{if(r.headers.get("X-Test")!=="cliente"||d.empresa!=="a")throw Error("Denegado");return {actor:"u",empresa:d.empresa};}});
  const req=t=>new Request("https://example.com/suscripciones",{method:"POST",headers:{Origin:"https://example.com","X-Test":t}});
  await g.inicializar(req("operador"));
  return {g,sql,op:req("operador"),cliente:req("cliente"),avanzar:n=>now+=n,d:{empresa:"a",plan:"p1",version:1,revision:0,estado:"activa",inicio:1000,vence:2000}};
