@@ -56,6 +56,8 @@ Evaluar ADR entre D1 compartida con ámbito obligatorio/relaciones compuestas, D
 - [x] Configuración de precios en centavos y estados de disponibilidad; enlaces a vistas originales de El Comal sin modificar su lógica.
 - [x] Pruebas de las 20 combinaciones, filtros, dependencias y estados; pendientes navegador real y despliegue de desarrollo.
 - [x] API de registro/contexto de demos en servidor, consumo de capacidades y persistencia de práctica opcional por sesión/establecimiento con revisiones. Esquema separado y pruebas lógicas/SQL locales; no es núcleo SaaS definitivo.
+- [x] Personalización local de nombre, icono, colores, lema, descripción, horario, ubicación y contacto ficticio por establecimiento; restauración independiente. La edición remota de perfil y las fotografías siguen pendientes.
+- [x] Comprobación del identificador de esquema dedicado antes de permitir operaciones de práctica. 20 comprobaciones JS, 11 casos de rutas simuladas y 17 aserciones SQLite con esquema exacto correctas.
 - [ ] Configurar D1 dedicada DEMO_DB y secreto de límite, verificar preview, navegador y suite integrada; no aplicar migrations-demo a DB estable. Ver docs/nucleo-demos-servidor.md.
 - [ ] Conectar el escaparate a un registro central de capacidades verificadas en servidor cuando el núcleo y el sistema de módulos estén listos. El selector no cambia suscripciones reales ni concede permisos.
 - [ ] Reutilizar componentes operativos de El Comal mediante adaptadores con ámbito y datos ficticios, validar cada módulo antes de habilitarlo en giros compatibles.
