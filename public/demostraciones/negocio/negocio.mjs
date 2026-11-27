@@ -2,7 +2,7 @@ import {planes,importe} from "../config.mjs";
 import {obtenerEstablecimiento,filtrarCatalogo} from "../establecimientos.mjs";
 import {crearCatalogosLocales} from "../catalogo-local.mjs";
 import {crearPerfilesLocales} from "../perfil-local.mjs";
-import {presentacionDe,enlacesDemo} from "../presentaciones.mjs";
+import {presentacionDe,enlacesDemo,simbolos} from "../presentaciones.mjs";
 const $=id=>document.getElementById(id);
 const el=(tag,txt,clase)=>{const e=document.createElement(tag);if(txt!==undefined)e.textContent=txt;if(clase)e.className=clase;return e;};
 const q=new URLSearchParams(location.search);
@@ -25,7 +25,10 @@ if(!base||!plan||!t){
   const textos={logo:t.sigla,nombre:datos.nombre,distintivo:t.distintivo,titulo:practica?datos.marca.lema:t.titulo,entrada:t.entrada,accion:t.accion,"nav-catalogo":t.catalogo,"titulo-catalogo":t.catalogo,"titulo-nosotros":t.seccion,descripcion:datos.marca.descripcion,historia:t.texto,horario:datos.horario,ubicacion:datos.ubicacion,"contacto-texto":datos.contacto||"Información de contacto de ejemplo.","pie-nombre":datos.nombre,"detalle-marca":datos.marca.icono};
   for(const [id,txt] of Object.entries(textos))$(id).textContent=txt;
   const arte=el("div",undefined,"arte-emblema");
-  arte.append(el("span",datos.marca.icono,"arte-icono"),el("span",t.sigla,"arte-sigla"),el("span",datos.nombre,"arte-nombre"));
+  const simbolo=el("div",undefined,"arte-vector");
+  if(practica&&datos.marca.icono!==base.marca.icono)simbolo.textContent=datos.marca.icono;
+  else simbolo.innerHTML='<svg viewBox="0 0 96 96" width="106" height="106" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+simbolos[t.estilo]+'</svg>';
+  arte.append(simbolo,el("span",t.sigla,"arte-sigla"),el("span",datos.nombre,"arte-nombre"));
   $("arte").append(arte);
   $("destacados").replaceChildren(...t.destacados.map((x,i)=>{const a=el("a");a.href="#catalogo";a.append(el("span",String(i+1).padStart(2,"0"),"numero"),el("strong",x));a.addEventListener("click",()=>{const op=[...$("categoria").options].find(o=>o.value===x);$("categoria").value=op?x:"";$("buscar").value="";render();});return a;}));
   const cats=[...new Set(datos.catalogo.map(p=>p.categoria))];
@@ -36,8 +39,8 @@ if(!base||!plan||!t){
     $("productos").replaceChildren(...lista.map(p=>{
       const card=el("article",undefined,"producto");
       const imagen=el("div",undefined,"imagen-producto");
-      if(p.imagen&&/^\/imagenes\/[a-z0-9_-]+\.webp$/i.test(p.imagen)){const img=el("img");img.src=p.imagen;img.alt=p.nombre;img.loading="lazy";img.addEventListener("error",()=>imagen.replaceChildren(el("span",t.iconos[p.categoria]||datos.marca.icono)));imagen.append(img);}
-      else{imagen.append(el("span",t.iconos[p.categoria]||datos.marca.icono));imagen.setAttribute("aria-hidden","true");}
+      if(p.imagen&&/^\/imagenes\/[a-z0-9_-]+\.webp$/i.test(p.imagen)){const img=el("img");img.src=p.imagen;img.alt=p.nombre;img.loading="lazy";img.addEventListener("error",()=>imagen.replaceChildren(el("span",(Object.hasOwn(t.iconos,p.categoria)?t.iconos[p.categoria]:datos.marca.icono))));imagen.append(img);}
+      else{imagen.append(el("span",(Object.hasOwn(t.iconos,p.categoria)?t.iconos[p.categoria]:datos.marca.icono)));imagen.setAttribute("aria-hidden","true");}
       const cuerpo=el("div",undefined,"producto-texto");
       cuerpo.append(el("p",p.categoria,"categoria"),el("h3",p.nombre),el("p",p.descripcion,"descripcion"),el("strong",importe(p.precioCentavos),"precio"));
       if(p.duracionMinutos)cuerpo.append(el("p",p.duracionMinutos+" min","nota"));
@@ -47,7 +50,7 @@ if(!base||!plan||!t){
   }
   $("buscar").addEventListener("input",render);$("categoria").addEventListener("change",render);
   const links=enlacesDemo(base.id,plan.id,practica);
-  $("administracion").href=links.administracion;$("comparador").href=links.comparador;
+  $("administracion").href=links.administracion;$("administracion-arriba").href=links.administracion;$("administracion-arriba").hidden=false;$("comparador").href=links.comparador;
   $("aviso-practica").hidden=!practica;
   render();$("pagina").hidden=false;
 }
