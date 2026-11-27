@@ -1,9 +1,10 @@
+import {imprimirComprobante,panelReasignacion} from "./comprobantes-ui.mjs";
 import {calcularAsignacion} from "../division-cuentas.mjs";
 import {importe} from "../config.mjs";
 import {centavosCobro,metodosCobroDemo} from "../cobros-practica.mjs";
 import {dividirImporte,motivosAnulacionMultiple} from "../pagos-multiples.mjs";
 const el=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n;};
-export function panelPagosMultiples(c,datos,{enviar,cerrar,anular}){
+export function panelPagosMultiples(c,datos,{enviar,cerrar,anular,reasignar}){
  const panel=el("section");panel.className="pagos-multiples";
  const {plan,resumen}=datos;
  panel.append(el("h4","Pagos múltiples · práctica"),el("p","Consumo: "+importe(resumen.consumoCentavos)),el("p","Abonado: "+importe(resumen.abonadoCentavos)+" · Propinas: "+importe(resumen.propinaCentavos)),el("strong","Saldo: "+importe(resumen.saldoCentavos)));
@@ -14,6 +15,12 @@ export function panelPagosMultiples(c,datos,{enviar,cerrar,anular}){
    const items=el("ul");for(const p of plan.division.detalle){const parte=p.partes.find(x=>x.comensal===s.comensal);if(parte)items.append(el("li",p.nombre+" · "+importe(parte.importeCentavos)+(s.liquidada?" · Pagado":" · Asignado")));}panel.append(items);
   }
  }
+ if(plan.revision>0){
+ const ticket=el("button","Comprobante general");ticket.type="button";ticket.onclick=()=>imprimirComprobante(c,datos);panel.append(ticket);
+ for(const s of datos.subcuentas||[]){const b=el("button","Comprobante comensal "+s.comensal);b.type="button";b.onclick=()=>imprimirComprobante(c,datos,s.comensal);panel.append(b);}
+ }
+ if(plan.reasignaciones?.length){const h=el("details");h.append(el("summary","Historial de reasignaciones"));for(const r of plan.reasignaciones)h.append(el("p",new Date(r.fecha).toLocaleString("es-MX")+" · "+r.motivo+" · Antes: "+r.anterior.totales.map(x=>importe(x)).join(" / ")+" · Después: "+r.nueva.totales.map(x=>importe(x)).join(" / ")));panel.append(h);}
+ if(c.cerrado===null&&plan.division)panel.append(panelReasignacion(c,datos,reasignar));
  if(c.cerrado!==null)return panel;
  const aviso=el("p");aviso.setAttribute("role","status");
  if(resumen.liquidada&&plan.revision>0){const b=el("button","Cerrar cuenta liquidada");b.className="principal";b.addEventListener("click",()=>{if(confirm("¿Cerrar la cuenta y liberar la mesa?"))cerrar(plan.revision);});panel.append(b);return panel;}
