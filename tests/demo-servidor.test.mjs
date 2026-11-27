@@ -12,6 +12,7 @@ function d1(){
   sql.exec(readFileSync(new URL("../migrations-demo/0002_perfiles.sql",import.meta.url),"utf8"));
   sql.exec(readFileSync(new URL("../migrations-demo/0003_pedidos.sql",import.meta.url),"utf8"));
   sql.exec(readFileSync(new URL("../migrations-demo/0004_citas.sql",import.meta.url),"utf8"));
+  sql.exec(readFileSync(new URL("../migrations-demo/0005_reservaciones.sql",import.meta.url),"utf8"));
   const wrap=(q,args=[])=>({bind:(...v)=>wrap(q,v),first:async()=>sql.prepare(q).get(...args)??null,all:async()=>({results:sql.prepare(q).all(...args)}),run:async()=>sql.prepare(q).run(...args)});
   return {sql,prepare:q=>wrap(q),batch:async ss=>{sql.exec("BEGIN");try{for(const s of ss)await s.run();sql.exec("COMMIT");}catch(e){sql.exec("ROLLBACK");throw e;}}};
 }
@@ -198,4 +199,22 @@ test("citas remotas: intervalo atómico, precio/duración, idempotencia y cancel
   env.DEMO_DB.sql.exec("DROP TABLE demo_citas");
   const ctx=await (await llamar(env,"/api/demo/contexto?negocio=barberia-elite&plan=p2")).json();
   assert.equal(ctx.citasConfiguradas,false);assert.equal(ctx.pedidosConfigurados,true);
+});
+
+test("reservaciones: capacidad, exclusión de intervalos, aislamiento y cancelación",async()=>{
+ const env=envDemo(),ruta="/api/demo/reservaciones?negocio=taqueria-el-comal&plan=p4",a=await iniciar(env,"192.0.2.1"),b=await iniciar(env,"192.0.2.2");
+ let fecha=sumarDias(relojLocal().fecha,1);if(new Date(fecha+"T00:00:00Z").getUTCDay()===1)fecha=sumarDias(fecha,1);
+ const d={solicitud:"b7a48289-b63a-4ec4-8e19-c376f91aef77",fecha,personas:4,mesa:"3",inicio:720,datosCliente:{cliente:"cliente-1",nota:""}};
+ const otro={...d,solicitud:"b7a48289-b63a-4ec4-8e19-c376f91aef78",inicio:750};
+ assert.equal((await llamar(env,ruta,"GET")).status,401);
+ assert.equal((await llamar(env,ruta.replace("p4","p1"),"POST",a,d)).status,403);
+ assert.equal((await llamar(env,ruta,"POST",a,{...d,mesa:"1"})).status,409);
+ const [x,y]=await Promise.all([llamar(env,ruta,"POST",a,d),llamar(env,ruta,"POST",a,otro)]);
+ assert.deepEqual([x.status,y.status].sort(),[201,409]);
+ const gana=x.status===201?d:otro,pierde=x.status===201?otro:d;
+ assert.equal((await (await llamar(env,ruta,"POST",a,gana)).json()).repetida,true);
+ assert.equal((await (await llamar(env,ruta,"GET",b)).json()).reservas.length,0);
+ assert.equal((await llamar(env,ruta,"PATCH",a,{solicitud:gana.solicitud,esperado:"pendiente",destino:"cancelada"})).status,200);
+ assert.equal((await llamar(env,ruta,"POST",a,pierde)).status,201);
+ env.DEMO_DB.sql.exec("DELETE FROM demo_sesiones");assert.equal(env.DEMO_DB.sql.prepare("SELECT count(*) AS n FROM demo_reservaciones").get().n,0);
 });
