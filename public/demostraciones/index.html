@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="referrer" content="no-referrer">
   <title>Demostraciones comerciales | Lapazimpresion3d</title>
-  <link rel="stylesheet" href="./estilos.css?v=regreso-1">
+  <link rel="stylesheet" href="./estilos.css?v=regreso-1"><link rel="stylesheet" href="./panel-admin.css?v=451">
   <script type="module" src="./app.mjs"></script>
 </head>
 <body>
@@ -28,31 +28,12 @@
     <section id="cabecera-admin" class="cabecera-admin" hidden>
       <p class="sobrelinea">PANEL DE LA EMPRESA · DEMOSTRACIÓN</p>
       <h1 id="nombre-admin"></h1>
-      <p>Prueba a editar los productos y la información de tu negocio. Los cambios de práctica no se publican ni constituyen administración privada real. No utilices datos personales.</p>
-      <nav class="acciones-demo" aria-label="Panel administrativo">
-        <a id="admin-salir" href="./">← Volver a mi página de práctica</a>
-        <a id="admin-ver-negocio" class="accion-admin" href="./negocio/">Ver página del cliente (práctica)</a>
-        <button type="button" id="admin-resumen">Resumen de empresa</button>
-        <button type="button" id="admin-catalogo">Catálogo</button>
-        <a id="admin-pos" class="accion-admin" href="./pos/" hidden>Punto de venta (POS)</a>
-        <a id="admin-caja" class="accion-admin" href="./caja/" hidden>Caja y cortes de turno</a>
-        <a id="admin-comprobantes" class="accion-admin" href="./comprobantes/" hidden>Tickets y comprobantes</a>
-        <a id="admin-inventario" class="accion-admin" href="./inventario/" hidden>Inventario</a>
-        <a id="admin-almacen" class="accion-admin" href="./almacen/" hidden>Almacenes y traspasos</a>
-        <a id="admin-compras" class="accion-admin" href="./compras/" hidden>Proveedores y compras</a>
-        <a id="admin-recetas" class="accion-admin" href="./recetas/" hidden>Recetas, insumos y costos</a>
-        <a id="admin-pedidos" class="accion-admin" href="./pedidos/" hidden>Administrar pedidos</a>
-        <a id="admin-citas" class="accion-admin" href="./citas/" hidden>Agenda de citas</a>
-        <a id="admin-cocina" class="accion-admin" href="./cocina/" hidden>Pantalla de cocina</a>
-        <a id="admin-cuentas" class="accion-admin" href="./cuentas/" hidden>Cuentas abiertas y captura de mesero</a>
-        <a id="admin-comandas" class="accion-admin" href="./cocina/" hidden>Servicio y comandas por mesa</a>
-        <a id="admin-mesas" class="accion-admin" href="./reservaciones/" hidden>Reservaciones y QR de mesas</a>
-        <button type="button" id="admin-perfil">Información del negocio</button>
-        <a id="ver-original" href="./">Ver página original sin cambios</a>
-      </nav>
+      <p id="admin-plan"></p><p class="nota">Modo demostración · No uses datos personales.</p>
+      <button type="button" id="admin-menu" aria-expanded="true" aria-controls="admin-nav">Menú de administración</button><nav id="admin-nav" aria-label="Panel administrativo"><div class="admin-grupo"><h2>Operación diaria</h2><button type="button" id="admin-resumen">Inicio</button><a id="admin-pos" class="accion-admin" href="./pos/" hidden>Punto de venta</a><a id="admin-pedidos" class="accion-admin" href="./pedidos/" hidden>Pedidos</a><a id="admin-citas" class="accion-admin" href="./citas/" hidden>Agenda y citas</a><a id="admin-cocina" class="accion-admin" href="./cocina/" hidden>Cocina</a><a id="admin-cuentas" class="accion-admin" href="./cuentas/" hidden>Cuentas de mesa</a><a id="admin-comandas" class="accion-admin" href="./cocina/" hidden>Comandas por mesa</a><a id="admin-mesas" class="accion-admin" href="./reservaciones/" hidden>Reservaciones y mesas</a><a id="admin-caja" class="accion-admin" href="./caja/" hidden>Caja y turnos</a><a id="admin-comprobantes" class="accion-admin" href="./comprobantes/" hidden>Tickets y comprobantes</a></div><div class="admin-grupo"><h2>Productos y abastecimiento</h2><button type="button" id="admin-catalogo">Productos y servicios</button><a id="admin-inventario" class="accion-admin" href="./inventario/" hidden>Inventario</a><a id="admin-almacen" class="accion-admin" href="./almacen/" hidden>Almacenes y traspasos</a><a id="admin-compras" class="accion-admin" href="./compras/" hidden>Proveedores y compras</a><a id="admin-recetas" class="accion-admin" href="./recetas/" hidden>Recetas y costos</a></div><div class="admin-grupo"><h2>Configuración</h2><button type="button" id="admin-empresa">Personal y sucursales</button><button type="button" id="admin-perfil">Información del negocio</button></div><div class="admin-grupo admin-enlaces"><a id="admin-salir" href="./">← Volver a página del negocio</a><a id="admin-ver-negocio" class="accion-admin" href="./negocio/">Ver página editada</a><a id="ver-original" href="./">Ver página original</a><a href="/demostraciones/ejemplos/">Otras demostraciones</a></div></nav>
     </section>
+    <section id="admin-inicio" hidden aria-labelledby="admin-inicio-titulo"><p class="sobrelinea">TU NEGOCIO</p><h1 id="admin-inicio-titulo">Inicio</h1><p>Elige una tarea para comenzar. Los cambios son de práctica.</p><div id="admin-indicadores" class="admin-indicadores"></div><h2>¿Qué quieres hacer?</h2><div id="admin-rapidas" class="admin-rapidas"></div><details class="admin-ayuda"><summary>Cómo funciona esta demostración</summary><p>Prueba las herramientas en esta misma pestaña. Para vender en el punto de venta, abre primero un turno de caja. Los inventarios se activan por producto. Ninguna operación mueve dinero real.</p></details></section>
     <section id="empresa-contexto" class="editor" hidden aria-labelledby="empresa-titulo">
-      <h2 id="empresa-titulo">Administración de empresa</h2>
+      <h2 id="empresa-titulo">Personal y sucursales</h2>
       <p class="nota">Práctica local, sin inicio de sesión real. El selector de sucursal es ilustrativo: no cambia el alcance de los pedidos, catálogo ni agendas existentes.</p>
       <div class="campos-editor">
         <label>Empresa de ejemplo <select id="empresa-negocio"></select></label>
@@ -128,7 +109,7 @@
     </section>
     <section id="editor" class="editor" aria-labelledby="titulo-editor" hidden>
       <div class="encabezado"><h2 id="titulo-editor">Editor de catálogo · práctica local</h2><button type="button" id="cerrar-editor">Cerrar editor</button></div>
-      <p>Modifica el catálogo y abre <strong>Ver catálogo editado</strong> para comprobar los cambios en la página del cliente. La página original permanece intacta para otros visitantes. Para conservar una copia privada en D1, activa la sesión y guarda el catálogo.</p><p><a id="ver-catalogo-editado" class="accion-admin" href="./negocio/">Ver catálogo editado</a></p>
+      <p>Modifica el catálogo y abre <strong>Ver catálogo editado</strong> para comprobar los cambios en la página del cliente. La página original permanece intacta para otros visitantes. Para conservar una copia temporal, utiliza las opciones de guardado.</p><p><a id="ver-catalogo-editado" class="accion-admin" href="./negocio/">Ver catálogo editado</a></p>
       <form id="form-oferta">
         <h3 id="titulo-form-oferta">Agregar elemento</h3>
         <div class="campos-editor">
