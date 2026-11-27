@@ -1,3 +1,4 @@
+import { leerJsonLimitado } from "./seguridad.mjs";
 export async function leerDatosNegocio(db, nombre) {
   const fila = await db.prepare("SELECT datos_json FROM preferencias_negocio WHERE id = 1").first();
   return fila ? JSON.parse(fila.datos_json) : {
@@ -17,7 +18,7 @@ function campoTexto(datos, campo, maximo) {
 }
 
 export async function guardarDatosNegocio(request, db, json) {
-  const datos = await request.json().catch(() => null);
+  const datos = await leerJsonLimitado(request);
   let negocio;
   try {
     const nombre = campoTexto(datos, "nombre", 80);
