@@ -16,7 +16,7 @@ try{
  function empleados(){const d=store.empresa(),s=Number($("sucursal").value);$("empleado").replaceChildren(...d.personal.flatMap((r,i)=>d.asignaciones[i]===null||d.asignaciones[i]===s?[opt("Empleado "+(i+1)+" · "+nombreRolEmpleado(d,i),i)]:[]));}
  empleados();if([...$("empleado").options].some(o=>o.value===q.get("empleado")))$("empleado").value=q.get("empleado");
  const aviso=t=>$("aviso").textContent=t;
- const campos={fondo:"Fondo inicial",efectivo:"Ventas efectivo",transferencia:"Transferencias",tarjeta_externa:"Tarjeta",ingresos:"Ingresos",retiros:"Retiros",totalVentas:"Ventas netas",esperado:"Efectivo esperado"};
+ const campos={fondo:"Fondo inicial",efectivo:"Ventas efectivo",transferencia:"Transferencias",tarjeta_externa:"Tarjeta",ingresos:"Ingresos",retiros:"Retiros",totalVentas:"Cobros de ventas en turno",esperado:"Efectivo esperado"};
  const recibo=montarComprobante($("corte-texto"),id,plan);
  let actual=null;
  function motivos(){$("motivo").replaceChildren(...motivosCaja[$("tipo").value].map(m=>opt(m,m)));}
@@ -26,7 +26,7 @@ try{
   const a=actor(),ctx=store.contexto(...a),ts=store.consultarCaja(...a);actual=ts.find(t=>t.estado==="abierto")??null;
   $("pos").href="../pos/?"+new URLSearchParams({negocio:id,plan,sucursal:a[0],empleado:a[1]});
   $("apertura").hidden=!!actual;$("activo").hidden=!actual;
-  if(actual){$("turno").textContent=actual.id+" · Empleado "+(actual.empleado+1);$("movimientos").hidden=ctx.rol==="cajero";$("cerrar").disabled=ctx.rol==="cajero"&&actual.empleado!==a[1];$("totales").replaceChildren(...Object.entries(campos).map(([k,n])=>{const div=el("div");div.append(el("span",n),el("strong",importe(actual.resumen[k])));return div;}));$("lista-movimientos").replaceChildren(...actual.movimientos.map(m=>el("p",m.tipo+" · "+m.motivo+" · "+importe(m.importe))));diferencia();}
+  if(actual){$("turno").textContent=actual.id+" · Empleado "+(actual.empleado+1);$("movimientos").hidden=ctx.rol==="cajero";$("cerrar").disabled=ctx.rol==="cajero"&&actual.empleado!==a[1];$("totales").replaceChildren(...Object.entries({...campos,...(actual.resumen.anticiposAplicados?{anticiposAplicados:"Anticipos previos aplicados (no caja)"}:{})}).map(([k,n])=>{const div=el("div");div.append(el("span",n),el("strong",importe(actual.resumen[k])));return div;}));$("lista-movimientos").replaceChildren(...actual.movimientos.map(m=>el("p",m.tipo+" · "+m.motivo+" · "+importe(m.importe))));diferencia();}
   $("historial").replaceChildren(...ts.filter(t=>t.estado==="cerrado").map(t=>{const div=el("div"),b=el("button","Ver corte");b.type="button";b.onclick=()=>corte(t);div.append(el("p",t.id+" · "+importe(t.resumen.totalVentas)+" · Diferencia "+importe(t.cierre.diferencia)),b);return div;}));
  }
  function hacer(fn){try{fn();render();aviso("Operación de prueba registrada.");}catch(e){aviso(e.message);}}
