@@ -160,3 +160,7 @@ Documentos vigentes: docs/arquitectura-multicomercio.md, docs/auditoria-multicom
 - [x] Edición, eliminación y restauración de fotos de productos/servicios con optimización local, presupuesto agregado y persistencia en tabla demo_catalogos existente. Acceso al guardado remoto desde el panel de práctica.
 - [x] Propietario reportó creación de demo_perfiles; confirmar flags en Preview actualizado.
 - [ ] Validar P1 en navegador real, carga/recuperación de imágenes, independencia de las sesiones y suite integrada. 24 comprobaciones lógicas correctas; 20 combinaciones y 20 filtros simulados correctos. Ver docs/catalogo-imagenes-demo.md.
+
+### v0.8 — Inicio de Negocio interactivo
+- [x] Carrito, modalidades, pedidos, panel de estados y seguimiento de práctica local para cafetería, restaurante y tienda (P2+). 30 pruebas lógicas y flujo DOM simulado correctos. No hay pedidos reales ni persistencia D1 del módulo.
+- [ ] Validar Preview y navegador, API de pedidos de práctica privada con revisión/idempotencia, citas y agendas. Ver docs/pedidos-practica.md.
