@@ -1,3 +1,4 @@
+import {movimientosActivos,resumenPlanCobro} from "../public/demostraciones/pagos-multiples.mjs";
 import {admiteCuentas,cuentaIdValida} from "../public/demostraciones/cuentas-practica.mjs";
 import {cuentasListas} from "./cuentas-demo.mjs";
 import {aplicarCobro,validarCambioPedido} from "../public/demostraciones/cobros-practica.mjs";
@@ -20,7 +21,12 @@ export async function atenderPedidosDemo(request,db,s,ctx,json){
   if(request.method==="GET"){
     const filas=await db.prepare("SELECT datos_json FROM demo_pedidos WHERE sesion_id=? AND establecimiento_id=? AND EXISTS (SELECT 1 FROM demo_sesiones WHERE id=? AND expira>?) ORDER BY creado DESC, solicitud_id DESC LIMIT 30").bind(s.id,id,s.id,ahora()).all();
     const cuentas=id==="taqueria-el-comal"&&await cuentasListas(db)?(await db.prepare("SELECT cuenta_id,mesa,personas,abierto,cerrado FROM demo_cuentas WHERE sesion_id=? ORDER BY abierto DESC LIMIT 30").bind(s.id).all()).results:[];
-    return json({establecimiento:id,pedidos:filas.results.map(leerFila),expira:s.expira,cuentas});
+    const multiples=[];
+    if(cuentas.length&&(await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='demo_planes_cobro'").first())){
+      const libros=await db.prepare("SELECT cuenta_id,datos_json FROM demo_planes_cobro WHERE sesion_id=?").bind(s.id).all();
+      for(const f of libros.results){const plan=JSON.parse(f.datos_json);multiples.push({cuenta:f.cuenta_id,resumen:resumenPlanCobro(plan),movimientos:movimientosActivos(plan).map(m=>({metodo:m.metodo,consumoCentavos:m.consumoCentavos}))});}
+    }
+    return json({establecimiento:id,pedidos:filas.results.map(leerFila),expira:s.expira,cuentas,multiples});
   }
   const datos=await leerJsonLimitado(request,12000);
   if(!uuid(datos?.solicitud))return error(json,"Identificador de solicitud inválido.",400);
