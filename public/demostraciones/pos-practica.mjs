@@ -1,3 +1,4 @@
+import {fidelizacionVacia,validarFidelizacion,guardarPrograma,guardarPromocion,saldoPuntos,calcularBeneficio,comprobarReversion} from "./fidelizacion-practica.mjs";
 import {admiteCotizaciones,validarCotizaciones,crearCotizacion,cambiarCotizacion,abrirOrden,avanzarOrden,anticipoCotizacion,anularAnticipo,buscarCotizacion,marcarVenta,saldoCotizacion} from "./cotizaciones-practica.mjs";
 import {tienePermiso} from "./permisos-practica.mjs";
 import {enviarInsumo,recibirInsumo,cancelarInsumo,consolidarInsumos,guardarSubreceta,producirLote,desactivarReceta,resumenRentabilidad,recetasVacias,validarRecetas,crearInsumo,entradaInsumo,mermaInsumo,guardarReceta,consumoRecetas,registrarRecetas,consultarRecetas} from "./recetas-practica.mjs";
@@ -52,11 +53,11 @@ export function crearPosPractica(storage,id,plan,{empresaStorage=storage,ahora=D
  // Un único registro de almacenamiento evita escrituras separadas de caja y ventas.
  function leerEstado(){
   if(!storage)throw Error("Almacenamiento no disponible.");
-  const raw=storage.getItem(key);if(!raw)return {version:2,ventas:[],turnos:[],inventario:inventarioVacio(),compras:comprasVacias(),recetas:recetasVacias(),cotizaciones:[]};
+  const raw=storage.getItem(key);if(!raw)return {version:2,ventas:[],turnos:[],inventario:inventarioVacio(),compras:comprasVacias(),recetas:recetasVacias(),cotizaciones:[],fidelizacion:fidelizacionVacia()};
   if(raw.length>2000000)throw Error("Historial de práctica demasiado grande.");
   const v=JSON.parse(raw),d=Array.isArray(v)?{version:2,ventas:v,turnos:[]}:v;
   if(!d||d.version!==2||!Array.isArray(d.ventas)||d.ventas.length>LIM||!Array.isArray(d.turnos)||d.turnos.length>50||d.ventas.some(x=>!x||typeof x.folio!=="string"||!Array.isArray(x.detalle)||!["vendido","cancelado"].includes(x.estado))||d.turnos.some(t=>!t||typeof t.id!=="string"||!dinero(t.fondo)||!Array.isArray(t.movimientos)||t.movimientos.length>100||!["abierto","cerrado"].includes(t.estado)))throw Error("Historial de práctica inválido.");
-  d.inventario=validarInventario(d.inventario??inventarioVacio());d.compras=validarCompras(d.compras??comprasVacias());d.recetas=validarRecetas(d.recetas??recetasVacias());d.cotizaciones=validarCotizaciones(d.cotizaciones??[]);return copy(d);
+  d.inventario=validarInventario(d.inventario??inventarioVacio());d.compras=validarCompras(d.compras??comprasVacias());d.recetas=validarRecetas(d.recetas??recetasVacias());d.cotizaciones=validarCotizaciones(d.cotizaciones??[]);d.fidelizacion=validarFidelizacion(d.fidelizacion??fidelizacionVacia());return copy(d);
  }
  function guardar(d){const raw=JSON.stringify(d);if(raw.length>2000000)throw Error("Límite de almacenamiento de práctica alcanzado.");storage.setItem(key,raw);}
  function abierto(d,s){return d.turnos.find(t=>t.sucursal===s&&t.estado==="abierto");}
@@ -104,8 +105,13 @@ export function crearPosPractica(storage,id,plan,{empresaStorage=storage,ahora=D
  function anticipo(s,e,f,n,ref){return operarCot(s,e,"cotizaciones.anticipos",(l,a,t)=>anticipoCotizacion(l,a,f,n,ref,t));}
  function quitarAnticipo(s,e,f,ref){return operarCot(s,e,"cotizaciones.anticipos",(l,a,t)=>anularAnticipo(l,a,f,ref,t));}
  function venderOrden(s,e,f,catalogo,pago){const a=accesoCot(s,e,"cotizaciones.convertir"),d=leerEstado(),x=buscarCotizacion(d.cotizaciones,a,f);if(x.orden?.estado!=="terminada"||saldoCotizacion(x)!==x.total)throw Error("Termina la orden y concilia los anticipos antes de cobrar.");const cat=x.detalle.map(l=>{const p=catalogo.find(p=>p.id===l.id);if(!p)throw Error("Artículo retirado del catálogo.");return {...p,nombre:l.nombre,precioCentavos:l.precioCentavos};});return vender(cat,x.detalle.map(l=>({id:l.id,cantidad:l.cantidad})),{...pago,sucursal:s,empleado:e,cliente:x.cliente,descuento:x.descuento,totalEsperado:x.total},f);}
+ function accesoFidel(s,e,p){if(plan!=="p4")throw Error("Beneficios incluidos en P4.");return autorizar(s,e,p);}
+ function consultarBeneficios(s,e){accesoFidel(s,e,"fidelizacion.ver");const d=leerEstado();return {...d.fidelizacion,clientes:clientesDemo.map(c=>({...c,puntos:saldoPuntos(d.ventas,c.id)}))};}
+ function programaBeneficios(s,e,datos){accesoFidel(s,e,"fidelizacion.configurar");const d=leerEstado(),p=guardarPrograma(d.fidelizacion,datos);guardar(d);return copy(p);}
+ function promocion(s,e,datos){accesoFidel(s,e,"fidelizacion.configurar");const d=leerEstado(),p=guardarPromocion(d.fidelizacion,datos);guardar(d);return copy(p);}
+ function previsualizarBeneficio(catalogo,lineas,d){autorizar(d.sucursal,d.empleado,"ventas.cobrar");const r=resumirVenta(id,catalogo,lineas,d.descuento??0);if(plan!=="p4"){if(d.codigo||d.puntos)throw Error("Beneficios incluidos en P4.");return r;}const x=leerEstado();return calcularBeneficio(x.fidelizacion,x.ventas,r,d,ahora());}
  function vender(catalogo,lineas,d,cotizacion=null){
-  const actor=autorizar(d.sucursal,d.empleado,"ventas.cobrar");if(d.descuento>0)autorizar(d.sucursal,d.empleado,"ventas.descuento");const r=resumirVenta(id,catalogo,lineas,d.descuento??0);
+  const actor=autorizar(d.sucursal,d.empleado,"ventas.cobrar");if(d.descuento>0)autorizar(d.sucursal,d.empleado,"ventas.descuento");const r=cotizacion?resumirVenta(id,catalogo,lineas,d.descuento??0):previsualizarBeneficio(catalogo,lineas,d);
   if(!r.detalle.length)throw Error("Agrega productos o servicios.");
   if(r.total!==d.totalEsperado)throw Error("El total cambió. Revisa la venta.");
   if(d.cliente&&!clientesDemo.some(x=>x.id===d.cliente))throw Error("Cliente ficticio inválido.");
@@ -120,11 +126,11 @@ export function crearPosPractica(storage,id,plan,{empresaStorage=storage,ahora=D
  }
  function cancelar(f,sucursal,empleado,motivo){
   const actor=autorizar(sucursal,empleado,"ventas.cancelar"),dEstado=leerEstado(),ventas=dEstado.ventas,v=ventas.find(x=>x.folio===f&&x.sucursal===sucursal);
-  if(v?.cotizacion)throw Error("La reversión de ventas de órdenes requiere conciliación especializada.");if(!v||v.estado!=="vendido"||!motivosAnulacion.includes(motivo))throw Error("Cancelación inválida.");
+  if(v?.estado==="vendido")comprobarReversion(ventas,v);if(v?.cotizacion)throw Error("La reversión de ventas de órdenes requiere conciliación especializada.");if(!v||v.estado!=="vendido"||!motivosAnulacion.includes(motivo))throw Error("Cancelación inválida.");
   if(v.turno){const t=turnoActor(dEstado,actor);if(t.id!==v.turno)throw Error("No se modifica una venta de turno cerrado.");if(v.cobro?.metodo==="efectivo"&&v.total>resumenTurno(t,ventas).esperado)throw Error("Efectivo insuficiente para anular la venta.");}
   if(v.cobro)Object.assign(v,aplicarCobro(v,{accion:"anular",revision:v.revisionCobro,motivo},ahora()));
   registrarConsumo(dEstado.inventario,actor,v.consumoInventario??[],f,ahora(),true);registrarRecetas(dEstado.recetas,actor,v.consumoInsumos??[],ahora(),f,true);
   v.estado="cancelado";v.cancelacion={...actor,motivo,fecha:ahora()};guardar(dEstado);return copy(v);
  }
- return {contexto,permite,leer:s=>{autorizar(s.sucursal,s.empleado,"ventas.ver");return leerEstado().ventas.filter(v=>v.sucursal===s.sucursal);},vender:(catalogo,lineas,d)=>vender(catalogo,lineas,d),verCotizaciones,cotizar,estadoCotizacion,ordenServicio,estadoOrden,anticipo,quitarAnticipo,venderOrden,cancelar,abrir,mover,cerrar,consultarCaja,consultarInventario,configurarStock,moverStock,valorarMercancia,resumenComercial,consultarAlmacen,enviarStock,recibirStock,cancelarStock,enviarPreparacion,recibirPreparacion,cancelarPreparacion,consultarCompras,proveedor,ordenar,recibirOrden,devolverOrden,cerrarOrden,pagarOrden,verRecetas,nuevoInsumo,comprarInsumo,perderInsumo,editarReceta,editarSubreceta,producir,quitarReceta,rentabilidad,empresa:()=>empresa.leer()};
+ return {contexto,permite,leer:s=>{autorizar(s.sucursal,s.empleado,"ventas.ver");return leerEstado().ventas.filter(v=>v.sucursal===s.sucursal);},vender:(catalogo,lineas,d)=>vender(catalogo,lineas,d),consultarBeneficios,programaBeneficios,promocion,previsualizarBeneficio,verCotizaciones,cotizar,estadoCotizacion,ordenServicio,estadoOrden,anticipo,quitarAnticipo,venderOrden,cancelar,abrir,mover,cerrar,consultarCaja,consultarInventario,configurarStock,moverStock,valorarMercancia,resumenComercial,consultarAlmacen,enviarStock,recibirStock,cancelarStock,enviarPreparacion,recibirPreparacion,cancelarPreparacion,consultarCompras,proveedor,ordenar,recibirOrden,devolverOrden,cerrarOrden,pagarOrden,verRecetas,nuevoInsumo,comprarInsumo,perderInsumo,editarReceta,editarSubreceta,producir,quitarReceta,rentabilidad,empresa:()=>empresa.leer()};
 }
