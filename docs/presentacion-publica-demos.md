@@ -16,3 +16,6 @@ Las páginas son informativas; seleccionar p2/p3/p4 no activa pedidos, citas, PO
 - Binding DEMO_DB agregado en ff7a914; DB original preservada. No se alteró configuración Cloudflare en este bloque, ni main ni el sitio comercial. No publicar enlaces de este commit hasta revisar despliegue.
 
 Siguiente: validación en navegador y primera demo P1 aprobada; catálogo de imágenes propio, personalización remota, permisos y módulos operativos. Mantener el laboratorio separado de la presentación pública.
+
+## Ampliación de personalización
+Cuatro portadas ilustradas originales, carga de logo/portada optimizada localmente, y guardado/recuperación de perfil privado desde panel (requiere 0002_perfiles en DEMO_DB). La presentación pública limpia no lee las copias. Las imágenes individuales de productos y la administración SaaS permanente siguen pendientes. Ver docs/personalizacion-demos.md.
