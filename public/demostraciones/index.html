@@ -29,13 +29,13 @@
     <nav class="acciones-demo" aria-label="Vistas de demostración">
       <button type="button" id="vista-cliente">Ver página del negocio</button>
       <button type="button" id="vista-comparador" hidden>Comparar negocios y planes</button>
-      <button type="button" id="abrir-editor">Probar editor de catálogo</button>
+      <button type="button" id="abrir-editor">Probar editor de catálogo</button><button type="button" id="abrir-perfil">Personalizar página</button>
       <a id="compartir-vista" href="./">Enlace directo al negocio</a>
     </nav>
     <section class="perfil" id="perfil" aria-labelledby="nombre" hidden>
       <div class="perfil-marca" id="marca"></div>
       <div><p class="sobrelinea" id="giro"></p><h2 id="nombre"></h2><p id="lema"></p><p id="descripcion"></p></div>
-      <div class="perfil-info"><strong>Información de ejemplo</strong><p id="horario"></p><p id="ubicacion"></p><p class="nota">Demostración ficticia. No acepta pedidos, citas ni pagos reales.</p><p>QR opcional · atención tradicional compatible como objetivo</p></div>
+      <div class="perfil-info"><strong>Información de ejemplo</strong><p id="horario"></p><p id="ubicacion"></p><p id="contacto-demo"></p><p class="nota">Demostración ficticia. No acepta pedidos, citas ni pagos reales.</p><p>QR opcional · atención tradicional compatible como objetivo</p></div>
     </section>
     <section aria-labelledby="titulo-catalogo" id="seccion-catalogo" hidden>
       <div class="encabezado"><h2 id="titulo-catalogo">Catálogo del establecimiento</h2><span class="etiqueta disponible">Disponible</span></div>
@@ -45,6 +45,25 @@
         <label>Categoría <select id="categoria"><option value="">Todas</option></select></label>
       </div>
       <p id="resultado" class="nota" role="status"></p><div id="catalogo" class="catalogo"></div>
+    </section>
+    <section id="editor-perfil" class="editor" aria-labelledby="titulo-editor-perfil" hidden>
+      <div class="encabezado"><h2 id="titulo-editor-perfil">Personalizar página · práctica local</h2><button type="button" id="cerrar-perfil">Cerrar</button></div>
+      <p>Los cambios se aplican solo a tu copia de práctica. No introduzcas información real ni datos personales.</p>
+      <form id="form-perfil">
+        <div class="campos-editor">
+          <label>Nombre comercial <input name="nombre" maxlength="80" required></label>
+          <label>Icono <select name="icono"><option>☕</option><option>✂️</option><option>🐾</option><option>🌮</option><option>🔧</option><option>🏪</option><option>⭐</option><option>🌿</option><option>💼</option></select></label>
+          <label>Color principal <input type="color" name="color"></label>
+          <label>Color de fondo <input type="color" name="fondo"></label>
+          <label class="campo-ancho">Lema <input name="lema" maxlength="100" required></label>
+          <label class="campo-ancho">Descripción <textarea name="descripcion" maxlength="280" rows="2" required></textarea></label>
+          <label>Horario <input name="horario" maxlength="120" required></label>
+          <label>Ubicación ficticia <input name="ubicacion" maxlength="140" required></label>
+          <label class="campo-ancho">Contacto de ejemplo (texto, no enlace) <input name="contacto" maxlength="140"></label>
+        </div>
+        <div class="acciones-demo"><button type="submit" class="principal">Aplicar personalización</button><button type="button" id="restaurar-perfil">Restaurar identidad original</button></div>
+      </form>
+      <p id="aviso-perfil" role="status" aria-live="polite"></p>
     </section>
     <section id="editor" class="editor" aria-labelledby="titulo-editor" hidden>
       <div class="encabezado"><h2 id="titulo-editor">Editor de catálogo · práctica local</h2><button type="button" id="cerrar-editor">Cerrar editor</button></div>
