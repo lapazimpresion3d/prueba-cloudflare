@@ -1,0 +1,2 @@
+# 45.6.1 · Roles personalizados de práctica
+Alta, edición, eliminación protegida y asignación de hasta 30 puestos por negocio/plan. Cada puesto hereda un perfil base (administrador, encargado o cajero); propietario reservado. El nombre se muestra en personal y selectores POS. Los permisos existentes siguen evaluando el perfil base. No hay editor granular ni autorización real de servidor. Persistencia local del navegador; no migraciones ni main.

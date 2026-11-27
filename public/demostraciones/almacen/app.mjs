@@ -1,9 +1,10 @@
+import {nombreRolEmpleado} from "../empresa-practica.mjs";
 import {crearPosPractica} from "../pos-practica.mjs";import {crearCatalogosLocales} from "../catalogo-local.mjs";import {obtenerEstablecimiento} from "../establecimientos.mjs";import {estadoExistencia} from "../inventario-practica.mjs";import {csvFilas} from "../almacen-practica.mjs";import {enlacesDemo} from "../presentaciones.mjs";
 const $=id=>document.getElementById(id),el=(tag,t)=>{const n=document.createElement(tag);if(t!==undefined)n.textContent=t;return n;},opt=(t,v)=>new Option(t,v),q=new URLSearchParams(location.search),id=q.get("negocio"),plan=q.get("plan");
 try{const store=crearPosPractica(sessionStorage,id,plan,{empresaStorage:localStorage}),e=obtenerEstablecimiento(id),catalogo=crearCatalogosLocales(sessionStorage).leer(id),d=store.empresa();const nombre=p=>catalogo.find(x=>x.id===p)?.nombre??p;
  $("titulo").textContent="Almacenes · "+e.nombre;$("volver").href=enlacesDemo(id,plan).administracion;$("sucursal").replaceChildren(...d.activas.map(s=>opt("Sucursal "+s,s)));$("sucursal").value=d.activas.includes(Number(q.get("sucursal")))?q.get("sucursal"):d.sucursal;
  const actor=()=>[Number($("sucursal").value),Number($("empleado").value)],aviso=t=>$("aviso").textContent=t;
- function empleados(){const d=store.empresa(),s=Number($("sucursal").value);$("empleado").replaceChildren(...d.personal.flatMap((r,i)=>d.asignaciones[i]===null||d.asignaciones[i]===s?[opt("Empleado "+(i+1)+" · "+r,i)]:[]));}
+ function empleados(){const d=store.empresa(),s=Number($("sucursal").value);$("empleado").replaceChildren(...d.personal.flatMap((r,i)=>d.asignaciones[i]===null||d.asignaciones[i]===s?[opt("Empleado "+(i+1)+" · "+nombreRolEmpleado(d,i),i)]:[]));}
  empleados();if([...$("empleado").options].some(o=>o.value===q.get("empleado")))$("empleado").value=q.get("empleado");
  let datos=null;const boton=(t,fn)=>{const b=el("button",t);b.type="button";b.onclick=fn;return b;},num=n=>{if(n.value.trim()==="")throw Error("Introduce unidades.");return Number(n.value);};
  function hacer(fn){try{fn();render();aviso("Movimiento de prueba guardado.");}catch(e){aviso(e.message);}}

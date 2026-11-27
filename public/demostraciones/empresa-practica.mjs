@@ -2,6 +2,35 @@ import {obtenerEstablecimiento} from "./establecimientos.mjs";
 import {planes,capacidades,limitesPlanes as limites} from "./config.mjs";
 import {planesRepresentativos,enlacesDemo} from "./presentaciones.mjs";
 const roles=["propietario","administrador","encargado","cajero"];
+const normalizarNombre=s=>s.trim().normalize("NFC").toLocaleLowerCase("es-MX");
+export function validarRolesPersonalizados(lista=[]){
+ if(!Array.isArray(lista)||lista.length>30)throw Error("Máximo 30 roles personalizados.");
+ const ids=new Set(),nombres=new Set(roles);return lista.map(x=>{
+ if(!x||typeof x.id!=="string"||!/^ROL-[a-zA-Z0-9-]{1,80}$/.test(x.id)||typeof x.nombre!=="string"||!x.nombre.trim()||x.nombre.trim().length>60||!roles.slice(1).includes(x.base)||ids.has(x.id)||nombres.has(normalizarNombre(x.nombre)))throw Error("Nombre, perfil base o identificador de rol inválido o repetido.");
+ ids.add(x.id);nombres.add(normalizarNombre(x.nombre));return {id:x.id,nombre:x.nombre.trim(),base:x.base};});
+}
+export function guardarRolPersonalizado(d,id,nombre,base){
+ const lista=d.rolesPersonalizados??[],actual=lista.find(x=>x.id===id);
+ const rolesPersonalizados=validarRolesPersonalizados(actual?lista.map(x=>x.id===id?{id,nombre,base}:x):[...lista,{id,nombre,base}]);
+ const personal=[...d.personal],asignaciones=[...d.asignaciones],rolesAsignados=[...(d.rolesAsignados??personal.map(()=>null))];
+ rolesAsignados.forEach((r,i)=>{if(r===id){personal[i]=base;asignaciones[i]=base==="administrador"?null:(asignaciones[i]??d.sucursal);}});
+ return {...d,rolesPersonalizados,personal,asignaciones,rolesAsignados};
+}
+export function quitarRolPersonalizado(d,id){
+ if(!(d.rolesPersonalizados??[]).some(x=>x.id===id))throw Error("Rol inexistente.");
+ if((d.rolesAsignados??[]).includes(id))throw Error("Reasigna primero a los empleados que utilizan este rol.");
+ return {...d,rolesPersonalizados:d.rolesPersonalizados.filter(x=>x.id!==id)};
+}
+export function asignarRolPersonalizado(d,i,id){
+ if(!Number.isInteger(i)||i<1||i>=d.personal.length)throw Error("Empleado inválido.");
+ const personalizado=(d.rolesPersonalizados??[]).find(x=>x.id===id),base=personalizado?.base??id;
+ if(!roles.slice(1).includes(base))throw Error("Rol desconocido.");
+ const personal=[...d.personal],asignaciones=[...d.asignaciones],rolesAsignados=[...(d.rolesAsignados??personal.map(()=>null))];
+ personal[i]=base;asignaciones[i]=base==="administrador"?null:(asignaciones[i]??d.sucursal);rolesAsignados[i]=personalizado?.id??null;
+ return {...d,personal,asignaciones,rolesAsignados};
+}
+export function nombreRolEmpleado(d,i){return (d.rolesPersonalizados??[]).find(x=>x.id===d.rolesAsignados?.[i])?.nombre??d.personal[i];}
+
 export function contextoEmpresa(id,plan){
  const negocio=obtenerEstablecimiento(id), paquete=planes.find(p=>p.id===plan);
  if(!negocio||!paquete)throw Error("Contexto inválido.");
@@ -14,7 +43,9 @@ function validar(c,d){
  const activas=d.activas===undefined?inicial(c).activas:d.activas;
  const asignaciones=d.asignaciones===undefined?d.personal.map((r,i)=>i&&["encargado","cajero"].includes(r)?d.sucursal:null):d.asignaciones;
  if(!Array.isArray(activas)||!activas.includes(1)||!activas.includes(d.sucursal)||new Set(activas).size!==activas.length||activas.some(s=>!Number.isInteger(s)||s<1||s>c.sucursales)||!Array.isArray(asignaciones)||asignaciones.length!==d.personal.length||asignaciones.some((s,i)=>["propietario","administrador"].includes(d.personal[i])?s!==null:!activas.includes(s)))throw Error("Sucursal o alcance de práctica inválidos.");
- return {sucursal:d.sucursal,personal:[...d.personal],activas:[...activas].sort((a,b)=>a-b),asignaciones:[...asignaciones]};
+ const rolesPersonalizados=validarRolesPersonalizados(d.rolesPersonalizados??[]),rolesAsignados=d.rolesAsignados??d.personal.map(()=>null);
+ if(!Array.isArray(rolesAsignados)||rolesAsignados.length!==d.personal.length||rolesAsignados[0]!==null||rolesAsignados.some((r,i)=>r!==null&&!rolesPersonalizados.some(x=>x.id===r&&x.base===d.personal[i])))throw Error("Asignación de rol personalizado inválida.");
+ return {sucursal:d.sucursal,personal:[...d.personal],activas:[...activas].sort((a,b)=>a-b),asignaciones:[...asignaciones],...(rolesPersonalizados.length||d.rolesPersonalizados!==undefined?{rolesPersonalizados,rolesAsignados}:{})};
 }
 export function almacenEmpresa(c,storage){
  return {
@@ -39,6 +70,8 @@ export function montarEmpresa(root,id,plan,storage){
  rol.replaceChildren(...roles.slice(1).map(r=>option(r,r)));
  $("#empresa-limites").textContent=c.paquete.nombre+" · Hasta "+c.usuarios+" usuarios y "+c.sucursales+" sucursales (límites propuestos)";
  function render(d){
+  const personalizados=d.rolesPersonalizados??[],opcionesRoles=()=>[...roles.slice(1).map(r=>option(r,r)),...personalizados.map(r=>option(r.nombre+" ("+r.base+")",r.id))];rol.replaceChildren(...opcionesRoles());
+  $("#empresa-roles-personalizados").replaceChildren(...personalizados.map(r=>{const li=el("li",r.nombre+" · Permisos de "+r.base+" ");const editar=el("button","Editar"),borrar=el("button","Eliminar");editar.type=borrar.type="button";editar.onclick=()=>{$("#empresa-rol-id").value=r.id;$("#empresa-rol-nombre").value=r.nombre;$("#empresa-rol-base").value=r.base;$("#empresa-rol-nombre").focus();};borrar.onclick=()=>{if(!confirm("¿Eliminar el rol "+r.nombre+"?"))return;try{cambiar(quitarRolPersonalizado(a.leer(),r.id));}catch(e){aviso.textContent=e.message;}};li.append(editar," ",borrar);return li;}));
   sucursal.replaceChildren(...d.activas.map(s=>option(nombreSucursal(s),String(s))));
   sucursal.value=String(d.sucursal);
   $("#empresa-uso").textContent=d.personal.length+" / "+c.usuarios+" usuarios · "+d.activas.length+" / "+c.sucursales+" sucursales activas";
@@ -49,17 +82,21 @@ export function montarEmpresa(root,id,plan,storage){
   $("#empresa-personal").replaceChildren(...d.personal.map((r,i)=>{
    const li=el("li","Empleado de ejemplo "+(i+1)+" · ");if(!i){li.append("Propietario · Toda la empresa");return li;}
    const selector=el("select"),alcance=el("select"),b=el("button","Quitar");selector.setAttribute("aria-label","Rol del empleado "+(i+1));alcance.setAttribute("aria-label","Sucursal del empleado "+(i+1));
-   selector.replaceChildren(...roles.slice(1).map(x=>option(x,x)));selector.value=r;
+   selector.replaceChildren(...opcionesRoles());selector.value=d.rolesAsignados?.[i]??r;
    alcance.replaceChildren(...(r==="administrador"?[option("Toda la empresa","")]:d.activas.map(s=>option(nombreSucursal(s),String(s)))));alcance.value=d.asignaciones[i]===null?"":String(d.asignaciones[i]);alcance.disabled=r==="administrador";
-   selector.onchange=()=>{const v=a.leer();v.personal[i]=selector.value;v.asignaciones[i]=selector.value==="administrador"?null:(v.asignaciones[i]??v.sucursal);cambiar(v);};
+   selector.onchange=()=>{try{cambiar(asignarRolPersonalizado(a.leer(),i,selector.value));}catch(e){aviso.textContent=e.message;}};
    alcance.onchange=()=>{const v=a.leer();v.asignaciones[i]=Number(alcance.value);cambiar(v);};
-   b.type="button";b.onclick=()=>{const v=a.leer();cambiar({...v,personal:v.personal.filter((_,j)=>j!==i),asignaciones:v.asignaciones.filter((_,j)=>j!==i)});};li.append(selector," ",alcance," ",b);return li;
+   b.type="button";b.onclick=()=>{const v=a.leer();cambiar({...v,personal:v.personal.filter((_,j)=>j!==i),asignaciones:v.asignaciones.filter((_,j)=>j!==i),...(v.rolesAsignados?{rolesAsignados:v.rolesAsignados.filter((_,j)=>j!==i)}:{})});};li.append(selector," ",alcance," ",b);return li;
   }));
   $("#empresa-agregar").disabled=d.personal.length>=c.usuarios;
  }
  function cambiar(d){try{render(a.guardar(d));aviso.textContent="Cambio guardado en este navegador.";}catch(e){render(a.leer());aviso.textContent=e.message;}}
  sucursal.onchange=()=>cambiar({...a.leer(),sucursal:Number(sucursal.value)});
- $("#empresa-agregar").onclick=()=>{const d=a.leer();cambiar({...d,personal:[...d.personal,rol.value],asignaciones:[...d.asignaciones,rol.value==="administrador"?null:d.sucursal]});};
+ $("#empresa-agregar").onclick=()=>{const d=a.leer(),p=(d.rolesPersonalizados??[]).find(x=>x.id===rol.value),base=p?.base??rol.value;cambiar({...d,personal:[...d.personal,base],asignaciones:[...d.asignaciones,base==="administrador"?null:d.sucursal],...(d.rolesPersonalizados?{rolesAsignados:[...(d.rolesAsignados??d.personal.map(()=>null)),p?.id??null]}:{})});};
+ const limpiarRol=()=>{$("#empresa-rol-id").value="";$("#empresa-rol-nombre").value="";$("#empresa-rol-base").value="encargado";};
+ $("#empresa-rol-nuevo").onclick=limpiarRol;
+ $("#empresa-rol-guardar").onclick=()=>{try{const d=a.leer(),id=$("#empresa-rol-id").value||"ROL-"+crypto.randomUUID();const v=guardarRolPersonalizado(d,id,$("#empresa-rol-nombre").value,$("#empresa-rol-base").value);render(a.guardar(v));limpiarRol();aviso.textContent="Rol personalizado guardado.";}catch(e){aviso.textContent=e.message;}};
+
  $("#empresa-restaurar").onclick=()=>{if(confirm("¿Restaurar solo personal y contexto de este negocio y plan?"))try{render(a.restaurar());aviso.textContent="Contexto restaurado.";}catch(e){aviso.textContent=e.message;}};
  $("#empresa-modulos").replaceChildren(...c.modulos.map(m=>el("li",m.nombre+" — "+({disponible:"Práctica disponible",en_desarrollo:"En desarrollo",otro_plan:"Plan superior",ejemplo:"Vista previa"}[m.estadoEfectivo]))));
  render(a.leer());

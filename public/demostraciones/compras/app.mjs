@@ -1,10 +1,11 @@
+import {nombreRolEmpleado} from "../empresa-practica.mjs";
 import {crearPosPractica} from "../pos-practica.mjs";import {crearCatalogosLocales} from "../catalogo-local.mjs";import {obtenerEstablecimiento} from "../establecimientos.mjs";import {centavosDesdeTexto} from "../catalogo-local.mjs";import {importe} from "../config.mjs";import {csvFilas} from "../almacen-practica.mjs";import {enlacesDemo} from "../presentaciones.mjs";
 const $=id=>document.getElementById(id),el=(tag,t)=>{const n=document.createElement(tag);if(t!==undefined)n.textContent=t;return n;},opt=(t,v)=>new Option(t,v),q=new URLSearchParams(location.search),id=q.get("negocio"),plan=q.get("plan");
 try{
  const store=crearPosPractica(sessionStorage,id,plan,{empresaStorage:localStorage}),catalogo=crearCatalogosLocales(sessionStorage).leer(id).filter(p=>p.tipo!=="servicio"),e=obtenerEstablecimiento(id),d=store.empresa();const nombre=id=>catalogo.find(p=>p.id===id)?.nombre??datos?.insumos?.find(p=>p.id===id)?.nombre??id;
  $("titulo").textContent="Compras · "+e.nombre;$("volver").href=enlacesDemo(id,plan).administracion;$("sucursal").replaceChildren(...d.activas.map(s=>opt("Sucursal "+s,s)));$("sucursal").value=d.activas.includes(Number(q.get("sucursal")))?q.get("sucursal"):d.sucursal;
  const actor=()=>[Number($("sucursal").value),Number($("empleado").value)],aviso=t=>$("aviso").textContent=t;
- function empleados(){const d=store.empresa(),s=Number($("sucursal").value);$("empleado").replaceChildren(...d.personal.flatMap((r,i)=>r!=="cajero"&&(d.asignaciones[i]===null||d.asignaciones[i]===s)?[opt("Empleado "+(i+1)+" · "+r,i)]:[]));}
+ function empleados(){const d=store.empresa(),s=Number($("sucursal").value);$("empleado").replaceChildren(...d.personal.flatMap((r,i)=>r!=="cajero"&&(d.asignaciones[i]===null||d.asignaciones[i]===s)?[opt("Empleado "+(i+1)+" · "+nombreRolEmpleado(d,i),i)]:[]));}
  const boton=(t,fn)=>{const b=el("button",t);b.type="button";b.onclick=fn;return b;},label=(t,n)=>{const l=el("label",t);l.append(n);return l;},num=(v,max=1000000)=>{const n=el("input");n.type="number";n.min=0;n.max=max;n.step=1;n.value=v;return n;},leerNum=n=>{if(n.value.trim()==="")throw Error("Introduce cantidad.");return Number(n.value);};
  let datos,articulos=[],partidas=[];
  function hacer(fn){try{fn();render();aviso("Operación de prueba guardada.");}catch(e){aviso(e.message);}}

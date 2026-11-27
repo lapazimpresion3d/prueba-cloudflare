@@ -1,3 +1,4 @@
+import {nombreRolEmpleado} from "../empresa-practica.mjs";
 import {comprobanteCorte} from "../comprobantes-practica.mjs";
 import {montarComprobante} from "../comprobantes-ui.mjs";
 import {crearPosPractica,motivosCaja} from "../pos-practica.mjs";
@@ -12,7 +13,7 @@ try{
  $("titulo").textContent="Caja y cortes · "+e.nombre;$("volver").href=enlacesDemo(id,plan).administracion;
  $("sucursal").replaceChildren(...d.activas.map(s=>opt("Sucursal "+s,s)));$("sucursal").value=d.activas.includes(Number(q.get("sucursal")))?q.get("sucursal"):d.sucursal;
  const actor=()=>[Number($("sucursal").value),Number($("empleado").value)];
- function empleados(){const d=store.empresa(),s=Number($("sucursal").value);$("empleado").replaceChildren(...d.personal.flatMap((r,i)=>d.asignaciones[i]===null||d.asignaciones[i]===s?[opt("Empleado "+(i+1)+" · "+r,i)]:[]));}
+ function empleados(){const d=store.empresa(),s=Number($("sucursal").value);$("empleado").replaceChildren(...d.personal.flatMap((r,i)=>d.asignaciones[i]===null||d.asignaciones[i]===s?[opt("Empleado "+(i+1)+" · "+nombreRolEmpleado(d,i),i)]:[]));}
  empleados();if([...$("empleado").options].some(o=>o.value===q.get("empleado")))$("empleado").value=q.get("empleado");
  const aviso=t=>$("aviso").textContent=t;
  const campos={fondo:"Fondo inicial",efectivo:"Ventas efectivo",transferencia:"Transferencias",tarjeta_externa:"Tarjeta",ingresos:"Ingresos",retiros:"Retiros",totalVentas:"Ventas netas",esperado:"Efectivo esperado"};

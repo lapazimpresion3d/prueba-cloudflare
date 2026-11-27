@@ -1,9 +1,10 @@
+import {nombreRolEmpleado} from "../empresa-practica.mjs";
 import {crearPosPractica} from "../pos-practica.mjs";import {estadoExistencia,motivosInventario} from "../inventario-practica.mjs";import {obtenerEstablecimiento} from "../establecimientos.mjs";import {crearCatalogosLocales,imagenOfertaSegura} from "../catalogo-local.mjs";import {enlacesDemo} from "../presentaciones.mjs";
 const $=id=>document.getElementById(id),el=(tag,t)=>{const n=document.createElement(tag);if(t!==undefined)n.textContent=t;return n;},opt=(t,v)=>new Option(t,v),q=new URLSearchParams(location.search),id=q.get("negocio"),plan=q.get("plan");
 try{const store=crearPosPractica(sessionStorage,id,plan,{empresaStorage:localStorage}),e=obtenerEstablecimiento(id),catalogo=crearCatalogosLocales(sessionStorage).leer(id),d=store.empresa();
  $("titulo").textContent="Inventario · "+e.nombre;$("volver").href=enlacesDemo(id,plan).administracion;$("sucursal").replaceChildren(...d.activas.map(s=>opt("Sucursal "+s,s)));$("sucursal").value=d.activas.includes(Number(q.get("sucursal")))?q.get("sucursal"):d.sucursal;
  const actor=()=>[Number($("sucursal").value),Number($("empleado").value)];
- function empleados(){const d=store.empresa(),s=Number($("sucursal").value);$("empleado").replaceChildren(...d.personal.flatMap((r,i)=>d.asignaciones[i]===null||d.asignaciones[i]===s?[opt("Empleado "+(i+1)+" · "+r,i)]:[]));}
+ function empleados(){const d=store.empresa(),s=Number($("sucursal").value);$("empleado").replaceChildren(...d.personal.flatMap((r,i)=>d.asignaciones[i]===null||d.asignaciones[i]===s?[opt("Empleado "+(i+1)+" · "+nombreRolEmpleado(d,i),i)]:[]));}
  empleados();if([...$("empleado").options].some(o=>o.value===q.get("empleado")))$("empleado").value=q.get("empleado");
  const aviso=t=>$("aviso").textContent=t,boton=(t,fn)=>{const b=el("button",t);b.type="button";b.onclick=fn;return b;},campo=(t,n)=>{const l=el("label",t);l.append(n);return l;},num=v=>{const n=el("input");n.type="number";n.min="0";n.max="1000000";n.step="1";n.value=v;return n;},entero=n=>{if(n.value.trim()==="")throw Error("Introduce una cantidad.");return Number(n.value);};
  const nombres={sin_control:"Sin control",agotado:"Agotado",bajo:"Bajo mínimo",disponible:"Disponible"};

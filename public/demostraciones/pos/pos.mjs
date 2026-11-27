@@ -1,3 +1,4 @@
+import {nombreRolEmpleado} from "../empresa-practica.mjs";
 import {estadoExistencia} from "../inventario-practica.mjs";
 import {comprobanteVenta} from "../comprobantes-practica.mjs";
 import {montarComprobante} from "../comprobantes-ui.mjs";
@@ -19,7 +20,7 @@ try{
  let lineas=[],resumen=null;
  const d=store.empresa();$("sucursal").replaceChildren(...d.activas.map(s=>opt("Sucursal "+s,s)));$("sucursal").value=d.sucursal;
  const actor=()=>({sucursal:Number($("sucursal").value),empleado:Number($("empleado").value)});
- function empleados(){const d=store.empresa(),s=Number($("sucursal").value);$("empleado").replaceChildren(...d.personal.flatMap((r,i)=>d.asignaciones[i]===null||d.asignaciones[i]===s?[opt("Empleado "+(i+1)+" · "+r,i)]:[]));}
+ function empleados(){const d=store.empresa(),s=Number($("sucursal").value);$("empleado").replaceChildren(...d.personal.flatMap((r,i)=>d.asignaciones[i]===null||d.asignaciones[i]===s?[opt("Empleado "+(i+1)+" · "+nombreRolEmpleado(d,i),i)]:[]));}
  empleados();
  if(d.activas.includes(Number(q.get("sucursal")))){$("sucursal").value=q.get("sucursal");empleados();}if([...$("empleado").options].some(o=>o.value===q.get("empleado")))$("empleado").value=q.get("empleado");
  $("cliente").replaceChildren(opt("Público general",""),...clientesDemo.map(c=>opt(c.nombre,c.id)));
