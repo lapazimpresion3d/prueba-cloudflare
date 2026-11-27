@@ -1,3 +1,4 @@
+import {admiteCuentas} from "../cuentas-practica.mjs";
 import {admiteMesas} from "../mesas-practica.mjs";
 import {establecimientos} from "../establecimientos.mjs";
 import {admitePedidos} from "../pedidos-practica.mjs";
@@ -9,7 +10,7 @@ async function comprobar(){
  let correctos=0,total=0;
  for(const e of establecimientos){
   const card=el("section");card.className="cabecera-admin";card.append(el("h2",e.nombre));
-  for(const plan of ["p1","p2"]){
+  for(const plan of e.id==="taqueria-el-comal"?["p1","p2","p4"]:["p1","p2"]){
    const q=new URLSearchParams({negocio:e.id,plan});
    const a=el("a",plan.toUpperCase()+" · Abrir página");a.href="../negocio/?"+q;
    const p=el("p");const admin=el("a","Abrir panel");admin.href="../?"+q+"&vista=administracion";p.append(a,el("span"," · "),admin,el("span"," · "));
@@ -23,6 +24,7 @@ async function comprobar(){
     if(admitePedidos(e.id,plan))flags.push(["Pedidos",v.pedidosConfigurados]);
     if(admiteCitas(e.id,plan))flags.push(["Citas",v.citasConfiguradas]);
     if(admiteMesas(e.id,plan))flags.push(["Reservaciones",v.reservacionesConfiguradas]);
+    if(admiteCuentas(e.id,plan))flags.push(["Cuentas",v.cuentasConfiguradas]);
     const listo=flags.every(x=>x[1]===true);
     if(listo)correctos++;
     p.append(el("strong",listo?"Configuración correcta":"Configuración pendiente"),el("span"," · "+flags.map(([n,b])=>n+": "+(b===true?"sí":"no")).join(" / ")));
