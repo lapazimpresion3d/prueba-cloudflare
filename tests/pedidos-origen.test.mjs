@@ -1,0 +1,12 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {detectarPedidos,crearPedidosRemotos} from "../public/demostraciones/pedidos-remotos.mjs";
+const estado={establecimiento:"cafe-mirador",pedidos:[{folio:"DEMO-1"}],expira:2000000000};
+const mock=(configurado=true,datos=estado)=>({disponibilidad:async()=>configurado,leerEstado:async()=>{if(datos)return datos;throw Object.assign(Error("sin sesión"),{status:401});}});
+test("encargado detecta sesión existente sin crear otra",async()=>{assert.equal((await detectarPedidos(mock(),{encargado:true})).servidor,true);});
+test("no cambia una elección explícita ni mezcla pedidos locales",async()=>{for(const opts of [{preferencia:"local"},{locales:1}]){const d=await detectarPedidos(mock(),opts);assert.equal(d.servidor,false);assert.equal(d.estado.pedidos.length,1);}});
+test("cliente nuevo usa servidor sin iniciar sesión durante consulta",async()=>{assert.equal((await detectarPedidos(mock(true,null))).servidor,true);assert.equal((await detectarPedidos(mock(true,null),{encargado:true})).servidor,false);});
+test("catálogo personalizado sin sesión usa práctica local",async()=>{assert.equal((await detectarPedidos(mock(true,null),{personalizado:true})).servidor,false);});
+test("tabla ausente mantiene origen explícito y solicitud pendiente",async()=>{assert.equal((await detectarPedidos(mock(false))).servidor,false);assert.equal((await detectarPedidos(mock(false),{pendiente:true})).servidor,true);assert.equal((await detectarPedidos(mock(false),{preferencia:"servidor"})).configurado,false);});
+test("fallo del servidor no equivale a sesión nueva",async()=>{await assert.rejects(detectarPedidos({disponibilidad:async()=>true,leerEstado:async()=>{throw Error("red");}}),/red/);});
+test("adaptador consulta contexto e historial sin POST",async()=>{const llamadas=[];const remoto=crearPedidosRemotos("cafe-mirador","p2",async(url,o)=>{llamadas.push(o.method);return {ok:true,json:async()=>url.includes("contexto")?{pedidosConfigurados:true}:estado};});assert.equal((await detectarPedidos(remoto,{encargado:true})).servidor,true);assert.deepEqual(llamadas,["GET","GET"]);});
