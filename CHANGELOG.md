@@ -71,3 +71,9 @@
 - cf2963a: bloqueo visual de entrega hasta registrar cobro.
 - El código de desarrollo contiene validación SQL de entrega y validaciones de dirección/colonia/teléfono para domicilio.
 - Ver docs/auditoria-2026-11-13.md.
+
+## 2026-11-27 — v0.7 Catálogo visual de práctica
+- Carga, optimización y eliminación de fotos de productos, persistencia local y D1 en tabla existente; guardado de catálogo disponible en panel.
+- Cargas independientes de logo y portada. Límite agregado 300000 bytes por catálogo, foto 45000 caracteres JPEG.
+- 24 comprobaciones lógicas, 20 páginas, 20 filtros, 3 URLs inválidas y 1 foto de práctica en DOM simulado. Suite integrada y navegador pendientes.
+- Propietario reportó creación de demo_perfiles. Preview no accesible desde herramienta; no se modificó main, D1 remota ni sitio comercial.
