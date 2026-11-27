@@ -6,12 +6,12 @@ import {crearPedidosRemotos,prepararSolicitudPedido,detectarPedidos} from "./ped
 const $=id=>document.getElementById(id);
 function nodo(tag,texto,clase){const n=document.createElement(tag);if(texto!==undefined)n.textContent=texto;if(clase)n.className=clase;return n;}
 function boton(texto,accion){const b=nodo("button",texto,"boton-pedido");b.type="button";b.addEventListener("click",accion);return b;}
-export function iniciarCarrito(datos,plan,practica){
+export function iniciarCarrito(datos,plan,practica,mesa=null){
   if(!admitePedidos(datos.id,plan))return null;
   let almacen;try{almacen=sessionStorage;}catch{}
   const repo=crearPedidosPractica(almacen,datos.id,plan);
-  const clave="lapaz:demo:carrito:v1:"+datos.id+(practica?":personalizado":":original");
-  const modos=modalidadesPedido(datos.id);
+  const clave="lapaz:demo:carrito:v1:"+datos.id+(practica?":personalizado":":original")+(mesa?":mesa:"+mesa:"");
+  const modos=modalidadesPedido(datos.id).filter(m=>!mesa||m.id==="local");
   const remoto=crearPedidosRemotos(datos.id,plan),claveModo="lapaz:demo:pedidos:modo:"+datos.id,clavePendiente=clave+":pendiente";
   let lineas=[],enviando=false,servidor=false,conectando=false,pendiente=null,consultando=0,preferencia=null,comprobando=true,configurado=null,expira=null,totalRemoto=null;
   try{preferencia=almacen?.getItem(claveModo);servidor=preferencia==="servidor";const p=JSON.parse(almacen?.getItem(clavePendiente)||"null");if(p?.datos?.solicitud&&Array.isArray(p.datos.lineas)){pendiente=p;servidor=true;}else if(p?.solicitud&&Array.isArray(p.lineas)){pendiente={datos:p,expira:null};servidor=true;}}catch{}
@@ -31,16 +31,17 @@ export function iniciarCarrito(datos,plan,practica){
   elegir("cliente-pedido",clientesDemo,"Selecciona un cliente");
   elegir("pago-pedido",pagosDemo,"Selecciona forma de pago");
   elegir("nota-pedido",notasPedidoDemo);
-  elegir("mesa-pedido",mesasDemo.map(id=>({id,nombre:"Mesa "+id})),"Selecciona una mesa");
+  elegir("mesa-pedido",mesasDemo.filter(id=>!mesa||id===mesa).map(id=>({id,nombre:"Mesa "+id})),mesa?null:"Selecciona una mesa");
+  if(mesa){$("modalidad-pedido").value="local";$("mesa-pedido").value=mesa;}
   elegir("direccion-pedido",direccionesDemo.map(x=>({id:x.id,nombre:x.calle+" · "+x.colonia})),"Selecciona dirección");
-  function datosCliente(){return seleccionPedido({cliente:$("cliente-pedido").value,pago:$("pago-pedido").value,nota:$("nota-pedido").value,mesa:$("mesa-pedido").value,direccion:$("direccion-pedido").value},$("modalidad-pedido").value,datos.giro);}
+  function datosCliente(){return seleccionPedido({cliente:$("cliente-pedido").value,pago:$("pago-pedido").value,nota:$("nota-pedido").value,mesa:(mesa||$("mesa-pedido").value),direccion:$("direccion-pedido").value},$("modalidad-pedido").value,datos.giro);}
   function mostrarDatos(){
    const cliente=clientesDemo.find(x=>x.id===$("cliente-pedido").value),dir=direccionesDemo.find(x=>x.id===$("direccion-pedido").value);
    $("telefono-pedido").value=cliente?.telefono||"";
    $("detalle-direccion").textContent=dir?dir.colonia+" · "+dir.referencias:"";
    $("campo-mesa").hidden=!(datos.giro==="restaurante"&&$("modalidad-pedido").value==="local");
    $("campos-entrega").hidden=$("modalidad-pedido").value!=="domicilio";
-   for(const k of ["cliente-pedido","pago-pedido","nota-pedido","mesa-pedido","direccion-pedido"])$(k).disabled=enviando||!!pendiente;
+   for(const k of ["cliente-pedido","pago-pedido","nota-pedido","mesa-pedido","direccion-pedido"])$(k).disabled=enviando||!!pendiente||!!mesa&&k==="mesa-pedido";
   }
   for(const k of ["cliente-pedido","pago-pedido","nota-pedido","mesa-pedido","direccion-pedido"])$(k).addEventListener("change",mostrarDatos);
   let temporizadorAviso;
@@ -94,7 +95,7 @@ export function iniciarCarrito(datos,plan,practica){
     $("enviar-pedido").disabled=comprobando||enviando||conectando||(!pendiente&&!r.detalle.length)||(servidor&&configurado!==true)||(!servidor&&configurado===null&&preferencia!=="local");
     $("enviar-pedido").textContent=pendiente?"Reintentar pedido pendiente":"Revisar pedido";
     $("vaciar-carrito").disabled=enviando||!!pendiente||!r.detalle.length;
-    $("modalidad-pedido").disabled=enviando||!!pendiente;
+    $("modalidad-pedido").disabled=enviando||!!pendiente||!!mesa;
     if(pendiente){const op=modos.find(m=>m.id===pendiente.datos.modalidad);if(op)$("modalidad-pedido").value=op.id;const d=pendiente.datos.datosCliente;if(d){for(const [k,v] of [["cliente-pedido",d.cliente],["pago-pedido",d.pago],["nota-pedido",d.nota],["mesa-pedido",d.mesa],["direccion-pedido",d.direccion]])$(k).value=v||"";}}
     mostrarDatos();
     $("modo-pedidos").textContent=servidor?"Práctica en servidor · sesión privada":"Práctica local · esta pestaña";
