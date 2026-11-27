@@ -1,4 +1,11 @@
 # Registro de cambios
+## 2026-11-26 — Cambio de estrategia comercial y multirrestaurante
+- Nueva secuencia: auditoría, base SaaS común, Presencia digital, Restaurante interactivo, Punto de venta integral y Administración profesional.
+- Precios configurables en MXN + IVA y demos Café Mirador, La Hamburguesería, Mariscos La Bahía y Taquería El Comal.
+- Separación de datos y módulos por plan desde la primera etapa; QR opcional y operación tradicional soportada en POS.
+- Auditoría estática de 18 migraciones y módulos del repositorio; sin cambios de código, configuración, migraciones ni datos. main permanece intacta.
+- Ver ROADMAP.md y docs/auditoria-multirrestaurante-2026-11-26.md. El nuevo ROADMAP sustituye el orden previo.
+
 ## 2026-11-26 — Seguridad y pruebas reproducibles
 - Lector JSON compartido con límites por operación; HTTP 413/415.
 - Reserva atómica de intentos de inicio de sesión y enrutamiento de API reforzado.
