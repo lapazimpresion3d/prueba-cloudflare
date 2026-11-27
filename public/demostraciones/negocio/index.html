@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer"><meta name="robots" content="noindex,nofollow">
+<title>Negocio de demostración</title>
+<link rel="stylesheet" href="./negocio.css"><script type="module" src="./negocio.mjs"></script>
+</head>
+<body>
+<a class="salto" href="#contenido">Ir al contenido</a>
+<div class="demo-bar"><span>Demostración comercial · negocio ficticio</span><a href="https://lapazimpresion3d.com/#paginas-web">Volver a Lapazimpresion3d</a></div>
+<p id="error" role="alert" hidden></p>
+<div id="pagina" hidden>
+<header class="cabecera">
+  <a class="identidad" href="#inicio"><span id="logo" class="logo" aria-hidden="true"></span><span id="nombre"></span></a>
+  <nav aria-label="Navegación del negocio"><a href="#inicio">Inicio</a><a id="nav-catalogo" href="#catalogo">Catálogo</a><a href="#nosotros">Nosotros</a><a href="#contacto">Contacto</a></nav>
+</header>
+<main id="contenido">
+  <section id="inicio" class="hero" aria-labelledby="titulo">
+    <div class="hero-texto"><p id="distintivo" class="sobrelinea"></p><h1 id="titulo"></h1><p id="entrada"></p><a id="accion" class="principal" href="#catalogo"></a></div>
+    <div class="hero-arte" id="arte" aria-hidden="true"></div>
+  </section>
+  <section class="destacados" id="destacados" aria-label="Especialidades"></section>
+  <section class="bloque" id="catalogo" aria-labelledby="titulo-catalogo">
+    <div class="encabezado"><div><p class="sobrelinea">DESCUBRE NUESTRA SELECCIÓN</p><h2 id="titulo-catalogo"></h2></div><p class="nota">Precios ilustrativos en MXN</p></div>
+    <div class="filtros"><label>Buscar<input id="buscar" type="search" placeholder="Buscar en el catálogo"></label><label>Categoría<select id="categoria"><option value="">Todas</option></select></label></div>
+    <p id="resultados" class="nota" role="status"></p><div id="productos" class="productos"></div>
+  </section>
+  <section id="nosotros" class="nosotros" aria-labelledby="titulo-nosotros">
+    <div><p class="sobrelinea">CONÓCENOS</p><h2 id="titulo-nosotros"></h2><p id="descripcion"></p><p id="historia"></p></div>
+    <div class="detalle-marca" id="detalle-marca" aria-hidden="true"></div>
+  </section>
+  <section class="bloque contacto" id="contacto" aria-labelledby="titulo-contacto">
+    <div><p class="sobrelinea">VISÍTANOS</p><h2 id="titulo-contacto">Horario y ubicación</h2><p id="horario"></p><p id="ubicacion"></p><p id="contacto-texto"></p></div>
+    <p class="nota">Este negocio es ficticio. No recibe pedidos, citas, pagos ni mensajes reales desde esta página.</p>
+  </section>
+</main>
+<footer><div><strong id="pie-nombre"></strong><p>Ejemplo de página comercial desarrollada por Lapazimpresion3d.</p></div><div class="demo-enlaces"><a id="administracion" href="../">Probar panel administrativo</a><a id="comparador" href="../">Explorar otras demostraciones</a><a href="https://lapazimpresion3d.com/#paginas-web">Volver al sitio comercial</a></div><p id="aviso-practica" hidden>Estás viendo tu personalización de práctica local; no está publicada.</p></footer>
+</div>
+<noscript>Activa JavaScript para consultar el ejemplo de negocio.</noscript>
+</body></html>
