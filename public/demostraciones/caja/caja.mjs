@@ -32,7 +32,8 @@ try{
  function hacer(fn){try{fn();render();aviso("Operación de prueba registrada.");}catch(e){aviso(e.message);}}
  $("sucursal").onchange=()=>{empleados();$("corte").hidden=true;$("contado").value="";render();};$("empleado").onchange=render;$("tipo").onchange=motivos;$("contado").oninput=diferencia;
  $("abrir").onclick=()=>hacer(()=>store.abrir(...actor(),centavosCobro($("fondo").value)));
- $("mover").onclick=()=>hacer(()=>{store.mover(...actor(),$("tipo").value,centavosCobro($("importe").value),$("motivo").value);$("importe").value="";});
- $("cerrar").onclick=()=>{if(confirm("¿Cerrar turno de prueba? No podrá modificarse después."))hacer(()=>{const t=store.cerrar(...actor(),centavosCobro($("contado").value));corte({...t,resumen:t.cierre.resumen});$("contado").value="";});};
+ const pendientes={};function ejecutarUnaVez(tipo,args,fn){const firma=JSON.stringify(args);if(pendientes[tipo]?.firma!==firma)pendientes[tipo]={firma,id:crypto.randomUUID()};const r=fn(...args,pendientes[tipo].id);delete pendientes[tipo];return r;}
+ $("mover").onclick=()=>hacer(()=>{ejecutarUnaVez("movimiento",[...actor(),$("tipo").value,centavosCobro($("importe").value),$("motivo").value],store.mover);$("importe").value="";});
+ $("cerrar").onclick=()=>{if(confirm("¿Cerrar turno de prueba? No podrá modificarse después."))hacer(()=>{const t=ejecutarUnaVez("cierre",[...actor(),centavosCobro($("contado").value)],store.cerrar);corte({...t,resumen:t.cierre.resumen});$("contado").value="";});};
  motivos();render();$("contenido").hidden=false;
 }catch(e){$("aviso").textContent=e.message;}
