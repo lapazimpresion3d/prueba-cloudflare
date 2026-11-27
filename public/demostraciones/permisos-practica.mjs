@@ -7,6 +7,7 @@ gruposPermisos.push(["Cotizaciones y trabajos",["cotizaciones.ver","Consultar co
 gruposPermisos.push(["Fidelización",["fidelizacion.ver","Consultar beneficios"],["fidelizacion.configurar","Configurar promociones y puntos"],["fidelizacion.tarjetas","Emitir y revocar tarjetas"]]);
 gruposPermisos.push(["Clientes",["clientes.ver","Consultar clientes"],["clientes.editar","Registrar y editar clientes"],["clientes.exportar","Exportar directorio"]]);
 gruposPermisos.push(["Reportes",["reportes.ver","Consultar reportes"],["reportes.exportar","Exportar reportes"]]);
+gruposPermisos.push(["Notificaciones",["alertas.ver","Consultar alertas"],["alertas.leer","Marcar alertas leídas"],["alertas.configurar","Configurar reglas generales"]]);
 export const permisosTodos=Object.freeze(gruposPermisos.flatMap(g=>g.slice(1).map(x=>x[0])));
 export function permisosBase(base){if(["propietario","administrador"].includes(base))return [...permisosTodos];if(base==="encargado")return permisosTodos.filter(x=>!["compras.proveedor","compras.pagar"].includes(x));if(base==="cajero")return ["ventas.ver","ventas.cobrar","caja.ver","caja.abrir","caja.cerrar","inventario.ver","almacen.ver"];return [];}
 export function validarPermisos(base,p){if(p===undefined)return undefined;if(!Array.isArray(p)||new Set(p).size!==p.length||p.some(x=>!permisosBase(base).includes(x)))throw Error("Permisos inválidos o superiores al perfil base.");return [...p];}

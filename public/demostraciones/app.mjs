@@ -59,6 +59,7 @@ function guardarURL(){
   $("admin-almacen").hidden=!admitePos(negocio.id,plan.id);$("admin-almacen").href="/demostraciones/almacen/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
   $("admin-inventario").hidden=!admitePos(negocio.id,plan.id);$("admin-inventario").href="/demostraciones/inventario/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
   $("admin-caja").hidden=!admitePos(negocio.id,plan.id);$("admin-caja").href="/demostraciones/caja/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
+  $("admin-alertas").hidden=plan.id!=="p4";$("admin-alertas").href="/demostraciones/alertas/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
   $("admin-reportes").hidden=!admitePos(negocio.id,plan.id);$("admin-reportes").href="/demostraciones/reportes/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
   $("admin-clientes").hidden=plan.id==="p1";$("admin-clientes").href="/demostraciones/clientes/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
   $("admin-fidelizacion").hidden=plan.id!=="p4";$("admin-fidelizacion").href="/demostraciones/fidelizacion/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
