@@ -83,3 +83,13 @@ test("límite de cinco sesiones por origen y limpieza en cascada",async()=>{
   await iniciar(env);
   assert.equal(env.DEMO_DB.sql.prepare("SELECT count(*) AS n FROM demo_catalogos").get().n,0);
 });
+
+test("una base sin marca de esquema no habilita persistencia ni sesiones",async()=>{
+  const env=envDemo();
+  env.DEMO_DB.sql.exec("DELETE FROM demo_identidad");
+  const r=await llamar(env,"/api/demo/contexto?negocio=cafe-mirador&plan=p1");
+  assert.equal((await r.json()).persistenciaConfigurada,false);
+  assert.equal((await llamar(env,"/api/demo/sesion","POST")).status,503);
+  env.DEMO_DB.sql.exec("INSERT INTO demo_identidad VALUES ('lapaz-demo-practica',1)");
+  assert.equal((await (await llamar(env,"/api/demo/contexto?negocio=cafe-mirador&plan=p1")).json()).persistenciaConfigurada,true);
+});
