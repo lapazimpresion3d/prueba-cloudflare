@@ -9,7 +9,7 @@
   <script type="module" src="./app.mjs"></script>
 </head>
 <body>
-  <header class="barra"><a href="https://lapazimpresion3d.com">← Lapazimpresion3d</a><span>Demostraciones comerciales</span><a href="/demo/">Demo original de El Comal</a></header>
+  <header class="barra"><a href="https://lapazimpresion3d.com">← Lapazimpresion3d</a><span id="titulo-barra">Demostraciones comerciales</span><a id="enlace-original" href="/demo/">Demo original de El Comal</a></header>
   <main>
     <section class="introduccion" id="introduccion">
       <p class="sobrelinea">PLATAFORMA MODULAR · VISTA PREVIA</p>
@@ -25,8 +25,19 @@
       <div id="planes" class="planes" role="group" aria-label="Planes comerciales"></div>
       <p class="nota">Precios en MXN más IVA. El selector es una vista comercial, no modifica suscripciones ni autoriza operaciones.</p>
     </section>
+    <section id="cabecera-admin" class="cabecera-admin" hidden>
+      <p class="sobrelinea">PANEL DE DEMOSTRACIÓN</p>
+      <h1 id="nombre-admin"></h1>
+      <p>Prueba a editar los productos y la información de tu negocio. Los cambios de práctica son privados y no se publican. No utilices datos personales.</p>
+      <nav class="acciones-demo" aria-label="Panel administrativo">
+        <a id="admin-ver-negocio" class="accion-admin" href="./negocio/">Ver mi página de práctica</a>
+        <button type="button" id="admin-catalogo">Catálogo</button>
+        <button type="button" id="admin-perfil">Información del negocio</button>
+        <a id="admin-salir" href="./">Salir del panel</a>
+      </nav>
+    </section>
     <div id="estado" role="status" aria-live="polite"></div>
-    <nav class="acciones-demo" aria-label="Vistas de demostración">
+    <nav class="acciones-demo" id="acciones-comparador" aria-label="Vistas de demostración">
       <button type="button" id="vista-cliente">Ver página del negocio</button>
       <button type="button" id="vista-comparador" hidden>Comparar negocios y planes</button>
       <button type="button" id="abrir-editor">Probar editor de catálogo</button><button type="button" id="abrir-perfil">Personalizar página</button>
@@ -82,7 +93,7 @@
         <div class="acciones-demo"><button type="submit" class="principal">Guardar elemento</button><button type="button" id="cancelar-edicion" hidden>Cancelar edición</button></div>
       </form>
       <p id="aviso-editor" role="status" aria-live="polite"></p>
-      <div class="editor-servidor">
+      <div class="editor-servidor" id="editor-servidor">
         <h3>Guardar práctica en servidor</h3>
         <p class="nota">Copia privada de demostración por navegador, caduca a las dos horas. No publica el catálogo ni modifica los datos de otros visitantes. Cargar reemplaza únicamente la copia de práctica de este negocio.</p>
         <div class="acciones-demo"><button type="button" id="demo-sesion">Conectar práctica</button><button type="button" id="demo-cargar" disabled>Cargar copia guardada</button><button type="button" id="demo-guardar" disabled>Guardar copia actual</button></div>
