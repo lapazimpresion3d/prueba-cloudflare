@@ -129,7 +129,7 @@ export async function atenderDemo(request,env,url,json){
   }
   if(ruta==="/api/demo/cuentas"){
     const s=await sesion(request,env.DEMO_DB,segundos());if(!s)return error(json,"Inicia una sesión de práctica.",401);
-    return atenderCuentasDemo(request,env.DEMO_DB,s,ctx,json);
+    try{return await atenderCuentasDemo(request,env.DEMO_DB,s,ctx,json);}catch(e){if(/Bloqueo financiero terminal|Cuenta en cobro multiple|Cuenta multiple sin conciliar/.test(String(e.message)))return error(json,"Cuenta en proceso de cobro. Consulta Cuentas o Terminales.",409);throw e;}
   }
   if(ruta==="/api/demo/reservaciones"){
     const s=await sesion(request,env.DEMO_DB,segundos());
@@ -146,7 +146,7 @@ export async function atenderDemo(request,env,url,json){
     if(!ctx.capacidades.some(m=>m.id==="pedidos"&&m.estadoEfectivo==="disponible"))return error(json,"Pedidos no incluidos en esta demostración.",403);
     const s=await sesion(request,env.DEMO_DB,segundos());
     if(!s)return error(json,"Inicia una sesión de práctica.",401);
-    return atenderPedidosDemo(request,env.DEMO_DB,s,ctx,json);
+    try{return await atenderPedidosDemo(request,env.DEMO_DB,s,ctx,json);}catch(e){if(/Bloqueo financiero terminal|Cuenta en cobro multiple/.test(String(e.message)))return error(json,"Cuenta en proceso de cobro. Consulta Cuentas o Terminales.",409);throw e;}
   }
   if(ruta==="/api/demo/perfil"){
     if(!ctx.capacidades.some(m=>m.id==="web"&&m.estadoEfectivo==="disponible"))return error(json,"Módulo no disponible.",403);
