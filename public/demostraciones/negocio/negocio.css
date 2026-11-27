@@ -7,3 +7,5 @@ body[data-estilo=taller]{--hero:#193b5c;--acento:#ffcc76;--papel:#e3edf6;--radio
 @media(max-width:720px){.hero,.nosotros,.contacto{grid-template-columns:1fr}.hero{min-height:auto}.hero-arte{min-height:200px}.arte-emblema{max-width:210px;padding:15px}.arte-sigla{font-size:3.5rem}.destacados a{padding:10px;display:grid;gap:4px;font-size:.85rem}.cabecera nav{gap:12px}.bloque{padding:35px 18px}.detalle-marca{font-size:4rem}.demo-bar{font-size:.72rem}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 
 .hero{color:var(--hero-texto,#fff)}.hero-texto>p:not(.sobrelinea){color:var(--hero-texto,#fff)}.hero .sobrelinea{color:var(--hero-texto,#fff)}.arte-emblema{background:#17232b;color:var(--acento)}.logo{color:var(--hero-texto,#fff)}
+
+.demo-bar-enlaces{display:flex;gap:16px;flex-wrap:wrap}.arte-vector{display:grid;place-items:center;font-size:4.5rem;min-height:100px}.arte-vector svg{max-width:100%;height:auto}
