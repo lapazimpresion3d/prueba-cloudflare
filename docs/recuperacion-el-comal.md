@@ -6,7 +6,7 @@
 ## Paridad con la versión original de El Comal
 Fuentes revisadas: public/index.html y public/app.js de desarrollo, incluyendo campos de cliente, tipo de servicio, dirección, colonia, referencias, teléfono, instrucciones, cálculo por zona, revisión, pedido por WhatsApp, mesa por enlace y solicitud de reservación. Recuperar en el entorno aislado, sin llamar las API operativas originales.
 1. [x] Datos de cliente, modalidad, dirección de ejemplo, mesa, instrucciones y revisión previa; pago previsto de ejemplo. 
-2. [ ] Menú completo, ingredientes, variantes, combos y personalización de cada partida; disponibilidad y precios vigentes.
+2. [x] Menú estático completo, ingredientes, variantes, combos y personalización de cada partida; [ ] precios especiales por fecha y edición de modificadores.
 3. [ ] Pedidos desde QR específico de mesa, configuración de mesas y reservaciones por capacidad y fecha; confirmar y cancelar desde encargado.
 4. [ ] Zonas de entrega, costos, mínimos y restricciones de horario. Actualmente cargo fijo ilustrativo y dos domicilios ficticios.
 5. [ ] Preparar mensaje WhatsApp de ejemplo sin enviarlo a destinatario real, seguimiento y notificaciones simuladas.
@@ -15,3 +15,10 @@ Fuentes revisadas: public/index.html y public/app.js de desarrollo, incluyendo c
 8. [ ] Validación integral en navegador de cliente, encargado y cocina; mantener aislados D1 y los datos de producción.
 ## Pruebas
 12 comprobaciones lógicas ejecutadas sobre fuentes de GitHub, sintaxis de cuatro controladores e IDs correctos. Seis comprobaciones DOM simuladas de revisión y confirmación de pedido: cliente/domicilio faltantes bloqueados, revisión correcta, no escritura antes de confirmar, registro con dirección e identidad, carrito vaciado. Se añadió prueba Node permanente; suite integrada y despliegue real pendientes. Las seis mesas son ejemplos, no mesas operativas ni reserva de disponibilidad. Main, sitio comercial y D1 remota intactos.
+
+## v0.11.9 — Menú original y personalización de partidas
+- Se incorpora copia versionada de los nueve productos de public/menu.json, conservando nombres, precios base, fotos y disponibilidad inicial. Agua de jamaica comienza agotada como en la fuente. No se consulta la API original ni se usan sus datos operativos.
+- Selección de ingredientes removibles, extras con precio y límite, ingredientes obligatorios, tamaños de agua y variante de bebida del combo. Si una bebida vinculada está agotada no se ofrece esa variante. Los precios se recalculan por unidad en cliente y servidor a partir de reglas canónicas.
+- El carrito diferencia partidas del mismo producto con distinta personalización y conserva detalles al revisar, enviar, consultar historial y administrar. La huella de idempotencia incluye opciones; solicitudes antiguas sin opciones conservan la huella previa. Los precios especiales por día, edición de modificadores desde el panel y desglose de ingredientes por cada taco del combo siguen pendientes. Las reglas de opciones son estáticas por ID de producto de El Comal. Las copias personalizadas anteriores pueden conservar el catálogo anterior; restaurar explícitamente solo si se desea sustituir la copia. No se sobrescriben automáticamente.
+- Verificación: 20/20 pruebas lógicas de menú, pedidos y configuración, coincidencia de nueve productos con fuente, cinco comprobaciones del controlador con D1 simulada (creación, reintento, conflicto de solicitud, precio alterado y opción inválida). Sintaxis comprobada. Pendiente prueba de UI real, suite integrada y despliegue. Sin migración nueva, main ni D1 remota modificados.
+- Siguiente: reservación de mesas, pedido por enlace/QR de mesa y capacidad, luego cocina, zonas de entrega, registro de cobros y mensajes simulados.
