@@ -1,3 +1,4 @@
+import {estadoOperacion,diarioOperacion} from "../recuperacion-pagos.mjs";
 import {panelPagosMultiples} from "./pagos-ui.mjs";
 import {versionCuenta} from "../cobro-cuenta.mjs";
 import {centavosCobro,motivosAnulacion,metodosCobroDemo} from "../cobros-practica.mjs";
@@ -17,6 +18,7 @@ else{
  let ocupado=false,configurado=false,expira=null,cuentas=[],pedidos=[],valida=false,pendiente=null,objetivo=null;
  const clave="lapaz:demo:cuenta:pendiente";
  try{pendiente=JSON.parse(sessionStorage.getItem(clave)||"null");}catch{}
+ const diario=diarioOperacion(sessionStorage,"lapaz:demo:operacion:"+id);
  const aviso=s=>{$("aviso").textContent=s;};
  $("panel").href=links.administracion;
  $("cocina").href="/demostraciones/cocina/?"+query+"&origen=servidor";
@@ -25,6 +27,29 @@ else{
  async function api(url,method="GET",body){
   const r=await fetch(url,{method,credentials:"same-origin",cache:"no-store",...(body===undefined?{}:{headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})});
   const v=await r.json();if(!r.ok)throw Object.assign(Error(v.error||"No se pudo completar la operación."),{status:r.status});return v;
+ }
+ async function mutacion(cuenta,method,d){
+  if(diario.leer())throw Error("Hay una operación pendiente de verificar. Actualiza primero.");
+  const p={cuenta,method,datos:d,expira};
+  diario.guardar(p);
+  try{await api("/api/demo/pagos-multiples?"+query+"&cuenta="+encodeURIComponent(cuenta),method,d);}
+  catch(e){throw Error("Operación sin confirmar. Actualiza para consultar su identificador. "+e.message);}
+  diario.limpiar();
+ }
+ async function recuperar(){
+  const p=diario.leer();if(!p)return;
+  if(p.expira!==expira){diario.limpiar();aviso("La operación pendiente pertenecía a una sesión anterior; no se reenviará.");return;}
+  const url="/api/demo/pagos-multiples?"+query+"&cuenta="+encodeURIComponent(p.cuenta);
+  const datos=await api(url),estado=estadoOperacion(p,datos);
+  if(estado==="confirmada"){diario.limpiar();aviso("Operación anterior confirmada en el servidor.");return;}
+  if(estado==="conflicto"){diario.limpiar();aviso("La cuenta cambió. Operación anterior no registrada; revisa los importes.");return;}
+  if(estado==="reintentar"){
+   if(!confirm("La operación anterior no aparece registrada. ¿Reintentar con el mismo identificador?")){
+    throw Error("Operación pendiente. Actualiza para verificarla antes de continuar.");
+   }
+   try{await api(url,p.method,p.datos);diario.limpiar();aviso("Operación recuperada.");}
+   catch(e){if([400,403,409,413,415].includes(e.status)){diario.limpiar();aviso("Reintento rechazado: "+e.message);return;}throw e;}
+  }else throw Error("No se pudo verificar la operación pendiente.");
  }
  function controles(){
   $("estado").textContent=ocupado?"Consultando…":!configurado?"Falta configurar demo_cuentas o demo_pedidos en D1.":!valida?"Activa la sesión de servidor o actualiza.":"Sesión privada de servidor activa.";
@@ -65,7 +90,7 @@ else{
   const grupos=new Map();for(const p of s.todos)if(p.cobro?.grupo)grupos.set(p.cobro.grupo.id,{...p.cobro.grupo,metodo:p.cobro.metodo,referencia:p.cobro.referencia});
   for(const g of grupos.values()){card.append(el("p","Cobro agrupado: "+importe(g.total)+" · "+metodosCobroDemo[g.metodo]+(g.referencia?" · "+g.referencia:"")+" · Recibido "+importe(g.recibido)+" · Cambio "+importe(g.cambio)));if(abierta){const b=el("button","Anular cobro agrupado");b.addEventListener("click",()=>abrirDialogo(c,s,g));card.append(b);}}
   if(pm?.datos){const url="/api/demo/pagos-multiples?"+query+"&cuenta="+encodeURIComponent(c.cuenta_id);
-   card.append(panelPagosMultiples(c,pm.datos,{enviar:d=>operar(async()=>{await api(url,"POST",d);aviso("Abono ficticio registrado.");await cargar();}),anular:d=>operar(async()=>{await api(url,"PATCH",d);aviso("Registro anulado; saldo actualizado. No implica devolución.");await cargar();}),reasignar:d=>operar(async()=>{await api(url,"PATCH",d);aviso("Asignaciones actualizadas.");await cargar();}),cerrar:revision=>operar(async()=>{await api(url,"PATCH",{accion:"cerrar",revision});aviso("Cuenta cerrada. Mesa liberada.");await cargar();})}));
+   card.append(panelPagosMultiples(c,pm.datos,{enviar:d=>operar(async()=>{await mutacion(c.cuenta_id,"POST",d);aviso("Abono ficticio registrado.");await cargar();}),anular:d=>operar(async()=>{await mutacion(c.cuenta_id,"PATCH",d);aviso("Registro anulado; saldo actualizado. No implica devolución.");await cargar();}),reasignar:d=>operar(async()=>{await mutacion(c.cuenta_id,"PATCH",d);aviso("Asignaciones actualizadas.");await cargar();}),cerrar:revision=>operar(async()=>{await mutacion(c.cuenta_id,"PATCH",{accion:"cerrar",revision});aviso("Cuenta cerrada. Mesa liberada.");await cargar();})}));
   }else if(pm?.error)card.append(el("p",pm.error,"nota"));
   if(abierta&&!multiple&&!pm?.error){
    for(const [texto,origen] of [["Capturar comanda como mesero","mesero"],["Abrir menú del cliente para esta visita","cliente"]]){const a=el("a",texto);a.href=enlaceComanda(c,plan,origen);card.append(a);}
@@ -100,7 +125,9 @@ else{
  async function cargar(){
   const a=await api(ruta),p=await api("/api/demo/pedidos?"+query);
   if(a.expira!==p.expira||!Array.isArray(a.cuentas)||!Array.isArray(p.pedidos))throw Error("No se pudo verificar la misma sesión.");
-  expira=a.expira;cuentas=a.cuentas;pedidos=p.pedidos;
+  expira=a.expira;
+  if(diario.leer()){await recuperar();return cargar();}
+  cuentas=a.cuentas;pedidos=p.pedidos;
   const nuevos=new Map();
   await Promise.all(cuentas.filter(c=>{const s=consumoCuenta(c,pedidos);return !s.todos.some(p=>p.cobro)&&!s.porEntregar&&(s.total>0||c.cerrado!==null);}).map(async c=>{
    try{const datos=await api("/api/demo/pagos-multiples?"+query+"&cuenta="+encodeURIComponent(c.cuenta_id));nuevos.set(c.cuenta_id,{datos});}
