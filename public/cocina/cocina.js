@@ -11,6 +11,27 @@ const columnasCocina = [
 const horaCocina = new Intl.DateTimeFormat("es-MX", { dateStyle: "short", timeStyle: "short" });
 let ocupado = false;
 let firmaPedidos = "";
+let cursoresCocina = [null];
+let siguienteCocina = null;
+const navCocina = document.createElement("nav");
+navCocina.setAttribute("aria-label", "Páginas de pedidos de cocina");
+const anteriorCocina = textoCocina("button", "Anterior");
+const avanzarCocina = textoCocina("button", "Siguiente");
+const paginaCocina = textoCocina("span", "Página 1");
+anteriorCocina.type = avanzarCocina.type = "button";
+navCocina.append(anteriorCocina, paginaCocina, avanzarCocina);
+navCocina.hidden = true;
+tableroCocina.prepend(navCocina);
+function actualizarNavCocina() {
+  anteriorCocina.disabled = ocupado || cursoresCocina.length === 1;
+  avanzarCocina.disabled = ocupado || siguienteCocina === null;
+  paginaCocina.textContent = " Página " + cursoresCocina.length + " ";
+  navCocina.hidden = cursoresCocina.length === 1 && siguienteCocina === null;
+}
+anteriorCocina.addEventListener("click", () => operarCocina(() => cargarCocina(undefined, cursoresCocina.slice(0, -1))));
+avanzarCocina.addEventListener("click", () => {
+  if (siguienteCocina !== null) operarCocina(() => cargarCocina(undefined, [...cursoresCocina, siguienteCocina]));
+});
 
 async function solicitarCocina(ruta, method = "GET", datos) {
   const respuesta = await fetch("/api/cocina/" + ruta, {
@@ -35,6 +56,9 @@ function mostrarAccesoCocina(error) {
   accesoCocina.hidden = error.status === 503;
   for (const [, contenedor] of columnasCocina) contenedor.replaceChildren();
   firmaPedidos = "";
+  cursoresCocina = [null];
+  siguienteCocina = null;
+  actualizarNavCocina();
   estadoCocina.textContent = error.message;
 }
 
@@ -93,8 +117,15 @@ function tarjetaCocina(pedido) {
   return tarjeta;
 }
 
-async function cargarCocina(mensaje) {
-  const pedidos = await solicitarCocina("pedidos");
+async function cargarCocina(mensaje, cursores = cursoresCocina) {
+  const parametros = new URLSearchParams({ pagina: "1" });
+  const cursor = cursores.at(-1);
+  if (cursor !== null) parametros.set("despues", cursor);
+  const resultado = await solicitarCocina("pedidos?" + parametros);
+  const pedidos = resultado.pedidos;
+  cursoresCocina = cursores;
+  siguienteCocina = resultado.siguiente;
+  actualizarNavCocina();
   const firma = JSON.stringify(pedidos);
   if (firma !== firmaPedidos) {
     for (const [estado, contenedor, vacio] of columnasCocina) {
@@ -112,6 +143,7 @@ async function operarCocina(operacion) {
   if (ocupado) return;
   ocupado = true;
   actualizarCocina.disabled = salirCocina.disabled = true;
+  actualizarNavCocina();
   try {
     await operacion();
   } catch (error) {
@@ -119,6 +151,7 @@ async function operarCocina(operacion) {
   } finally {
     ocupado = false;
     actualizarCocina.disabled = salirCocina.disabled = false;
+    actualizarNavCocina();
   }
 }
 
