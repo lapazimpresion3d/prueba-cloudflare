@@ -32,3 +32,14 @@ test("errores ambiguos no se consideran rechazo ni exponen credenciales",async()
  const d=clientePoint({accessToken:"TOKEN-FICTICIO-SIN-RED-123",transporte:async()=>({ok:false,status:500})});
  await assert.rejects(d.crear(i),e=>e.status===500);
 });
+
+test("GET documentado puede omitir moneda y total global; rechaza propinas y devoluciones no conciliadas",()=>{
+ const {currency,total_paid_amount,...get}=o;
+ assert.equal(verificarOrdenPoint(i,get).resultado,"acreditado");
+ for(const campo of ["tip_amount","refunded_amount"])assert.throws(()=>verificarOrdenPoint(i,{...get,transactions:{payments:[{...o.transactions.payments[0],[campo]:"1.00"}]}}));
+ assert.throws(()=>verificarOrdenPoint(i,{...get,transactions:{...o.transactions,refunds:[{id:"REF123"}]}}));
+});
+test("solo lista terminales PDV",async()=>{
+ const c=clientePoint({accessToken:"TOKEN-FICTICIO-SIN-RED-123",transporte:async(url,opt)=>{assert.equal(opt.method,"GET");assert.ok(url.includes("/terminals/v1/list?"));return {ok:true,json:async()=>({data:{terminals:[{id:i.terminal,operating_mode:"PDV"},{id:"OTRA",operating_mode:"SELF_SERVICE"}]}})};}});
+ assert.deepEqual(await c.terminales(),[{id:i.terminal,modo:"PDV"}]);
+});
