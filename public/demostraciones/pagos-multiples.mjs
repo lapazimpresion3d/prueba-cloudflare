@@ -32,7 +32,7 @@ export function agregarMovimiento(plan,d,fecha=Date.now()) {
   const referencia=d.metodo==="efectivo"?"":d.referencia;
   if(d.metodo!=="efectivo"&&(typeof referencia!=="string"||!/^DEMO-[0-9]{6}$/.test(referencia))) throw Error("Usa un folio ficticio DEMO-123456.");
   const movimiento={id:d.id,metodo:d.metodo,consumoCentavos:consumo,propinaCentavos:propina,recibidoCentavos:recibido,cambioCentavos:recibido-total,referencia};
-  if((plan.anulaciones||[]).some(a=>a.id===d.id))throw Error("Identificador ya utilizado.");
+  if((plan.reasignaciones||[]).some(a=>a.id===d.id)||(plan.anulaciones||[]).some(a=>a.id===d.id))throw Error("Identificador ya utilizado.");
   if(previo){
     if(Object.keys(movimiento).every(k=>previo[k]===movimiento[k])) return plan;
     throw Error("Identificador ya utilizado.");
@@ -61,7 +61,7 @@ export function anularMovimiento(plan,d,fecha=Date.now()){
  if(!motivosAnulacionMultiple.includes(d.motivo))throw Error("Motivo de anulación inválido.");
  const anterior=(plan.anulaciones||[]).find(a=>a.id===d.id);
  if(anterior){if(anterior.movimiento===d.movimiento&&anterior.motivo===d.motivo)return plan;throw Error("Identificador ya utilizado.");}
- if(plan.movimientos.some(m=>m.id===d.id))throw Error("Identificador ya utilizado.");
+ if((plan.reasignaciones||[]).some(m=>m.id===d.id)||plan.movimientos.some(m=>m.id===d.id))throw Error("Identificador ya utilizado.");
  if(d.revision!==plan.revision)throw Error("La cuenta cambió. Actualiza.");
  if(plan.revision>=100)throw Error("Límite de movimientos de práctica.");
  if(!movimientosActivos(plan).some(m=>m.id===d.movimiento))throw Error("Pago inexistente o ya anulado.");
