@@ -65,7 +65,7 @@ else{
   const grupos=new Map();for(const p of s.todos)if(p.cobro?.grupo)grupos.set(p.cobro.grupo.id,{...p.cobro.grupo,metodo:p.cobro.metodo,referencia:p.cobro.referencia});
   for(const g of grupos.values()){card.append(el("p","Cobro agrupado: "+importe(g.total)+" · "+metodosCobroDemo[g.metodo]+(g.referencia?" · "+g.referencia:"")+" · Recibido "+importe(g.recibido)+" · Cambio "+importe(g.cambio)));if(abierta){const b=el("button","Anular cobro agrupado");b.addEventListener("click",()=>abrirDialogo(c,s,g));card.append(b);}}
   if(pm?.datos){const url="/api/demo/pagos-multiples?"+query+"&cuenta="+encodeURIComponent(c.cuenta_id);
-   card.append(panelPagosMultiples(c,pm.datos,{enviar:d=>operar(async()=>{await api(url,"POST",d);aviso("Abono ficticio registrado.");await cargar();}),cerrar:revision=>operar(async()=>{await api(url,"PATCH",{accion:"cerrar",revision});aviso("Cuenta cerrada. Mesa liberada.");await cargar();})}));
+   card.append(panelPagosMultiples(c,pm.datos,{enviar:d=>operar(async()=>{await api(url,"POST",d);aviso("Abono ficticio registrado.");await cargar();}),anular:d=>operar(async()=>{await api(url,"PATCH",d);aviso("Registro anulado; saldo actualizado. No implica devolución.");await cargar();}),cerrar:revision=>operar(async()=>{await api(url,"PATCH",{accion:"cerrar",revision});aviso("Cuenta cerrada. Mesa liberada.");await cargar();})}));
   }else if(pm?.error)card.append(el("p",pm.error,"nota"));
   if(abierta&&!multiple&&!pm?.error){
    for(const [texto,origen] of [["Capturar comanda como mesero","mesero"],["Abrir menú del cliente para esta visita","cliente"]]){const a=el("a",texto);a.href=enlaceComanda(c,plan,origen);card.append(a);}
