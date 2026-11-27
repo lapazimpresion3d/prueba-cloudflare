@@ -15,7 +15,7 @@ export async function atenderPagosMultiples(request,db,s,ctx,url,json){
   const d=await leerJsonLimitado(request,160000);
   if(!d||typeof d!=="object"||Array.isArray(d)||!Number.isSafeInteger(d.revision)||d.revision<0||d.revision>100)return err("Solicitud o revisión inválida.",400);
   if(metodo==="POST"){
-   if(typeof d.id!=="string"||!Number.isSafeInteger(d.consumoCentavos)||!["efectivo","transferencia","tarjeta_externa"].includes(d.metodo))return err("Movimiento inválido.",400);
+   if(d.accion!==undefined||typeof d.id!=="string"||!Number.isSafeInteger(d.consumoCentavos)||!["efectivo","transferencia","tarjeta_externa"].includes(d.metodo))return err("Movimiento inválido.",400);
    const resultado=await guardarMovimiento(db,s,cuenta,d);
    return json({cuenta,modo:"simulado",...resultado},resultado.repetido?200:201);
   }
