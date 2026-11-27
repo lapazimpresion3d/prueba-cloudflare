@@ -4,6 +4,7 @@ import {crearCatalogosLocales,centavosDesdeTexto,imagenOfertaSegura} from "./cat
 import {crearPerfilesLocales,perfilPlano,validarImagenPerfil} from "./perfil-local.mjs";
 import {optimizarImagenPerfil} from "./imagenes-perfil.mjs";
 import {enlacesDemo} from "./presentaciones.mjs";
+import {admitePedidos} from "./pedidos-practica.mjs";
 let almacenamiento;
 try { almacenamiento=window.sessionStorage; } catch {}
 const catalogos=crearCatalogosLocales(almacenamiento);
@@ -41,6 +42,7 @@ function guardarURL(){
   history.replaceState(null,"",url);
   const enlaces=enlacesDemo(negocio.id,plan.id);$("compartir-vista").href=enlaces.negocio;
   $("admin-ver-negocio").href=enlacesDemo(negocio.id,plan.id,true).negocio;$("admin-salir").href=enlaces.negocio;
+  $("admin-pedidos").hidden=!admitePedidos(negocio.id,plan.id);$("admin-pedidos").href="/demostraciones/pedidos/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
 }
 function renderSelectores(){
   $("negocios").replaceChildren(...establecimientos.map(e=>boton([["span",e.marca.icono,"icono"],["strong",e.nombre],["small",e.giroNombre]],e.id===negocio.id,()=>{
