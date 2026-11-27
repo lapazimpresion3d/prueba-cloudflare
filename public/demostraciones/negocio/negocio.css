@@ -50,3 +50,47 @@ a.boton-agregar{display:block;text-align:center;text-decoration:none}a.boton-agr
 .estado-pedido.pedido-listo{background:#e5f5e9;color:#174b2c;font-weight:750;border-radius:8px;padding:8px 10px}
 
 #reglas-entrega-demo{display:grid;gap:10px;margin-bottom:12px}#reglas-entrega-demo label:has(input[type=checkbox]){display:flex;align-items:center;gap:8px}#simular-entrega{width:18px;height:18px;flex:none;accent-color:#285846}#cotizacion-entrega-demo{font-weight:650;line-height:1.5;padding:10px;background:#f0f4f3;border-radius:8px}
+
+/* Dirección de arte diferenciada; conserva los controles y las vistas operativas. */
+.hero-arte{padding:0;min-height:420px;border:0}
+.hero-arte:has(.portada-fotografica) .arte-emblema{display:none}
+.portada-fotografica{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-1}
+.hero-arte:has(.portada-fotografica){background:#38251d}
+.cabecera{background:var(--papel);border-bottom:0}
+.identidad{letter-spacing:-.025em;font-size:1.3rem}
+.producto{box-shadow:0 6px 24px #1e292b0a}
+.producto-texto{padding:20px}
+.imagen-producto{height:auto;aspect-ratio:4/3}
+.imagen-producto img{display:block}
+body[data-estilo=cafe]{--ancho:1200px;--radio:8px;background:#fffcf7}
+body[data-estilo=cafe] .hero{background:#38251d;grid-template-columns:.85fr 1.15fr}
+body[data-estilo=cafe] .hero-arte{border-radius:45% 45% 8px 8px}
+body[data-estilo=cafe] .producto{border-color:#dfd1c2}
+body[data-estilo=barberia]{--ancho:1240px;background:#f5f3ef}
+body[data-estilo=barberia] .cabecera{background:#17232b;color:#fff;border-bottom:1px solid #b39b763f}
+body[data-estilo=barberia] .hero{grid-template-columns:1fr 1fr;border-bottom:4px solid #e2c28d}
+body[data-estilo=barberia] .hero-arte{border-radius:0;border:1px solid #e2c28d66}
+body[data-estilo=barberia] .producto{grid-template-columns:125px minmax(0,1fr)}
+body[data-estilo=mascotas]{--ancho:1200px;background:#f9fcfa}
+body[data-estilo=mascotas] .hero{background:#e0f2e9;color:#174a40}
+body[data-estilo=mascotas]:not(:has(.portada-practica)) .hero-texto>p,body[data-estilo=mascotas]:not(:has(.portada-practica)) .hero .sobrelinea{color:#174a40}
+body[data-estilo=mascotas] .hero-arte{border-radius:38% 12% 35% 12%}
+body[data-estilo=mascotas] .producto{border-color:#c6e0d6}
+body[data-estilo=comal]{--ancho:1220px;background:#fffaf3}
+body[data-estilo=comal] .hero{position:relative;grid-template-columns:.9fr 1.1fr;background:var(--hero)}
+body[data-estilo=comal] .hero-arte{border-radius:4px 80px 4px 80px}
+body[data-estilo=comal] .producto{border-color:#e7d1be}
+body[data-estilo=taller]{--ancho:1240px;--radio:4px}
+body[data-estilo=taller] .cabecera{background:#193b5c;color:white}
+body[data-estilo=taller] .hero{grid-template-columns:.9fr 1.1fr;border-bottom:8px solid #ffcc76}
+body[data-estilo=taller] .hero-arte{border-radius:0;border-left:5px solid #ffcc76}
+body[data-estilo=taller] .producto{grid-template-columns:125px minmax(0,1fr)}
+body[data-estilo=barberia] .imagen-producto,body[data-estilo=taller] .imagen-producto{height:100%;aspect-ratio:auto}
+body[data-estilo=mascotas]:has(.portada-practica) .hero{background:var(--hero);color:var(--hero-texto,#fff)}
+@media(max-width:720px){
+ body[data-estilo] .hero{grid-template-columns:1fr;gap:26px}
+ body[data-estilo] .hero-arte{min-height:250px}
+ body[data-estilo=barberia] .producto,body[data-estilo=taller] .producto{grid-template-columns:96px minmax(0,1fr)}
+ .producto-texto{padding:14px}
+}
+@media(max-width:380px){body[data-estilo=barberia] .producto,body[data-estilo=taller] .producto{grid-template-columns:76px minmax(0,1fr)}}

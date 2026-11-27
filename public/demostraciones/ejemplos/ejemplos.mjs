@@ -11,7 +11,7 @@ for(const negocio of establecimientos){
  card.style.setProperty("--marca",negocio.marca.color);card.style.setProperty("--fondo",negocio.marca.fondo);
  const arte=el("div",undefined,"arte");arte.setAttribute("aria-hidden","true");
  const ilustracion=ilustracionPortada(t.estilo);
- if(ilustracion){arte.innerHTML=ilustracion;}else if(t.estilo==="comal"){const img=el("img");img.src="/imagenes/pastor.webp";img.alt="";img.addEventListener("error",()=>{img.hidden=true;});arte.append(img);}
+ if(t.estilo==="comal"){const img=el("img");img.src="/imagenes/banner-el-comal.webp";img.alt="";img.addEventListener("error",()=>{img.hidden=true;});arte.append(img);}else if(ilustracion){arte.innerHTML=ilustracion;}
  const sello=el("div",undefined,"sello");sello.innerHTML='<svg viewBox="0 0 96 96" width="48" height="48" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">'+simbolos[t.estilo]+'</svg>';arte.append(sello);
  const info=el("div",undefined,"info");const a=el("a","Explorar demostración","accion");a.href=enlacesDemo(negocio.id,plan.id).negocio;a.setAttribute("aria-label","Explorar "+negocio.nombre);
  const lista=el("ul",undefined,"funciones"),pendientes=el("ul",undefined,"funciones pendientes"),detalle=el("details",undefined,"modulos-pendientes");detalle.append(el("summary","Funciones pendientes de este paquete"),pendientes);

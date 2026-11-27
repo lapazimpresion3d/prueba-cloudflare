@@ -1,0 +1,8 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {destinoDemo} from "../src/rutas-publicas-demo.mjs";
+import worker from "../src/worker-demos-publicas.mjs";
+import {establecimientos} from "../public/demostraciones/establecimientos.mjs";
+import {planes} from "../public/demostraciones/config.mjs";
+test("20 rutas públicas y paneles conservan contexto",()=>{for(const e of establecimientos)for(const p of planes){const u=new URL("https://example.test/"+e.id+"?plan="+p.id);assert.match(destinoDemo(u),new RegExp("negocio="+e.id+"&plan="+p.id));u.pathname+="/panel";assert.match(destinoDemo(u),/vista=administracion/);}assert.equal(destinoDemo(new URL("https://example.test/cafe-mirador?plan=p9")),null);});
+test("worker candidato no sirve rutas originales o administrador central",async()=>{let n=0;const env={ASSETS:{fetch:async()=>{n++;return new Response("asset")}}};for(const p of ["/encargado","/api/pedidos","/demostraciones/administrador-central/","/menu.json","/demo/"])assert.equal((await worker.fetch(new Request("https://example.test"+p),env)).status,404);assert.equal(n,0);assert.equal((await worker.fetch(new Request("https://example.test/cafe-mirador"),env)).status,302);assert.equal((await worker.fetch(new Request("https://example.test/demostraciones/negocio/"),env)).status,200);});

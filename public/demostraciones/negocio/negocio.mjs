@@ -32,6 +32,7 @@ if(!base||!plan||!t){
   for(const [id,txt] of Object.entries(textos))$(id).textContent=txt;
   if(datos.logo){const img=el("img");img.src=datos.logo;img.alt="";$("logo").replaceChildren(img);}
   if(datos.portada){const img=el("img",undefined,"portada-practica");img.src=datos.portada;img.alt="";$("arte").append(img);}
+  else if(base.id==="taqueria-el-comal"){const img=el("img",undefined,"portada-fotografica");img.src="/imagenes/banner-el-comal.webp";img.alt="";img.addEventListener("error",()=>img.remove());$("arte").append(img);}
   else{const svg=ilustracionPortada(t.estilo);if(svg){const fondo=el("div",undefined,"portada-ilustrada");fondo.innerHTML=svg;$("arte").append(fondo);}}
   const arte=el("div",undefined,"arte-emblema");
   const simbolo=el("div",undefined,"arte-vector");
