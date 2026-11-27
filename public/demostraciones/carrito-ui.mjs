@@ -16,7 +16,7 @@ export function iniciarCarrito(datos,plan,practica,mesa=null,visita=null){
   const clave="lapaz:demo:carrito:v1:"+datos.id+(practica?":personalizado":":original")+(mesa?":mesa:"+mesa:"")+(visita?":cuenta:"+visita.cuenta:"");
   const modos=modalidadesPedido(datos.id).filter(m=>!mesa||m.id==="local");
   const remoto=crearPedidosRemotos(datos.id,plan),claveModo="lapaz:demo:pedidos:modo:"+datos.id,clavePendiente=clave+":pendiente";
-  let lineas=[],enviando=false,servidor=false,conectando=false,pendiente=null,consultando=0,preferencia=null,comprobando=true,configurado=null,expira=null,totalRemoto=null;
+  let lineas=[],enviando=false,servidor=false,conectando=false,pendiente=null,consultando=0,preferencia=null,comprobando=true,configurado=null,expira=null,totalRemoto=null,visitaAbierta=false;
   try{preferencia=almacen?.getItem(claveModo);servidor=preferencia==="servidor";const p=JSON.parse(almacen?.getItem(clavePendiente)||"null");if(p?.datos?.solicitud&&Array.isArray(p.datos.lineas)){pendiente=p;servidor=true;}else if(p?.solicitud&&Array.isArray(p.lineas)){pendiente={datos:p,expira:null};servidor=true;}}catch{}
   if(visita){preferencia="servidor";servidor=true;}
   function guardarPendiente(p){if(!almacen)throw Error("No se puede conservar el identificador del pedido. Habilita el almacenamiento de la pestaña.");if(p)almacen.setItem(clavePendiente,JSON.stringify(p));else almacen.removeItem(clavePendiente);pendiente=p;}
@@ -34,6 +34,7 @@ export function iniciarCarrito(datos,plan,practica,mesa=null,visita=null){
   const elegir=(id,items,placeholder)=>$(id).replaceChildren(...(placeholder?[new Option(placeholder,"")]:[]),...items.map(x=>new Option(x.nombre,x.id)));
   elegir("cliente-pedido",clientesDemo,"Selecciona un cliente");
   elegir("pago-pedido",pagosDemo,"Selecciona forma de pago");
+  if(visita?.captura==="mesero"){$("cliente-pedido").value=clientesDemo[0].id;$("pago-pedido").value="efectivo";}
   elegir("nota-pedido",notasPedidoDemo);
   elegir("mesa-pedido",mesasDemo.filter(id=>!mesa||id===mesa).map(id=>({id,nombre:"Mesa "+id})),mesa?null:"Selecciona una mesa");
   if(mesa){$("modalidad-pedido").value="local";$("mesa-pedido").value=mesa;}
@@ -119,7 +120,7 @@ export function iniciarCarrito(datos,plan,practica,mesa=null,visita=null){
     $("cantidad-carrito-flotante").textContent=String(cantidad);
     $("subtotal-carrito-flotante").textContent=importe(r.subtotal);
     $("carrito-flotante").setAttribute("aria-label","Ver carrito, "+cantidad+" productos, subtotal "+importe(r.subtotal));
-    $("enviar-pedido").disabled=(!!visita&&expira===null)||comprobando||enviando||conectando||(!pendiente&&(!r.detalle.length||!!cot?.error||fuera&&!!cot))||(servidor&&configurado!==true)||(!servidor&&configurado===null&&preferencia!=="local");
+    $("enviar-pedido").disabled=(!!visita&&(expira===null||!visitaAbierta&&!pendiente))||comprobando||enviando||conectando||(!pendiente&&(!r.detalle.length||!!cot?.error||fuera&&!!cot))||(servidor&&configurado!==true)||(!servidor&&configurado===null&&preferencia!=="local");
     $("enviar-pedido").textContent=pendiente?"Reintentar pedido pendiente":"Revisar pedido";
     $("vaciar-carrito").disabled=enviando||!!pendiente||!r.detalle.length;
     $("modalidad-pedido").disabled=enviando||!!pendiente||!!mesa;
@@ -136,7 +137,7 @@ export function iniciarCarrito(datos,plan,practica,mesa=null,visita=null){
   let estadosVistos=new Map(),origenVisto=null,consultaAutomatica=false;
   async function seguimiento(){
     const n=++consultando,modo=servidor;
-    let pedidos;try{if(modo&&configurado!==true)throw Error("No se ha comprobado la agenda de pedidos del servidor.");if(modo&&expira===null&&!pendiente&&preferencia!=="servidor")pedidos=[];else if(modo){const v=await remoto.leerEstado();if(n!==consultando||!servidor)return;expira=v.expira;totalRemoto=v.pedidos.length;pedidos=v.pedidos;}else pedidos=repo.leer();}catch(e){if(n===consultando){totalRemoto=null;render();$("lista-seguimiento").replaceChildren();$("sin-pedidos").hidden=true;$("aviso-seguimiento").textContent=e.message+" Activa la práctica en servidor o actualiza."; }return;}
+    let pedidos;try{if(modo&&configurado!==true)throw Error("No se ha comprobado la agenda de pedidos del servidor.");if(modo&&expira===null&&!pendiente&&preferencia!=="servidor")pedidos=[];else if(modo){const v=await remoto.leerEstado();if(n!==consultando||!servidor)return;expira=v.expira;totalRemoto=v.pedidos.length;pedidos=v.pedidos;if(visita)visitaAbierta=!!v.cuentas?.some(x=>x.cuenta_id===visita.cuenta&&x.mesa===mesa&&x.cerrado===null);}else pedidos=repo.leer();}catch(e){if(n===consultando){totalRemoto=null;render();$("lista-seguimiento").replaceChildren();$("sin-pedidos").hidden=true;$("aviso-seguimiento").textContent=e.message+" Activa la práctica en servidor o actualiza."; }return;}
     if(n!==consultando||modo!==servidor)return;
     const origen=modo?"servidor:"+expira:"local";
     const visibles=visita?pedidos.filter(p=>p.cuenta===visita.cuenta):mesa?pedidos.filter(p=>p.modalidad==="local"&&p.datosCliente?.mesa===mesa):pedidos;
@@ -178,6 +179,7 @@ export function iniciarCarrito(datos,plan,practica,mesa=null,visita=null){
    catch(e){revision=null;dialogo.close();aviso(e.message);notificar(e.message,true);}
   });
   async function enviar(){
+    if(visita&&!visitaAbierta&&!pendiente){aviso("Cuenta cerrada o no disponible. Regresa a cuentas de mesa.");return;}
     if(comprobando||enviando||conectando||servidor&&configurado!==true||!servidor&&configurado===null&&preferencia!=="local")return;enviando=true;render();
     try{
       let p;const clienteNuevo=pendiente?null:datosCliente();
@@ -202,7 +204,7 @@ export function iniciarCarrito(datos,plan,practica,mesa=null,visita=null){
   async function detectar(){
     if(enviando||conectando)return;
     const n=++consultando;comprobando=true;render();
-    try{const v=await detectarPedidos(remoto,{preferencia,locales:repo.leer().length,personalizado:practica,pendiente:!!pendiente});if(n!==consultando)return;configurado=v.configurado;servidor=visita?true:v.servidor;expira=v.estado?.expira??null;totalRemoto=v.estado?.pedidos.length??null;}
+    try{const v=await detectarPedidos(remoto,{preferencia,locales:repo.leer().length,personalizado:practica,pendiente:!!pendiente});if(n!==consultando)return;configurado=v.configurado;servidor=visita?true:v.servidor;expira=v.estado?.expira??null;totalRemoto=v.estado?.pedidos.length??null;if(visita){visitaAbierta=!!v.estado?.cuentas?.some(x=>x.cuenta_id===visita.cuenta&&x.mesa===mesa&&x.cerrado===null);if(!visitaAbierta&&!pendiente)aviso("Cuenta cerrada o no disponible en esta sesión. Regresa a cuentas de mesa.");}}
     catch(e){if(n!==consultando)return;configurado=null;totalRemoto=null;aviso(e.message);}
     finally{if(n===consultando){comprobando=false;render();await seguimiento();}}
   }
