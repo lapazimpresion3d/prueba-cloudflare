@@ -373,4 +373,4 @@ $("demo-guardar").addEventListener("click",()=>operarServidor("guardar"));
 $("buscar").addEventListener("input",renderCatalogo);
 $("tipo").addEventListener("change",renderCatalogo);
 $("categoria").addEventListener("change",renderCatalogo);
-if(!redirigirNegocio){renderTodo(true);if(vistaAdmin){let local;try{local=window.localStorage;}catch{}montarEmpresa($("empresa-contexto"),negocio.id,plan.id,local);montarInicioAdmin({negocio,plan,catalogos,perfiles});renderVista();}}
+if(!redirigirNegocio){renderTodo(true);if(vistaAdmin){let local;try{local=window.localStorage;}catch{}montarEmpresa($("empresa-contexto"),negocio.id,plan.id,local);montarInicioAdmin({negocio,plan,catalogos,perfiles});renderVista();const destino={productos:"admin-catalogo",personal:"admin-empresa",perfil:"admin-perfil"}[params.get("seccion")];if(destino)$(destino).click();}}
