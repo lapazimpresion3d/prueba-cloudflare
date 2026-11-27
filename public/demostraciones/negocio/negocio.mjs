@@ -1,3 +1,4 @@
+import {admiteCuentas,cuentaIdValida} from "../cuentas-practica.mjs";
 import {admiteMesas,mesasComal} from "../mesas-practica.mjs";
 import {opcionesComal,normalizarOpciones} from "../menu-comal-practica.mjs";
 import {planes,importe} from "../config.mjs";
@@ -44,7 +45,10 @@ if(!base||!plan||!t){
   const mesas=admiteMesas(base.id,plan.id),codigo=q.get("mesa"),mesa=mesas&&mesasComal.some(m=>m.id===codigo)?codigo:null;
   $("nav-reservaciones").hidden=!mesas;$("nav-reservaciones").href="/demostraciones/reservaciones/?"+new URLSearchParams({negocio:base.id,plan:plan.id});
   if(codigo!==null){$("aviso-mesa-demo").hidden=false;$("texto-mesa-demo").textContent=mesa?"Estás pidiendo desde Mesa "+mesa+".":"El enlace no identifica una mesa válida."; $("salir-mesa-demo").href=enlacesDemo(base.id,plan.id,practica).negocio+"#carrito";}
-  const carrito=iniciarCarrito(datos,plan.id,practica,mesa);
+  const cuenta=q.get("cuenta"),captura=q.get("captura");
+  const cuentaValida=!!mesa&&admiteCuentas(base.id,plan.id)&&cuentaIdValida(cuenta)&&["mesero","cliente"].includes(captura);
+  if(cuenta!==null){$("aviso-mesa-demo").hidden=false;$("texto-mesa-demo").textContent=cuentaValida?(captura==="mesero"?"Captura de mesero · ":"Pedido a cuenta abierta · ")+"Mesa "+mesa:"Enlace de cuenta inválido. Regresa al panel de cuentas."; $("salir-mesa-demo").textContent="Volver a cuentas de mesa";$("salir-mesa-demo").href="/demostraciones/cuentas/?"+new URLSearchParams({negocio:base.id,plan:plan.id});}
+  const carrito=cuenta!==null&&!cuentaValida?null:iniciarCarrito(datos,plan.id,practica,mesa,cuentaValida?{cuenta,captura}:null);
   const citas=admiteCitas(base.id,plan.id),urlCitas="/demostraciones/citas/?"+new URLSearchParams({negocio:base.id,plan:plan.id,...(practica?{practica:"1"}:{})});
   $("nav-citas").hidden=!citas;$("nav-citas").href=urlCitas;
   const cats=[...new Set(datos.catalogo.map(p=>p.categoria))];
