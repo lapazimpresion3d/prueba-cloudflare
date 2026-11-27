@@ -5,6 +5,7 @@ import { administrarEntrega, leerEntrega } from "./entrega.mjs";
 import { aplicarPrecio, fechaNegocio, validarPromocion } from "./promociones.mjs";
 import { guardarDatosNegocio, leerDatosNegocio } from "./negocio.mjs";
 import { ErrorSolicitud, leerJsonLimitado, reservarIntento } from "./seguridad.mjs";
+import { atenderDemo } from "./demostraciones.mjs";
 
 const encoder = new TextEncoder();
 const cookieSesion = "__Host-comal-admin";
@@ -451,6 +452,9 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     try {
+      if (url.pathname === "/api/demo" || url.pathname.startsWith("/api/demo/")) {
+        return await atenderDemo(request, env, url, json);
+      }
       if (url.pathname === "/menu.json" && request.method === "GET") {
         return json(await menuActualizado(request, env));
       }
