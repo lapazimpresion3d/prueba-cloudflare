@@ -1,3 +1,4 @@
+import {admiteCocina,admiteComandas} from "./cocina-practica.mjs";
 import {admiteMesas} from "./mesas-practica.mjs";
 import {planes,capacidades,importe} from "./config.mjs";
 import {establecimientos,obtenerEstablecimiento,filtrarCatalogo} from "./establecimientos.mjs";
@@ -47,6 +48,8 @@ function guardarURL(){
   $("ver-catalogo-editado").href=enlacesDemo(negocio.id,plan.id,true).negocio;
   $("ver-original").href=enlaces.negocio;
   $("admin-pedidos").hidden=!admitePedidos(negocio.id,plan.id);$("admin-pedidos").href="/demostraciones/pedidos/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
+  $("admin-cocina").hidden=!admiteCocina(negocio.id,plan.id);$("admin-cocina").href="/demostraciones/cocina/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
+  $("admin-comandas").hidden=!admiteComandas(negocio.id,plan.id);$("admin-comandas").href="/demostraciones/cocina/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id,vista:"mesas"});
   $("admin-mesas").hidden=!admiteMesas(negocio.id,plan.id);$("admin-mesas").href="/demostraciones/reservaciones/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id,vista:"empresa"});
   $("admin-citas").hidden=!admiteCitas(negocio.id,plan.id);$("admin-citas").href="/demostraciones/citas/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id,vista:"agenda"});
 }
