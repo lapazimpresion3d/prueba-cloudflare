@@ -2,6 +2,7 @@
 import { establecimientos, obtenerEstablecimiento } from "../public/demostraciones/establecimientos.mjs";
 import { planes, capacidades } from "../public/demostraciones/config.mjs";
 import { validarOferta } from "../public/demostraciones/catalogo-local.mjs";
+import { validarPerfil, perfilPlano, crearPerfilesLocales } from "../public/demostraciones/perfil-local.mjs";
 import { leerJsonLimitado } from "./seguridad.mjs";
 
 const COOKIE="__Host-lapaz-demo";
@@ -70,6 +71,29 @@ async function esquemaListo(env){
     return fila?.version===1;
   }catch{return false;}
 }
+async function perfilListo(env){
+  if(!await esquemaListo(env))return false;
+  try{const fila=await env.DEMO_DB.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='demo_perfiles'").first();return fila?.name==="demo_perfiles";}catch{return false;}
+}
+async function atenderPerfil(request,env,ctx,json){
+  if(!await perfilListo(env))return error(json,"Guardado de identidad pendiente de configuración.",503);
+  const db=env.DEMO_DB,ahora=segundos(),s=await sesion(request,db,ahora),id=ctx.establecimiento.id;
+  if(!s)return error(json,"Inicia una sesión de práctica.",401);
+  if(request.method==="GET"){
+    const fila=await db.prepare("SELECT revision, datos_json FROM demo_perfiles WHERE sesion_id=? AND establecimiento_id=?").bind(s.id,id).first();
+    return json({establecimiento:id,revision:fila?.revision??0,perfil:fila?JSON.parse(fila.datos_json):crearPerfilesLocales().leer(id),expira:s.expira});
+  }
+  const datos=await leerJsonLimitado(request,8192);
+  if(!Number.isSafeInteger(datos?.revision)||datos.revision<0||datos.revision>=1000000)return error(json,"Revisión inválida.",400);
+  let perfil;
+  try{perfil=validarPerfil(id,perfilPlano(datos.perfil));}catch{return error(json,"Revisa la identidad y los datos de ejemplo.",400);}
+  const serial=JSON.stringify(perfil);
+  const fila=datos.revision===0
+    ? await db.prepare("INSERT INTO demo_perfiles (sesion_id, establecimiento_id, revision, datos_json) SELECT ?, ?, 1, ? WHERE EXISTS (SELECT 1 FROM demo_sesiones WHERE id=? AND expira>?) ON CONFLICT(sesion_id, establecimiento_id) DO NOTHING RETURNING revision").bind(s.id,id,serial,s.id,segundos()).first()
+    : await db.prepare("UPDATE demo_perfiles SET revision=revision+1, datos_json=? WHERE sesion_id=? AND establecimiento_id=? AND revision=? AND EXISTS (SELECT 1 FROM demo_sesiones WHERE id=? AND expira>?) RETURNING revision").bind(serial,s.id,id,datos.revision,s.id,segundos()).first();
+  if(!fila)return error(json,"La copia cambió o expiró. Carga la versión guardada antes de continuar.",409);
+  return json({establecimiento:id,revision:fila.revision,perfil,expira:s.expira});
+}
 export async function atenderDemo(request,env,url,json){
   const ruta=url.pathname,metodo=request.method;
   if(ruta==="/api/demo/registro"){
@@ -79,15 +103,19 @@ export async function atenderDemo(request,env,url,json){
   if(ruta==="/api/demo/contexto"){
     if(metodo!=="GET")return error(json,"Método no permitido.",405);
     const ctx=contextoDemo(url.searchParams.get("negocio"),url.searchParams.get("plan"));
-    return ctx?json({...ctx,persistenciaConfigurada:await esquemaListo(env)}):error(json,"Establecimiento o plan desconocido.",404);
+    return ctx?json({...ctx,persistenciaConfigurada:await esquemaListo(env),perfilConfigurado:await perfilListo(env)}):error(json,"Establecimiento o plan desconocido.",404);
   }
-  if(!["/api/demo/sesion","/api/demo/catalogo"].includes(ruta))return error(json,"Ruta de demo no disponible.",404);
-  if(ruta==="/api/demo/sesion"&&metodo!=="POST"||ruta==="/api/demo/catalogo"&&!["GET","PUT"].includes(metodo))return error(json,"Método no permitido.",405);
+  if(!["/api/demo/sesion","/api/demo/catalogo","/api/demo/perfil"].includes(ruta))return error(json,"Ruta de demo no disponible.",404);
+  if(ruta==="/api/demo/sesion"&&metodo!=="POST"||["/api/demo/catalogo","/api/demo/perfil"].includes(ruta)&&!["GET","PUT"].includes(metodo))return error(json,"Método no permitido.",405);
   if(metodo!=="GET"&&request.headers.get("Origin")!==url.origin)return error(json,"Origen no permitido.",403);
   if(!await esquemaListo(env))return error(json,"Persistencia de demostración no configurada o esquema no preparado.",503);
   if(ruta==="/api/demo/sesion")return iniciar(request,env,json);
   const ctx=contextoDemo(url.searchParams.get("negocio"),url.searchParams.get("plan"));
   if(!ctx)return error(json,"Establecimiento o plan desconocido.",404);
+  if(ruta==="/api/demo/perfil"){
+    if(!ctx.capacidades.some(m=>m.id==="web"&&m.estadoEfectivo==="disponible"))return error(json,"Módulo no disponible.",403);
+    return atenderPerfil(request,env,ctx,json);
+  }
   if(!ctx.capacidades.some(m=>m.id==="catalogo"&&m.estadoEfectivo==="disponible"))return error(json,"Módulo no disponible.",403);
   const db=env.DEMO_DB,ahora=segundos(),s=await sesion(request,db,ahora);
   if(!s)return error(json,"Inicia una sesión de práctica en servidor.",401);
