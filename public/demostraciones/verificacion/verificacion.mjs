@@ -11,7 +11,7 @@ async function comprobar(){
   for(const plan of ["p1","p2"]){
    const q=new URLSearchParams({negocio:e.id,plan});
    const a=el("a",plan.toUpperCase()+" · Abrir página");a.href="../negocio/?"+q;
-   const p=el("p");p.append(a,el("span"," · "));
+   const p=el("p");const admin=el("a","Abrir panel");admin.href="../?"+q+"&vista=administracion";p.append(a,el("span"," · "),admin,el("span"," · "));
    total++;
    try{
     const r=await fetch("/api/demo/contexto?"+q,{cache:"no-store",credentials:"same-origin"});
