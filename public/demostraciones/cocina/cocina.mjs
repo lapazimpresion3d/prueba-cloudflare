@@ -62,7 +62,7 @@ else{
  $("servidor").addEventListener("click",()=>operar(async()=>{await remoto.conectar();servidor=true;expira=null;guardarModo();await cargar();aviso("Sesión privada activa.");}));
  $("local").addEventListener("click",()=>operar(async()=>{servidor=false;expira=null;guardarModo();await cargar();aviso("Práctica local activa.");}));
  $("actualizar").addEventListener("click",detectar);$("estado").addEventListener("change",render);$("mesa").addEventListener("change",render);
- const refrescar=()=>{if(!ocupado&&!document.hidden)operar(cargar);};
+ const refrescar=()=>{if(!ocupado&&!document.hidden){if(!preferencia&&!servidor&&!repo.leer().length)detectar();else operar(cargar);}};
  window.addEventListener("focus",refrescar);window.addEventListener("pageshow",e=>{if(e.persisted)refrescar();});document.addEventListener("visibilitychange",refrescar);setInterval(refrescar,20000);
  $("contenido").hidden=false;detectar();
 }
