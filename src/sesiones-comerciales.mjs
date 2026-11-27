@@ -10,6 +10,8 @@ function extraer(request){
  if(a.length!==1)return null;
  const t=a[0].slice(COOKIE.length+1);return /^[a-f0-9]{64}$/.test(t)?t:null;
 }
+// Internal proof for SQL revalidation; never expose the hash in HTTP responses.
+export async function hashSesionComercial(request){const t=extraer(request);return t?hash(t):null;}
 export async function crearSesionesComerciales(env,{verificarIdentidad,habilitado=false,reloj=Date.now}={}){
  const db=env.COMMERCE_DB;
  if(!db||[env.DB,env.DEMO_DB,env.PROVIDER_DB].includes(db)||typeof verificarIdentidad!=="function")throw Error("Sesiones comerciales no configuradas.");
