@@ -45,3 +45,6 @@ Usar ruta relativa /demostraciones/negocio/?negocio=cafe-mirador&plan=p1 para ej
 
 ## Avance de P2
 Pedidos y seguimiento aparecen como utilizables en práctica local para cafetería, tienda y restaurante con p2/p3/p4. No equivalen a pedidos reales, no habilitan contratación ni prueban el plan completo. Ver docs/pedidos-practica.md.
+
+## v0.11.4 — Galería y enlaces P1
+Entrada comercial relativa /demostraciones/ejemplos/ y cinco enlaces limpios P1 registrados en docs/publicacion-p1.md. El laboratorio no se enlaza desde la galería. Los enlaces quedan preparados, no publicados; el subdominio propuesto no está verificado. P2+ siguen pendientes de aprobación y pruebas.
