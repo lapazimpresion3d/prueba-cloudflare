@@ -1,3 +1,4 @@
+import { leerJsonLimitado } from "./seguridad.mjs";
 function fechaUtc(fecha) {
   if (typeof fecha !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return null;
   const dia = new Date(fecha + "T12:00:00Z");
@@ -100,7 +101,8 @@ export async function administrarAgenda(request, db, url, obtenerMenu, json) {
     return json((await ocupacionesDelDia(db, fecha)).map(presentarOcupacion));
   }
 
-  const datos = await request.json().catch(() => null);
+  if (!["POST", "DELETE"].includes(request.method)) return json({ error: "Método no permitido." }, 405);
+  const datos = await leerJsonLimitado(request);
   const id = datos?.id;
   if (typeof id !== "string" || !/^[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/.test(id)) {
     return json({ error: "Referencia de agenda inválida." }, 400);
@@ -110,7 +112,6 @@ export async function administrarAgenda(request, db, url, obtenerMenu, json) {
     const borrada = await db.prepare("DELETE FROM agenda_mesas WHERE id = ? RETURNING id").bind(id).first();
     return json({ cancelada: Boolean(borrada) });
   }
-  if (request.method !== "POST") return json({ error: "Método no permitido." }, 405);
 
   const { fecha, hora, personas } = datos;
   const inicio = minutos(hora);
