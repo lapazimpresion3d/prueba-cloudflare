@@ -1181,7 +1181,7 @@ function tarjetaPedido(pedido) {
       boton.type = "button";
       boton.textContent = accion.id === "cancelado" ? "Cancelar pedido" : "Marcar " + accion.etiqueta.toLowerCase();
       const bloqueo = accion.requiereEnvio ? "Primero confirma el costo de envío." :
-        accion.requiereCobro ? "Primero registra el pago por el total." :
+        accion.requiereCobro ? "Concilia el cobro con el total antes de entregar." :
         accion.requiereAnularCobro ? "Corrige el registro del cobro antes de cancelar. Esto no devuelve dinero." : "";
       if (bloqueo) {
         boton.disabled = true;
@@ -1404,8 +1404,8 @@ async function cargarPedidos(pagina = historialActual) {
           : "No hay transferencias pendientes de verificar en esta página.";
       } else if (vista === "sin-cobro") {
         estadoPedidos.textContent = pagina.folio
-          ? "No hay un pedido entregado sin cobro registrado con ese folio."
-          : "No hay pedidos entregados sin cobro registrado en esta página.";
+          ? "No hay un pedido entregado pendiente de conciliación con ese folio."
+          : "No hay pedidos entregados pendientes de conciliación en esta página.";
       } else if (vista === "historial" && pagina.metodo) {
         estadoPedidos.textContent = "No hay pedidos que coincidan con los filtros.";
       } else if (estado) {
