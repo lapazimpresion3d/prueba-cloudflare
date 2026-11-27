@@ -214,3 +214,7 @@ La galería deja de tener selector global. Café Mirador P1, Barbería Elite P2,
 ### v0.12.3 — Cobros conciliados
 - [x] Registro efectivo/transferencia, folio de práctica, correcciones, filtros y resumen, bloqueo de entrega/cancelación cuando corresponde.
 - [ ] Cuenta abierta por mesa, captura por mesero, aviso transferencia cliente, caja/cortes y prueba de Preview.
+
+### v0.12.4 — Cuentas abiertas por mesa
+- [x] Visita única por mesa, captura mesero/cliente, consumo acumulado, entrega antes de pagar y cierre conciliado.
+- [ ] Aplicar 0006_cuentas.sql solo en lapaz-demos-desarrollo y validar Preview; cobro único de cuenta y QR vinculado a visita pendientes.
