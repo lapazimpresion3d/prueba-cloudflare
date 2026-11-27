@@ -1,3 +1,4 @@
+import {textoLinea} from "../menu-comal-practica.mjs";
 import {importe} from "../config.mjs";
 import {obtenerEstablecimiento} from "../establecimientos.mjs";
 import {enlacesDemo} from "../presentaciones.mjs";
@@ -28,7 +29,7 @@ if(!negocio||!admitePedidos(id,plan)){
     $("pedidos").replaceChildren(...lista.map(p=>{
       const card=el("article",undefined,"pedido-admin"),head=el("div",undefined,"encabezado");
       head.append(el("strong",p.folio),el("span",nombresEstado[p.estado],"etiqueta disponible"));
-      const detalle=el("ul");for(const l of p.detalle)detalle.append(el("li",l.cantidad+" × "+l.nombre+" · "+importe(l.subtotal)));
+      const detalle=el("ul");for(const l of p.detalle)detalle.append(el("li",l.cantidad+" × "+textoLinea(l)+" · "+importe(l.subtotal)));
       card.append(head,el("p",modos.find(m=>m.id===p.modalidad)?.nombre||"Modalidad de ejemplo"),detalle,el("p","Subtotal: "+importe(p.subtotal)+" · Entrega: "+importe(p.cargo)),el("strong","Total: "+importe(p.total)));
       if(p.datosCliente?.cliente){const d=p.datosCliente;card.append(el("p","Cliente: "+d.cliente.nombre),el("p","Teléfono: "+d.cliente.telefono),el("p","Pago previsto: "+d.pago.nombre+" · No cobrado"),el("p","Instrucciones: "+d.nota));if(d.mesa)card.append(el("p","Mesa "+d.mesa));if(d.entrega)card.append(el("p","Entrega: "+d.entrega.calle+" · "+d.entrega.colonia+" · "+d.entrega.referencias));}else card.append(el("p","Pedido anterior sin datos de cliente.","nota"));
       const acciones=el("div",undefined,"acciones-demo");
