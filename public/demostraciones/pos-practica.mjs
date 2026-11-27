@@ -1,3 +1,4 @@
+import {inventarioVacio,validarInventario,configurarInventario,movimientoInventario,consumoVenta,registrarConsumo} from "./inventario-practica.mjs";
 // POS local de práctica. No transmite ventas ni usa proveedores financieros.
 import {obtenerEstablecimiento} from "./establecimientos.mjs";
 import {capacidades} from "./config.mjs";
@@ -44,11 +45,11 @@ export function crearPosPractica(storage,id,plan,{empresaStorage=storage,ahora=D
  // Un único registro de almacenamiento evita escrituras separadas de caja y ventas.
  function leerEstado(){
   if(!storage)throw Error("Almacenamiento no disponible.");
-  const raw=storage.getItem(key);if(!raw)return {version:2,ventas:[],turnos:[]};
+  const raw=storage.getItem(key);if(!raw)return {version:2,ventas:[],turnos:[],inventario:inventarioVacio()};
   if(raw.length>2000000)throw Error("Historial de práctica demasiado grande.");
   const v=JSON.parse(raw),d=Array.isArray(v)?{version:2,ventas:v,turnos:[]}:v;
   if(!d||d.version!==2||!Array.isArray(d.ventas)||d.ventas.length>LIM||!Array.isArray(d.turnos)||d.turnos.length>50||d.ventas.some(x=>!x||typeof x.folio!=="string"||!Array.isArray(x.detalle)||!["vendido","cancelado"].includes(x.estado))||d.turnos.some(t=>!t||typeof t.id!=="string"||!dinero(t.fondo)||!Array.isArray(t.movimientos)||t.movimientos.length>100||!["abierto","cerrado"].includes(t.estado)))throw Error("Historial de práctica inválido.");
-  return copy(d);
+  d.inventario=validarInventario(d.inventario??inventarioVacio());return copy(d);
  }
  function guardar(d){storage.setItem(key,JSON.stringify(d));}
  function abierto(d,s){return d.turnos.find(t=>t.sucursal===s&&t.estado==="abierto");}
@@ -57,6 +58,9 @@ export function crearPosPractica(storage,id,plan,{empresaStorage=storage,ahora=D
  function mover(sucursal,empleado,tipo,importe,motivo){const a=contexto(sucursal,empleado,true),d=leerEstado(),t=turnoActor(d,a);if(!dinero(importe)||importe===0||!Object.hasOwn(motivosCaja,tipo)||!motivosCaja[tipo].includes(motivo)||t.movimientos.length>=100)throw Error("Movimiento inválido.");if(tipo==="retiro"&&importe>resumenTurno(t,d.ventas).esperado)throw Error("Retiro superior al efectivo esperado.");t.movimientos.push({tipo,importe,motivo,fecha:ahora(),empleado,rol:a.rol});guardar(d);return copy(t);}
  function cerrar(sucursal,empleado,contado){const a=contexto(sucursal,empleado),d=leerEstado(),t=turnoActor(d,a);if(!dinero(contado))throw Error("Efectivo contado inválido.");const r=resumenTurno(t,d.ventas);t.estado="cerrado";t.cierre={fecha:ahora(),empleado,rol:a.rol,contado,diferencia:contado-r.esperado,resumen:r};guardar(d);return copy(t);}
  function consultarCaja(sucursal,empleado){contexto(sucursal,empleado);const d=leerEstado();return d.turnos.filter(t=>t.sucursal===sucursal).map(t=>({...t,resumen:t.cierre?.resumen??resumenTurno(t,d.ventas)}));}
+ function consultarInventario(sucursal,empleado){contexto(sucursal,empleado);const i=leerEstado().inventario;return {productos:i.productos.filter(p=>p.sucursal===sucursal),movimientos:i.movimientos.filter(m=>m.sucursal===sucursal)};}
+ function configurarStock(sucursal,empleado,catalogo,id,config){const a=contexto(sucursal,empleado,true),d=leerEstado(),p=configurarInventario(d.inventario,a,catalogo,id,config,ahora());guardar(d);return copy(p);}
+ function moverStock(sucursal,empleado,id,tipo,cantidad,motivo){const a=contexto(sucursal,empleado,true),d=leerEstado(),p=movimientoInventario(d.inventario,a,id,tipo,cantidad,motivo,ahora());guardar(d);return copy(p);}
  function vender(catalogo,lineas,d){
   const actor=contexto(d.sucursal,d.empleado,d.descuento>0),r=resumirVenta(id,catalogo,lineas,d.descuento??0);
   if(!r.detalle.length)throw Error("Agrega productos o servicios.");
@@ -64,9 +68,11 @@ export function crearPosPractica(storage,id,plan,{empresaStorage=storage,ahora=D
   if(d.cliente&&!clientesDemo.some(x=>x.id===d.cliente))throw Error("Cliente ficticio inválido.");
   const dEstado=leerEstado(),turno=turnoActor(dEstado,actor),ventas=dEstado.ventas;if(ventas.length>=LIM)throw Error("Límite de 50 ventas de práctica.");
   const f="POS-"+folio();if(!/^POS-[a-zA-Z0-9-]{1,80}$/.test(f)||ventas.some(x=>x.folio===f))throw Error("Folio duplicado.");
-  let v={...r,...actor,folio:f,turno:turno.id,creado:ahora(),cliente:d.cliente||"",estado:"recibido",revisionCobro:0};
+  const consumo=consumoVenta(dEstado.inventario,actor,r.detalle);
+  let v={...r,...actor,consumoInventario:consumo,folio:f,turno:turno.id,creado:ahora(),cliente:d.cliente||"",estado:"recibido",revisionCobro:0};
   if(r.total>0){v=aplicarCobro(v,{accion:"registrar",revision:0,totalEsperado:r.total,metodo:d.metodo,recibidoCentavos:d.recibidoCentavos,referencia:d.referencia},ahora());if(referenciaRepetida(ventas,v,v.cobro))throw Error("Folio de cobro repetido.");}
   else if(d.recibidoCentavos!==0)throw Error("Venta sin cargo no admite cobro.");
+  registrarConsumo(dEstado.inventario,actor,consumo,f,ahora());
   v.estado="vendido";dEstado.ventas=[v,...ventas];guardar(dEstado);return copy(v);
  }
  function cancelar(f,sucursal,empleado,motivo){
@@ -74,7 +80,8 @@ export function crearPosPractica(storage,id,plan,{empresaStorage=storage,ahora=D
   if(!v||v.estado!=="vendido"||!motivosAnulacion.includes(motivo))throw Error("Cancelación inválida.");
   if(v.turno){const t=turnoActor(dEstado,actor);if(t.id!==v.turno)throw Error("No se modifica una venta de turno cerrado.");if(v.cobro?.metodo==="efectivo"&&v.total>resumenTurno(t,ventas).esperado)throw Error("Efectivo insuficiente para anular la venta.");}
   if(v.cobro)Object.assign(v,aplicarCobro(v,{accion:"anular",revision:v.revisionCobro,motivo},ahora()));
+  registrarConsumo(dEstado.inventario,actor,v.consumoInventario??[],f,ahora(),true);
   v.estado="cancelado";v.cancelacion={...actor,motivo,fecha:ahora()};guardar(dEstado);return copy(v);
  }
- return {contexto,leer:s=>{contexto(s.sucursal,s.empleado);return leerEstado().ventas.filter(v=>v.sucursal===s.sucursal);},vender,cancelar,abrir,mover,cerrar,consultarCaja,empresa:()=>empresa.leer()};
+ return {contexto,leer:s=>{contexto(s.sucursal,s.empleado);return leerEstado().ventas.filter(v=>v.sucursal===s.sucursal);},vender,cancelar,abrir,mover,cerrar,consultarCaja,consultarInventario,configurarStock,moverStock,empresa:()=>empresa.leer()};
 }
