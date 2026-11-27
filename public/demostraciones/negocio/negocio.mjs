@@ -53,7 +53,7 @@ if(!base||!plan||!t){
       const cuerpo=el("div",undefined,"producto-texto");
       cuerpo.append(el("p",p.categoria,"categoria"),el("h3",p.nombre),el("p",p.descripcion,"descripcion"),el("strong",importe(p.precioCentavos),"precio"));
       if(p.duracionMinutos)cuerpo.append(el("p",p.duracionMinutos+" min","nota"));
-      if(p.disponible===false)cuerpo.append(el("p","Temporalmente no disponible","nota"));
+      if(p.disponible===false){card.classList.add("producto-agotado");cuerpo.append(el("p","Agotado · temporalmente no disponible","estado-agotado"));}
       if(carrito&&carrito.puedeAgregar(p)){const b=el("button","Agregar al carrito","boton-agregar");b.type="button";b.addEventListener("click",()=>carrito.agregar(p));cuerpo.append(b);}
       if(citas&&serviciosCita([p]).length){const a=el("a","Reservar cita","boton-agregar");a.href=urlCitas+"&servicio="+encodeURIComponent(p.id);cuerpo.append(a);}
       card.append(imagen,cuerpo);return card;
@@ -64,4 +64,6 @@ if(!base||!plan||!t){
   $("administracion").href=links.administracion;$("administracion-arriba").href=links.administracion;$("administracion-arriba").hidden=false;$("comparador").href=links.comparador;
   $("aviso-practica").hidden=!practica;
   render();$("pagina").hidden=false;
+  // Al volver desde el panel con el historial del navegador, reconstruir desde la copia de práctica.
+  if(practica)window.addEventListener("pageshow",e=>{if(e.persisted)location.reload();});
 }
