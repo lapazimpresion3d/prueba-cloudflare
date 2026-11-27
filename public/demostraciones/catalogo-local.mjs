@@ -92,5 +92,16 @@ export function crearCatalogosLocales(almacen) {
     // Sobrescribir en vez de borrar: si el almacenamiento falla, conservar la copia en memoria.
     return guardar(id,lista);
   }
-  return {leer,crear,editar,eliminar,restaurar};
+  function importar(id,datos){
+    const e=semilla(id);
+    if(!Array.isArray(datos)||datos.length>MAX)throw Error("Catálogo de servidor inválido.");
+    const vistos=new Set();
+    const lista=datos.map(p=>{
+      if(!p||vistos.has(p.id))throw Error("Identificador duplicado.");
+      vistos.add(p.id);
+      return validarOferta(p,p.id,e.catalogo.find(x=>x.id===p.id));
+    });
+    return guardar(id,lista);
+  }
+  return {leer,crear,editar,eliminar,restaurar,importar};
 }
