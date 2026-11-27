@@ -1,4 +1,9 @@
 # Registro de cambios
+## 2026-11-26 — Personalización de demos y preparación D1
+- Editor local de identidad visual, horarios, ubicación y contacto ficticio, independiente por establecimiento y restaurable; sin cambiar IDs, giros ni datos publicados.
+- Comprobación de identidad de esquema D1 antes de permitir sesiones o guardado. 0001_practica.sql añade demo_identidad; aplicar exclusivamente a D1 nueva de demos.
+- 20 comprobaciones JS y 11 rutas simuladas correctas, 17 aserciones SQLite con esquema exacto. Pendientes navegador, suite integrada y configuración real. Sin cambios a main ni sitio comercial.
+
 ## 2026-11-26 — Núcleo inicial de demos en servidor
 - API /api/demo/registro y contexto, cinco establecimientos y cuatro planes; sin acceso a DB estable.
 - Sesión temporal de práctica, copia por establecimiento y revisión, validación, límite y caducidad; binding DEMO_DB opcional y esquema separado no aplicado.
