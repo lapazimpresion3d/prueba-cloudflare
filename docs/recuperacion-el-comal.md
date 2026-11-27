@@ -1,0 +1,17 @@
+# v0.11.8 — Recuperar flujos completos de atención
+## Implementado
+- Citas: selección obligatoria de identidad ficticia, teléfono y correo de ejemplo, comentarios predefinidos, servicio, recurso y horario. La agenda conserva la identidad en el registro y permite consultar los datos.
+- Pedidos: identidad ficticia, teléfono, modalidad, mesa obligatoria para consumo local del restaurante, dirección de ejemplo obligatoria para domicilio, instrucciones predefinidas, efectivo/transferencia como preferencia (no cobro). Vista de revisión y confirmación explícita. Datos en historial y panel de empresa.
+- Persistencia local y API D1 guardan instantáneas en datos_json existente; el servidor valida los identificadores de las opciones y los incorpora a la huella de idempotencia. No se requiere SQL adicional. Solicitudes anteriores sin datosCliente siguen aceptadas por compatibilidad con pendientes anteriores; nuevos formularios requieren selección. No se admiten nombres/domicilios reales introducidos libremente. No se envían WhatsApp ni correos reales. No se modifica el sistema original.
+## Paridad con la versión original de El Comal
+Fuentes revisadas: public/index.html y public/app.js de desarrollo, incluyendo campos de cliente, tipo de servicio, dirección, colonia, referencias, teléfono, instrucciones, cálculo por zona, revisión, pedido por WhatsApp, mesa por enlace y solicitud de reservación. Recuperar en el entorno aislado, sin llamar las API operativas originales.
+1. [x] Datos de cliente, modalidad, dirección de ejemplo, mesa, instrucciones y revisión previa; pago previsto de ejemplo. 
+2. [ ] Menú completo, ingredientes, variantes, combos y personalización de cada partida; disponibilidad y precios vigentes.
+3. [ ] Pedidos desde QR específico de mesa, configuración de mesas y reservaciones por capacidad y fecha; confirmar y cancelar desde encargado.
+4. [ ] Zonas de entrega, costos, mínimos y restricciones de horario. Actualmente cargo fijo ilustrativo y dos domicilios ficticios.
+5. [ ] Preparar mensaje WhatsApp de ejemplo sin enviarlo a destinatario real, seguimiento y notificaciones simuladas.
+6. [ ] Pantalla de cocina, filtros por mesa, manejo de comandas y pedidos listos.
+7. [ ] Cobros de práctica, efectivo y transferencia con folio, confirmación y conciliación, historial y correcciones. No afirmar que la preferencia de pago equivale a cobro.
+8. [ ] Validación integral en navegador de cliente, encargado y cocina; mantener aislados D1 y los datos de producción.
+## Pruebas
+12 comprobaciones lógicas ejecutadas sobre fuentes de GitHub, sintaxis de cuatro controladores e IDs correctos. Seis comprobaciones DOM simuladas de revisión y confirmación de pedido: cliente/domicilio faltantes bloqueados, revisión correcta, no escritura antes de confirmar, registro con dirección e identidad, carrito vaciado. Se añadió prueba Node permanente; suite integrada y despliegue real pendientes. Las seis mesas son ejemplos, no mesas operativas ni reserva de disponibilidad. Main, sitio comercial y D1 remota intactos.
