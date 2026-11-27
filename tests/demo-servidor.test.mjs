@@ -116,3 +116,18 @@ test("perfil remoto privado, revisiones, separación y migración opcional",asyn
   assert.equal((await llamar(env,ruta)).status,503);
   assert.equal((await (await llamar(env,"/api/demo/contexto?negocio=cafe-mirador&plan=p1")).json()).persistenciaConfigurada,true);
 });
+
+test("catálogo remoto conserva fotografía y eliminación explícita sin compartir sesiones",async()=>{
+  const env=envDemo(),ruta="/api/demo/catalogo?negocio=taqueria-el-comal&plan=p1";
+  const a=await iniciar(env,"192.0.2.10"),b=await iniciar(env,"192.0.2.11"),catalogo=seed("taqueria-el-comal");
+  const original=catalogo[0].imagen;
+  catalogo[0].imagen="data:image/jpeg;base64,/9j/AA==";
+  assert.equal((await llamar(env,ruta,"PUT",a,{revision:0,catalogo})).status,200);
+  assert.equal((await (await llamar(env,ruta,"GET",a)).json()).catalogo[0].imagen,catalogo[0].imagen);
+  assert.equal((await (await llamar(env,ruta,"GET",b)).json()).catalogo[0].imagen,original);
+  catalogo[0].imagen="";
+  assert.equal((await llamar(env,ruta,"PUT",a,{revision:1,catalogo})).status,200);
+  assert.equal((await (await llamar(env,ruta,"GET",a)).json()).catalogo[0].imagen,"");
+  catalogo[0].imagen="https://example.invalid/x";
+  assert.equal((await llamar(env,ruta,"PUT",a,{revision:2,catalogo})).status,400);
+});
