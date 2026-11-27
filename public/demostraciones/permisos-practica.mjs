@@ -4,7 +4,7 @@ gruposPermisos.push(...[["Pedidos y cocina",["pedidos.ver","Consultar pedidos"],
 gruposPermisos.push(["Producción por lotes",["produccion.configurar","Configurar preparaciones"],["produccion.registrar","Registrar producción"]]);
 gruposPermisos.push(["Costos comerciales",["inventario.valorar","Valorar mercancías"],["inventario.rentabilidad","Consultar rentabilidad comercial"]]);
 gruposPermisos.push(["Cotizaciones y trabajos",["cotizaciones.ver","Consultar cotizaciones"],["cotizaciones.crear","Crear cotizaciones"],["cotizaciones.estado","Actualizar cotizaciones"],["cotizaciones.orden","Gestionar órdenes de servicio"],["cotizaciones.anticipos","Registrar y anular anticipos simulados"],["cotizaciones.convertir","Convertir orden en venta"]]);
-gruposPermisos.push(["Fidelización",["fidelizacion.ver","Consultar beneficios"],["fidelizacion.configurar","Configurar promociones y puntos"]]);
+gruposPermisos.push(["Fidelización",["fidelizacion.ver","Consultar beneficios"],["fidelizacion.configurar","Configurar promociones y puntos"],["fidelizacion.tarjetas","Emitir y revocar tarjetas"]]);
 gruposPermisos.push(["Clientes",["clientes.ver","Consultar clientes"],["clientes.editar","Registrar y editar clientes"],["clientes.exportar","Exportar directorio"]]);
 export const permisosTodos=Object.freeze(gruposPermisos.flatMap(g=>g.slice(1).map(x=>x[0])));
 export function permisosBase(base){if(["propietario","administrador"].includes(base))return [...permisosTodos];if(base==="encargado")return permisosTodos.filter(x=>!["compras.proveedor","compras.pagar"].includes(x));if(base==="cajero")return ["ventas.ver","ventas.cobrar","caja.ver","caja.abrir","caja.cerrar","inventario.ver","almacen.ver"];return [];}
