@@ -6,9 +6,9 @@ const ahora=()=>Math.floor(Date.now()/1000);
 export async function pagosMultiplesListos(db){
  try{return (await db.prepare("SELECT count(*) AS n FROM sqlite_master WHERE (type='table' AND name='demo_planes_cobro') OR (type='trigger' AND name IN ('demo_pago_multiple_no_nueva_comanda','demo_pago_multiple_no_editar_comanda','demo_pago_multiple_cierre'))").first())?.n===4;}catch{return false;}
 }
-async function contexto(db,s,id){
+async function contexto(db,s,id,permitirCerrada=false){
  if(!cuentaIdValida(id))throw Error("Cuenta inválida.");
- const c=await db.prepare("SELECT cuenta_id FROM demo_cuentas WHERE sesion_id=? AND cuenta_id=? AND cerrado IS NULL AND EXISTS(SELECT 1 FROM demo_sesiones WHERE id=? AND expira>?)").bind(s.id,id,s.id,ahora()).first();
+ const c=await db.prepare("SELECT cuenta_id,cerrado FROM demo_cuentas WHERE sesion_id=? AND cuenta_id=? AND (?=1 OR cerrado IS NULL) AND EXISTS(SELECT 1 FROM demo_sesiones WHERE id=? AND expira>?)").bind(s.id,id,permitirCerrada?1:0,s.id,ahora()).first();
  if(!c)throw Error("Cuenta no disponible.");
  const filas=(await db.prepare("SELECT solicitud_id,datos_json FROM demo_pedidos WHERE sesion_id=? AND establecimiento_id='taqueria-el-comal' AND json_extract(datos_json,'$.cuenta')=? ORDER BY solicitud_id").bind(s.id,id).all()).results;
  const pedidos=filas.map(f=>JSON.parse(f.datos_json));
@@ -17,11 +17,12 @@ async function contexto(db,s,id){
  const fila=await db.prepare("SELECT revision,datos_json FROM demo_planes_cobro WHERE sesion_id=? AND cuenta_id=?").bind(s.id,id).first();
  const plan=fila?JSON.parse(fila.datos_json):crearPlanCobro(total);
  if(plan.consumoCentavos!==total)throw Error("El consumo cambió; requiere conciliación.");
- return {plan,filas};
+ if(c.cerrado!==null&&!fila)throw Error("La cuenta cerrada no tiene pagos múltiples.");
+ return {plan,filas,cerrado:c.cerrado};
 }
 export async function leerPlanCobro(db,s,id){
- const {plan}=await contexto(db,s,id);
- return {plan,resumen:resumenPlanCobro(plan)};
+ const {plan,cerrado}=await contexto(db,s,id,true);
+ return {plan,cerrado,resumen:resumenPlanCobro(plan)};
 }
 export async function guardarMovimiento(db,s,id,d){
  if(!await pagosMultiplesListos(db))throw Error("Falta configurar la conciliación de pagos múltiples.");
