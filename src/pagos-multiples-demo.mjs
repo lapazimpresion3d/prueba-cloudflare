@@ -30,6 +30,10 @@ export async function leerPlanCobro(db,s,id){
 export async function guardarMovimiento(db,s,id,d){
  if(!await pagosMultiplesListos(db))throw Error("Falta configurar la conciliación de pagos múltiples.");
  const {plan,filas,pedidos,personas}=await contexto(db,s,id);
+ if(d.terminal!==undefined){
+ const op=await db.prepare("SELECT o.estado,o.importe_centavos,o.revision_cuenta,t.proveedor FROM demo_terminal_operaciones o JOIN demo_terminales t ON t.sesion_id=o.sesion_id AND t.terminal_id=o.terminal_id WHERE o.sesion_id=? AND o.cuenta_id=? AND o.operacion_id=?").bind(s.id,id,d.id).first();
+ if(!op||op.estado!=="aprobado"||op.proveedor!=="point_simulado"||op.importe_centavos!==d.consumoCentavos+(d.propinaCentavos??0)||op.revision_cuenta!==d.revision)throw Error("Aprobación de terminal no verificada.");
+ }
  const nuevo=d.accion==='reasignar'?reasignarDivision(plan,d,partidasCuenta(pedidos),personas):d.accion==='anular'?anularMovimiento(plan,d):movimientoIndividual(plan,d,partidasCuenta(pedidos),personas);
  if(nuevo===plan)return {plan,resumen:resumenPlanCobro(plan),subcuentas:subcuentas(plan),repetido:true};
  // Compare-and-swap de revisión y fotografía exacta de comandas en una sola sentencia.
