@@ -12,14 +12,14 @@ export const planes = [
 // No elevar un estado hasta contar con pruebas y un adaptador aislado.
 export const modulos = [
   {id:"web", nombre:"Página e identidad visual", desde:1, estado:"disponible", detalle:"Identidad, horarios e información ficticia del negocio."},
-  {id:"catalogo", nombre:"Catálogo de productos y servicios", desde:1, estado:"disponible", detalle:"Consulta y filtrado del catálogo propio."},
+  {id:"catalogo", nombre:"Catálogo de productos y servicios", desde:1, estado:"disponible", detalle:"Consulta, filtrado y editor de práctica local; no es administración SaaS."},
   {id:"qr_nfc", nombre:"QR y NFC", desde:1, estado:"en_desarrollo", detalle:"Acceso opcional por enlace, QR o NFC; generación y gestión pendientes."},
   {id:"pedidos", nombre:"Pedidos", desde:2, estado:"en_desarrollo", giros:["cafeteria","tienda","restaurante"], detalle:"Generalización y aislamiento de pedidos, carrito y canales."},
   {id:"seguimiento", nombre:"Seguimiento de pedidos", desde:2, estado:"en_desarrollo", giros:["cafeteria","tienda","restaurante"], depende:["pedidos"], detalle:"Seguimiento independiente por comercio."},
   {id:"citas", nombre:"Citas y reservaciones", desde:2, estado:"en_desarrollo", giros:["barberia","taller","restaurante","cafeteria"], detalle:"Agenda de recursos y disponibilidad según giro."},
   {id:"agendas", nombre:"Agendas de empleados", desde:2, estado:"en_desarrollo", giros:["barberia","taller"], depende:["citas"], detalle:"Horarios y asignación de personal."},
   {id:"clientes", nombre:"Gestión de clientes", desde:2, estado:"en_desarrollo", detalle:"Registros y permisos por establecimiento."},
-  {id:"administracion", nombre:"Panel administrativo", desde:1, estado:"en_desarrollo", detalle:"Edición autorizada de datos y módulos por negocio."},
+  {id:"administracion", nombre:"Panel administrativo", desde:1, estado:"en_desarrollo", detalle:"Edición autorizada y persistente en servidor pendiente. Hay un editor de práctica local del catálogo."},
   {id:"cocina", nombre:"Cocina", desde:2, estado:"en_desarrollo", giros:["restaurante","cafeteria"], detalle:"Comandas y preparación aisladas por establecimiento."},
   {id:"pagos", nombre:"Registro de pagos", desde:2, estado:"en_desarrollo", detalle:"Registro y conciliación; no procesa dinero real."},
   {id:"pos", nombre:"Punto de venta", desde:3, estado:"en_desarrollo", detalle:"Captura interna y ventas, sin teléfono del cliente."},
