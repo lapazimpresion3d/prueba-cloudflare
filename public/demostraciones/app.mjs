@@ -43,7 +43,7 @@ function guardarURL(){
 }
 function renderSelectores(){
   $("negocios").replaceChildren(...establecimientos.map(e=>boton([["span",e.marca.icono,"icono"],["strong",e.nombre],["small",e.giroNombre]],e.id===negocio.id,()=>{
-    negocio=e;editorAbierto=false;perfilAbierto=false;reiniciarFormulario();$("aviso-editor").textContent="";$("buscar").value="";$("tipo").value="";$("categoria").value="";renderTodo(true);$("negocios").querySelector('[aria-pressed="true"]')?.focus();
+    negocio=e;generacionImagen++;editorAbierto=false;perfilAbierto=false;reiniciarFormulario();$("aviso-editor").textContent="";$("buscar").value="";$("tipo").value="";$("categoria").value="";renderTodo(true);$("negocios").querySelector('[aria-pressed="true"]')?.focus();
   })));
   $("planes").replaceChildren(...planes.map(p=>boton([["strong",p.nombre],["span",importe(p.mensualidad,p.moneda)+"/mes","precio-plan"],["small","Implementación: "+importe(p.implementacion,p.moneda)],["small",p.descripcion]],p.id===plan.id,()=>{
     plan=p;renderTodo(false);$("planes").querySelector('[aria-pressed="true"]')?.focus();
@@ -160,7 +160,7 @@ $("abrir-perfil").addEventListener("click",()=>{
   editorAbierto=false;reiniciarFormulario();perfilAbierto=true;cargarPerfil();$("aviso-perfil").textContent="";
   renderVista();$("form-perfil").elements.namedItem("nombre").focus();
 });
-$("cerrar-perfil").addEventListener("click",()=>{perfilAbierto=false;renderVista();$(vistaAdmin?"admin-perfil":"abrir-perfil").focus();});
+$("cerrar-perfil").addEventListener("click",()=>{generacionImagen++;perfilAbierto=false;renderVista();$(vistaAdmin?"admin-perfil":"abrir-perfil").focus();});
 function mostrarImagen(tipo){
   const valor=$("form-perfil").elements.namedItem(tipo).value,img=$("prev-"+tipo);
   img.hidden=!valor;if(valor)img.src=valor;else img.removeAttribute("src");
@@ -282,7 +282,7 @@ function actualizarPerfilRemoto(){
   $("perfil-guardar").disabled=perfilOcupado||ocupada||!listo||!perfilActivo||!revisionesPerfil.has(negocio.id);
 }
 async function operarPerfil(accion){
-  if(perfilOcupado||ocupada||!contextoServidor?.perfilConfigurado)return;
+  if(perfilOcupado||ocupada||imagenPendiente||!contextoServidor?.perfilConfigurado)return;
   const id=negocio.id,p=plan.id;
   if(contextoServidor.establecimiento.id!==id||contextoServidor.plan.id!==p)return;
   if(accion==="cargar"&&!confirm("¿Recuperar la identidad guardada y sustituir la copia local de este negocio?"))return;
