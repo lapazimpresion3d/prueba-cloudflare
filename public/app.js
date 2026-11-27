@@ -1386,6 +1386,52 @@ revisionPedido.addEventListener("cancel", evento => {
   if (procesandoRevision) evento.preventDefault();
 });
 
+// Persistir solo token y huella de la solicitud (no dirección ni teléfono).
+// sessionStorage sobrevive a recargas de esta pestaña; no sincroniza otros dispositivos.
+const claveIntentoPedido = "elComalIntentoPedido:" + (codigoMesa ?? "general");
+async function huellaRegistroPedido(contenido) {
+  const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(contenido));
+  return Array.from(new Uint8Array(bytes), b => b.toString(16).padStart(2, "0")).join("");
+}
+async function recuperarIntentoRegistro() {
+  const huella = await huellaRegistroPedido(borradorRegistro.contenido);
+  let pendiente;
+  try {
+    pendiente = JSON.parse(sessionStorage.getItem(claveIntentoPedido) || "null");
+  } catch {
+    throw new Error("No se puede acceder al almacenamiento del intento. No se ha enviado el pedido.");
+  }
+  if (pendiente && /^[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/.test(pendiente.token)) {
+    if (pendiente.huella === huella) borradorRegistro.token = pendiente.token;
+    else {
+      const respuesta = await fetch("/api/pedidos/seguimiento", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: pendiente.token }), cache: "no-store"
+      });
+      if (respuesta.ok) {
+        const pedido = await respuesta.json();
+        window.seguimientoComal.guardar(pendiente.token, pedido.folio);
+        seguirPedido.href = "/seguimiento/#" + pendiente.token;
+        enlaceRegistroPedido.hidden = false;
+        sessionStorage.removeItem(claveIntentoPedido);
+        throw new Error("El intento anterior ya se registró como pedido #" + pedido.folio + ". Revisa su seguimiento antes de enviar otro pedido.");
+      }
+      if (respuesta.status !== 404) throw new Error("No se pudo verificar el intento anterior. Intenta nuevamente.");
+      if (!window.confirm("Hay un intento anterior sin confirmar y el carrito cambió. ¿Quieres iniciar otro pedido? Si el anterior llegó al servidor podría duplicarse.")) {
+        throw new Error("No se envió un nuevo pedido.");
+      }
+    }
+  }
+  try {
+    sessionStorage.setItem(claveIntentoPedido, JSON.stringify({ token: borradorRegistro.token, huella }));
+  } catch {
+    throw new Error("No se pudo guardar el intento de pedido. No se ha enviado.");
+  }
+}
+function limpiarIntentoRegistro() {
+  try { sessionStorage.removeItem(claveIntentoPedido); } catch {}
+}
+
 async function solicitarRevisionPedido(ruta) {
   const { datos, token } = borradorRegistro;
   const respuesta = await fetch(ruta, {
@@ -1404,10 +1450,12 @@ registrarPedidoDemo.addEventListener("click", async () => {
   let requiereRevision = false;
 
   try {
+    await recuperarIntentoRegistro();
     const { token } = borradorRegistro;
     const { respuesta, resultado } = await solicitarRevisionPedido("/api/pedidos");
     if (!respuesta.ok) {
       requiereRevision = respuesta.status === 409;
+      if ([400, 403, 409, 429].includes(respuesta.status)) limpiarIntentoRegistro();
       revisionDesactualizada = requiereRevision;
       estadoRegistroPedido.textContent = resultado.error;
       return;
@@ -1422,8 +1470,11 @@ registrarPedidoDemo.addEventListener("click", async () => {
     borradorRegistro = null;
     carrito.length = 0;
     actualizarCarrito();
-  } catch {
-    estadoRegistroPedido.textContent = "No pudimos comprobar el registro. Pulsa de nuevo para reintentar.";
+    limpiarIntentoRegistro();
+  } catch (error) {
+    estadoRegistroPedido.textContent = error instanceof TypeError || error instanceof SyntaxError
+      ? "No pudimos comprobar el registro. Pulsa de nuevo para reintentar."
+      : error.message || "No pudimos comprobar el registro. Pulsa de nuevo para reintentar.";
   } finally {
     procesandoRevision = false;
     registrarPedidoDemo.disabled = folioRegistrado !== null || requiereRevision;
