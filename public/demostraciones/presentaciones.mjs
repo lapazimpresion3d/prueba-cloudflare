@@ -50,7 +50,13 @@ export function enlacesDemo(id,plan,practica=false){
   return {administracion,negocio,comparador:"/demostraciones/?"+q};
 }
 
-export function enlaceGaleria(plan){return "/demostraciones/ejemplos/?"+new URLSearchParams({plan});}
+// Ejemplos representativos: no son restricciones comerciales del giro.
+export const planesRepresentativos=Object.freeze({
+ "cafe-mirador":"p1","barberia-elite":"p2","mundo-mascotas":"p3",
+ "taqueria-el-comal":"p4","auto-servicio-bahia":"p3"
+});
+export function enlaceGaleria(){return "/demostraciones/ejemplos/";}
+export function enlaceConfigurador(id,plan){return "/demostraciones/configurar/?"+new URLSearchParams({negocio:id,plan});}
 
 // Símbolos vectoriales originales, decorativos y sin recursos externos.
 export const simbolos={
