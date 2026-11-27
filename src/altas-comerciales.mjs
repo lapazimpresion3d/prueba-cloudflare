@@ -9,6 +9,7 @@ export async function crearAltasComerciales(env,{verificarIdentidad,autenticar,h
  if(!db||[env.DB,env.DEMO_DB,env.PROVIDER_DB].includes(db)||typeof verificarIdentidad!=="function"||typeof autenticar!=="function")throw Error("Altas no configuradas.");
  if(!(await db.prepare("SELECT clave FROM comercio_identidad WHERE clave='lapaz-comercios-v1'").first()))throw Error("Esquema incorrecto.");
  const q=(s,...a)=>db.prepare(s).bind(...a);
+ const estadoMembresia="SELECT json_object('rol',rol,'activa',activa,'alcance',alcance,'sucursales',json((SELECT json_group_array(sucursal) FROM (SELECT sucursal FROM membresia_sucursales WHERE empresa=membresias.empresa AND usuario=membresias.usuario ORDER BY sucursal))),'permisosRol',json((SELECT json_group_array(permiso) FROM (SELECT permiso FROM rol_permisos WHERE empresa=membresias.empresa AND rol=membresias.rol ORDER BY permiso)))) FROM membresias WHERE empresa=? AND usuario=?";
  const exigir=r=>{if(habilitado!==true||r.method!=="POST"||r.headers.get("Origin")!==new URL(r.url).origin)throw Error("Operación no permitida.");};
  async function identidad(r){const i=await verificarIdentidad(r);if(!i||i.emailVerified!==true||!correo(i.email)||typeof i.emisor!=="string"||!i.emisor||i.emisor.length>128||typeof i.sujeto!=="string"||!i.sujeto||i.sujeto.length>128)throw Error("Identidad no verificada.");return i;}
  // El actor se vuelve a verificar dentro de cada sentencia de escritura.
@@ -42,14 +43,18 @@ export async function crearAltasComerciales(env,{verificarIdentidad,autenticar,h
    q("INSERT INTO usuarios(id,emisor,sujeto) SELECT ?,?,? WHERE EXISTS(SELECT 1 FROM comercio_invitaciones WHERE hash=? AND consumido=?) ON CONFLICT(emisor,sujeto) DO NOTHING",u,i.emisor,i.sujeto,h,marca),
    q("INSERT INTO membresias(empresa,usuario,rol,alcance) SELECT empresa,(SELECT id FROM usuarios WHERE emisor=? AND sujeto=? AND activo=1),rol,CASE WHEN sucursal IS NULL THEN 'empresa' ELSE 'sucursales' END FROM comercio_invitaciones WHERE hash=? AND consumido=?",i.emisor,i.sujeto,h,marca),
    q("INSERT INTO membresia_sucursales SELECT empresa,(SELECT id FROM usuarios WHERE emisor=? AND sujeto=?),sucursal FROM comercio_invitaciones WHERE hash=? AND consumido=? AND sucursal IS NOT NULL",i.emisor,i.sujeto,h,marca),
-   q("INSERT INTO comercio_auditoria(empresa,actor,accion,objetivo,fecha) SELECT empresa,(SELECT id FROM usuarios WHERE emisor=? AND sujeto=?),'invitacion.aceptada',hash,? FROM comercio_invitaciones WHERE hash=? AND consumido=?",i.emisor,i.sujeto,n,h,marca)
+   q("INSERT INTO comercio_auditoria(empresa,actor,accion,objetivo,fecha) SELECT empresa,(SELECT id FROM usuarios WHERE emisor=? AND sujeto=?),'invitacion.aceptada',hash,? FROM comercio_invitaciones WHERE hash=? AND consumido=?",i.emisor,i.sujeto,n,h,marca),
+   q("INSERT INTO comercio_auditoria_detalle(id,empresa,actor,sucursal,accion,objetivo,fecha,anterior,posterior) SELECT ?,empresa,(SELECT id FROM usuarios WHERE emisor=? AND sujeto=?),sucursal,'membresia.alta',(SELECT id FROM usuarios WHERE emisor=? AND sujeto=?),?,NULL,("+estadoMembresia.replace("empresa=? AND usuario=?","empresa=comercio_invitaciones.empresa AND usuario=(SELECT id FROM usuarios WHERE emisor=? AND sujeto=?)")+") FROM comercio_invitaciones WHERE hash=? AND consumido=?",crypto.randomUUID(),i.emisor,i.sujeto,i.emisor,i.sujeto,n,i.emisor,i.sujeto,h,marca)
   ]);
   if(!res[0].results?.length)throw Error("Invitación no disponible.");return {empresa:res[0].results[0].empresa};
  },
  async desactivar(r,{empresa,usuario}){
   exigir(r);const a=await actor(r),n=reloj();
-  const res=await db.batch([q("UPDATE membresias SET activa=0 WHERE empresa=? AND usuario=? AND activa=1 AND rol<>'propietario' AND "+guard+" RETURNING usuario",empresa,usuario,empresa,a),q("INSERT INTO comercio_auditoria(empresa,actor,accion,objetivo,fecha) SELECT ?,?,'membresia.desactivada',?,? WHERE changes()=1",empresa,a,usuario,n)]);
-  if(!res[0].results?.length)throw Error("Desactivación no permitida.");return {desactivada:true};
+  const marca=crypto.randomUUID();
+  const previo=q("INSERT INTO comercio_auditoria_detalle(id,empresa,actor,accion,objetivo,fecha,anterior) SELECT ?,?,?,'membresia.desactivada',?,?,("+estadoMembresia+") WHERE "+guard+" AND EXISTS(SELECT 1 FROM membresias WHERE empresa=? AND usuario=? AND activa=1 AND rol<>'propietario')",marca,empresa,a,usuario,n,empresa,usuario,empresa,a,empresa,usuario);
+  const final=q("UPDATE comercio_auditoria_detalle SET posterior=("+estadoMembresia+") WHERE id=?",empresa,usuario,marca);
+  const res=await db.batch([previo,q("UPDATE membresias SET activa=0 WHERE empresa=? AND usuario=? AND activa=1 AND rol<>'propietario' AND "+guard+" RETURNING usuario",empresa,usuario,empresa,a),q("INSERT INTO comercio_auditoria(empresa,actor,accion,objetivo,fecha) SELECT ?,?,'membresia.desactivada',?,? WHERE changes()=1",empresa,a,usuario,n),final]);
+  if(!res[1].results?.length)throw Error("Desactivación no permitida.");return {desactivada:true};
  }
  });
 }

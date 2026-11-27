@@ -11,15 +11,15 @@ export async function crearAdministracionComercial(env,{autenticar,habilitado=fa
  async function contexto(r,e){if(!habilitado||!id(e)||r.method!=="POST"||r.headers.get("Origin")!==new URL(r.url).origin)throw Error("Operación no permitida.");const a=await autenticar(r);if(!id(a?.actor))throw Error("Autenticación requerida.");return a.actor;}
  const log=(e,a,accion,obj)=>q("INSERT INTO comercio_auditoria(empresa,actor,accion,objetivo,fecha) SELECT ?,?,?,?,? WHERE changes()=1",e,a,accion,obj,reloj());
 
- const detalle=(e,a,accion,obj,sucursal,consulta,params,permiso)=>{
+ const detalle=(e,a,accion,obj,sucursal,consulta,params,permiso,condicion="",valores=[])=>{
   const marca=crypto.randomUUID();
-  const previo=q("INSERT INTO comercio_auditoria_detalle(id,empresa,actor,sucursal,accion,objetivo,fecha,anterior) SELECT ?,?,?,?,?,?,?,("+consulta+") WHERE "+guard,marca,e,a,sucursal,accion,obj,reloj(),...params,e,a,permiso);
+  const previo=q("INSERT INTO comercio_auditoria_detalle(id,empresa,actor,sucursal,accion,objetivo,fecha,anterior) SELECT ?,?,?,?,?,?,?,("+consulta+") WHERE "+guard+condicion,marca,e,a,sucursal,accion,obj,reloj(),...params,e,a,permiso,...valores);
   const final=q("UPDATE comercio_auditoria_detalle SET posterior=("+consulta+") WHERE id=?",...params,marca);
   return {previo,final};
  };
  const estadoSucursal="SELECT json_object('activa',activa) FROM sucursales WHERE empresa=? AND id=?";
  const estadoRol="SELECT json_object('permisos',json((SELECT json_group_array(permiso) FROM (SELECT permiso FROM rol_permisos WHERE empresa=roles.empresa AND rol=roles.id ORDER BY permiso)))) FROM roles WHERE empresa=? AND id=?";
- const estadoMembresia="SELECT json_object('rol',rol,'activa',activa,'alcance',alcance,'sucursales',json((SELECT json_group_array(sucursal) FROM (SELECT sucursal FROM membresia_sucursales WHERE empresa=membresias.empresa AND usuario=membresias.usuario ORDER BY sucursal)))) FROM membresias WHERE empresa=? AND usuario=?";
+ const estadoMembresia="SELECT json_object('rol',rol,'activa',activa,'alcance',alcance,'sucursales',json((SELECT json_group_array(sucursal) FROM (SELECT sucursal FROM membresia_sucursales WHERE empresa=membresias.empresa AND usuario=membresias.usuario ORDER BY sucursal))),'permisosRol',json((SELECT json_group_array(permiso) FROM (SELECT permiso FROM rol_permisos WHERE empresa=membresias.empresa AND rol=membresias.rol ORDER BY permiso)))) FROM membresias WHERE empresa=? AND usuario=?";
  async function ejecutar(stm,indice=0){const r=await db.batch(stm);if(!r[indice].results?.length)throw Error("Operación no autorizada o inexistente.");return r[indice].results[0];}
  return Object.freeze({
  async guardarSucursal(r,d){
@@ -47,7 +47,8 @@ export async function crearAdministracionComercial(env,{autenticar,habilitado=fa
   const marca=crypto.randomUUID(),cond="EXISTS(SELECT 1 FROM comercio_auditoria WHERE empresa=? AND actor=? AND accion='membresia.asignada' AND objetivo=?)",obj=d.usuario+":"+marca;
   const stm=[q("UPDATE membresias SET rol=?,alcance='sucursales',activa=1 WHERE empresa=? AND usuario=? AND rol<>'propietario' AND "+guard+filtro+" RETURNING usuario",d.rol,d.empresa,d.usuario,...args,d.rol,JSON.stringify(suc)),log(d.empresa,a,"membresia.asignada",obj),q("DELETE FROM membresia_sucursales WHERE empresa=? AND usuario=? AND "+cond,d.empresa,d.usuario,d.empresa,a,obj)];
   for(const s of suc)stm.push(q("INSERT INTO membresia_sucursales SELECT ?,?,? WHERE "+cond,d.empresa,d.usuario,s,d.empresa,a,obj));
-  return ejecutar(stm);
+  const h=detalle(d.empresa,a,"membresia.asignada",d.usuario,null,estadoMembresia,[d.empresa,d.usuario],"usuarios.administrar"," AND EXISTS(SELECT 1 FROM membresias WHERE empresa=? AND usuario=? AND rol<>'propietario'"+filtro+")",[d.empresa,d.usuario,d.rol,JSON.stringify(suc)]);
+  return ejecutar([h.previo,...stm,h.final],1);
  },
  async revocarInvitacion(r,d){
   const a=await contexto(r,d.empresa);if(!/^[a-f0-9]{64}$/.test(d.hash))throw Error("Invitación inválida.");
