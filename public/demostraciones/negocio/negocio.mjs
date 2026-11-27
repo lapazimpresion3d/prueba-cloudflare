@@ -20,7 +20,7 @@ if(!base||!plan||!t){
     datos={...base,...crearPerfilesLocales(almacen).leer(base.id),catalogo:crearCatalogosLocales(almacen).leer(base.id)};
   }
   document.body.dataset.estilo=t.estilo;
-  if(practica){document.documentElement.style.setProperty("--marca",datos.marca.color);document.documentElement.style.setProperty("--papel",datos.marca.fondo);}
+  if(practica){document.body.style.setProperty("--marca",datos.marca.color);document.body.style.setProperty("--papel",datos.marca.fondo);document.body.style.setProperty("--hero",datos.marca.color);const rgb=datos.marca.color.slice(1).match(/../g).map(x=>parseInt(x,16)/255).map(x=>x<=.04045?x/12.92:((x+.055)/1.055)**2.4);const luminancia=.2126*rgb[0]+.7152*rgb[1]+.0722*rgb[2];document.body.style.setProperty("--hero-texto",luminancia>.179?"#161616":"#fff");}
   document.title=datos.nombre+" · Demostración";
   const textos={logo:t.sigla,nombre:datos.nombre,distintivo:t.distintivo,titulo:practica?datos.marca.lema:t.titulo,entrada:t.entrada,accion:t.accion,"nav-catalogo":t.catalogo,"titulo-catalogo":t.catalogo,"titulo-nosotros":t.seccion,descripcion:datos.marca.descripcion,historia:t.texto,horario:datos.horario,ubicacion:datos.ubicacion,"contacto-texto":datos.contacto||"Información de contacto de ejemplo.","pie-nombre":datos.nombre,"detalle-marca":datos.marca.icono};
   for(const [id,txt] of Object.entries(textos))$(id).textContent=txt;
