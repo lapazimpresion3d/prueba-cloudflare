@@ -1,3 +1,4 @@
+import {tituloAdmin} from "./perfil-panel.mjs";
 import {gruposAdmin} from "./panel-admin.mjs";
 import {obtenerEstablecimiento} from "./establecimientos.mjs";
 import {planes} from "./config.mjs";
@@ -36,8 +37,8 @@ export function montarNavegacion(){
  function abrir(v){nav.hidden=!v;menu.setAttribute("aria-expanded",String(v));}abrir(!matchMedia("(max-width: 780px)").matches);menu.onclick=()=>abrir(nav.hidden);side.append(menu,nav);
  function contexto(){return {sucursal:document.getElementById("sucursal")?.value||q.get("sucursal"),empleado:document.getElementById("empleado")?.value||q.get("empleado")};}
  const grupos=gruposAdmin.map(([g,items])=>[g,[...items]]);grupos[2][1].push(["admin-terminales","Terminales de cobro","Simulación"]);
- for(const [g,items] of grupos){const div=el("div",undefined,"admin-grupo");div.append(el("h2",g));for(const [key,nombre] of items){const href=enlacesAdmin(id,plan,contexto())[key];if(!href)continue;const a=el("a",nombre);a.href=href;if(key===activo)a.setAttribute("aria-current","page");a.addEventListener("click",()=>{a.href=enlacesAdmin(id,plan,contexto())[key];});div.append(a);}if(div.children.length>1)nav.append(div);}
+ for(const [g,items] of grupos){const div=el("div",undefined,"admin-grupo");div.append(el("h2",g));for(const [key,nombre] of items){const href=enlacesAdmin(id,plan,contexto())[key];if(!href)continue;const a=el("a",tituloAdmin(e.giro,key,nombre));a.href=href;if(key===activo)a.setAttribute("aria-current","page");a.addEventListener("click",()=>{a.href=enlacesAdmin(id,plan,contexto())[key];});div.append(a);}if(div.children.length>1)nav.append(div);}
  const extra=el("div",undefined,"admin-grupo admin-enlaces");for(const [label,url] of [["← Volver al negocio",enlacesDemo(id,plan,true).negocio],["Otras demostraciones","/demostraciones/ejemplos/"]]){const a=el("a",label);a.href=url;extra.append(a);}nav.append(extra);
  document.body.classList.add("modo-modulo-admin");main.before(shell);shell.append(side,main);
- const breadcrumb=el("div",undefined,"admin-breadcrumb"),home=el("a","Inicio");home.href=enlacesDemo(id,plan).administracion;breadcrumb.append(home,document.createTextNode(" / "+(grupos.flatMap(g=>g[1]).find(x=>x[0]===activo)?.[1]??"Administración")));main.prepend(breadcrumb);
+ const breadcrumb=el("div",undefined,"admin-breadcrumb"),home=el("a","Inicio");home.href=enlacesDemo(id,plan).administracion;breadcrumb.append(home,document.createTextNode(" / "+(tituloAdmin(e.giro,activo,grupos.flatMap(g=>g[1]).find(x=>x[0]===activo)?.[1]??"Administración"))));main.prepend(breadcrumb);
 }

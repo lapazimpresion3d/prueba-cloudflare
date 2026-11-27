@@ -1,0 +1,2 @@
+# Actualización 45.3 · Adaptación por giro y paquete
+Inicio con hasta cuatro acciones prioritarias por giro; P1 centrado en catálogo e identidad. Terminología del menú compartida; indicadores locales de citas, pedidos, reservaciones, POS e inventario según disponibilidad, con alcance explícito. No se agregan datos ficticios automáticamente ni consultas remotas. Ajustes visuales menores; rediseño profundo de formularios y recorridos guiados pendientes. Sin cambios operativos, main ni migraciones.
