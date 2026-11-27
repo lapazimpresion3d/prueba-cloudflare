@@ -19,7 +19,8 @@ export async function atenderPedidosDemo(request,db,s,ctx,json){
   const buscar=solicitud=>db.prepare("SELECT huella,estado,datos_json FROM demo_pedidos WHERE sesion_id=? AND establecimiento_id=? AND solicitud_id=?").bind(s.id,id,solicitud).first();
   if(request.method==="GET"){
     const filas=await db.prepare("SELECT datos_json FROM demo_pedidos WHERE sesion_id=? AND establecimiento_id=? AND EXISTS (SELECT 1 FROM demo_sesiones WHERE id=? AND expira>?) ORDER BY creado DESC, solicitud_id DESC LIMIT 30").bind(s.id,id,s.id,ahora()).all();
-    return json({establecimiento:id,pedidos:filas.results.map(leerFila),expira:s.expira});
+    const cuentas=id==="taqueria-el-comal"&&await cuentasListas(db)?(await db.prepare("SELECT cuenta_id,mesa,personas,abierto,cerrado FROM demo_cuentas WHERE sesion_id=? ORDER BY abierto DESC LIMIT 30").bind(s.id).all()).results:[];
+    return json({establecimiento:id,pedidos:filas.results.map(leerFila),expira:s.expira,cuentas});
   }
   const datos=await leerJsonLimitado(request,12000);
   if(!uuid(datos?.solicitud))return error(json,"Identificador de solicitud inválido.",400);
