@@ -4,6 +4,7 @@ import { aplicarCatalogo, guardarProducto, servirFoto } from "./catalogo.mjs";
 import { administrarEntrega, leerEntrega } from "./entrega.mjs";
 import { aplicarPrecio, fechaNegocio, validarPromocion } from "./promociones.mjs";
 import { guardarDatosNegocio, leerDatosNegocio } from "./negocio.mjs";
+import { ErrorSolicitud, leerJsonLimitado, reservarIntento } from "./seguridad.mjs";
 
 const encoder = new TextEncoder();
 const cookieSesion = "__Host-comal-admin";
@@ -16,7 +17,8 @@ const ventanaFallos = 60;
 function json(datos, status = 200, headers = {}) {
   return Response.json(datos, {
     status,
-    headers: { "Cache-Control": "no-store", ...headers }
+    headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff",
+      "Referrer-Policy": "no-referrer", ...headers }
   });
 }
 
@@ -135,42 +137,28 @@ function demasiadosIntentos(espera) {
 }
 
 async function iniciarSesion(request, db, clave, credencial, cookie = cookieSesion) {
-  const datos = await request.json().catch(() => null);
   const ahora = Math.floor(Date.now() / 1000);
   const ip = request.headers.get("CF-Connecting-IP") || "sin-ip";
   const prefijo = cookie === cookieSesion ? "intentos:" : "intentos:cocina:";
   const origen = aHex(await firmar(clave, prefijo + ip));
-  const previo = await db.prepare(
-    "SELECT fallos, vence FROM intentos_acceso WHERE origen = ? AND vence > ?"
-  ).bind(origen, ahora).first();
-
-  if (previo?.fallos >= maximoFallos) {
-    return demasiadosIntentos(previo.vence - ahora);
+  const intento = await reservarIntento(db, origen, ahora, ventanaFallos, maximoFallos);
+  if (!intento) {
+    const previo = await db.prepare("SELECT vence FROM intentos_acceso WHERE origen = ?").bind(origen).first();
+    return demasiadosIntentos(Math.max(1, (previo?.vence ?? ahora + ventanaFallos) - ahora));
   }
-
+  // Limpieza acotada en el tiempo; no se borran contadores de una ventana activa.
+  if (intento.fallos === 1) await db.prepare("DELETE FROM intentos_acceso WHERE vence <= ?").bind(ahora).run();
+  const datos = await leerJsonLimitado(request, 2048);
   const firmaEsperada = typeof credencial === "string"
     ? await firmar(clave, "acceso:" + credencial)
     : credencial;
   const correcto = typeof datos?.clave === "string" && datos.clave.length <= 256 &&
     await crypto.subtle.verify("HMAC", clave, firmaEsperada, encoder.encode("acceso:" + datos.clave));
-
   if (!correcto) {
-    const nuevo = await db.prepare(
-      "INSERT INTO intentos_acceso (origen, fallos, vence) VALUES (?, 1, ?) " +
-      "ON CONFLICT (origen) DO UPDATE SET " +
-      "fallos = CASE WHEN vence <= ? THEN 1 ELSE fallos + 1 END, " +
-      "vence = CASE WHEN vence <= ? THEN excluded.vence ELSE vence END " +
-      "WHERE vence <= ? OR fallos < ? RETURNING fallos, vence"
-    ).bind(origen, ahora + ventanaFallos, ahora, ahora, ahora, maximoFallos).first();
-
-    await db.prepare("DELETE FROM intentos_acceso WHERE vence <= ?").bind(ahora).run();
-    if (!nuevo || nuevo.fallos >= maximoFallos) {
-      return demasiadosIntentos(nuevo ? nuevo.vence - ahora : ventanaFallos);
-    }
+    if (intento.fallos >= maximoFallos) return demasiadosIntentos(Math.max(1, intento.vence - ahora));
     return json({ error: "Contraseña incorrecta." }, 401);
   }
 
-  await db.prepare("DELETE FROM intentos_acceso WHERE origen = ?").bind(origen).run();
   const duracion = cookie === cookieSesion && datos.recordar === true ? sesionRecordada : sesionNormal;
   const valor = (ahora + duracion) + "." + crypto.randomUUID();
   const firma = aHex(await firmar(clave, valorFirmadoSesion(valor, cookie)));
@@ -285,7 +273,7 @@ async function administrar(request, env, url) {
   }
 
   if (url.pathname === "/api/admin/horario" && request.method === "PUT") {
-    const datos = await request.json().catch(() => null);
+    const datos = await leerJsonLimitado(request);
     const turnos = validarTurnos(datos?.turnos);
     if (!turnos) {
       return json({ error: "Revisa los días y las horas. Los turnos deben terminar después de abrir y no pueden traslaparse." }, 400);
@@ -352,7 +340,7 @@ async function administrar(request, env, url) {
   }
 
   if (url.pathname === "/api/admin/categorias" && request.method === "PUT") {
-    const datos = await request.json().catch(() => null);
+    const datos = await leerJsonLimitado(request);
     if (!Array.isArray(datos?.categorias)) {
       return json({ error: "Indica los nombres y el orden de las categorías." }, 400);
     }
@@ -383,7 +371,7 @@ async function administrar(request, env, url) {
   }
 
   if (url.pathname === "/api/admin/descripciones" && request.method === "PUT") {
-    const datos = await request.json().catch(() => null);
+    const datos = await leerJsonLimitado(request);
     const descripcion = typeof datos?.descripcion === "string" ? datos.descripcion.trim() : "";
     if (typeof datos?.id !== "string" || !descripcion || descripcion.length > 240) {
       return json({ error: "Escribe una descripción de 1 a 240 caracteres." }, 400);
@@ -403,7 +391,7 @@ async function administrar(request, env, url) {
   }
 
   if (url.pathname === "/api/admin/precios" && request.method === "PUT") {
-    const datos = await request.json().catch(() => null);
+    const datos = await leerJsonLimitado(request);
     const { id, precioCentavos, especialCentavos } = datos ?? {};
 
     if (typeof id !== "string" || !Number.isSafeInteger(precioCentavos) ||
@@ -441,7 +429,7 @@ async function administrar(request, env, url) {
   }
 
   if (url.pathname === "/api/admin/disponibilidad" && request.method === "PUT") {
-    const datos = await request.json().catch(() => null);
+    const datos = await leerJsonLimitado(request);
     if (typeof datos?.id !== "string" || typeof datos.disponible !== "boolean") {
       return json({ error: "Indica un producto y su disponibilidad." }, 400);
     }
@@ -484,9 +472,14 @@ export default {
       if (url.pathname.startsWith("/api/cocina/")) {
         return await atenderCocina(request, env, url);
       }
+      if (url.pathname === "/api" || url.pathname.startsWith("/api/")) {
+        return json({ error: "Ruta no disponible." }, 404);
+      }
       return env.ASSETS.fetch(request);
     } catch (error) {
-      console.error(error);
+      if (error instanceof ErrorSolicitud) return json({ error: error.message }, error.status);
+      // No registrar cuerpos, contraseñas, tokens ni mensajes de D1 que puedan contener datos personales.
+      console.error("Error interno de API", request.method);
       return json({ error: "El servicio no pudo completar la solicitud. Intenta nuevamente." }, 503);
     }
   }
