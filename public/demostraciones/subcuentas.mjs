@@ -1,5 +1,5 @@
 import {calcularAsignacion} from "./division-cuentas.mjs";
-import {agregarMovimiento} from "./pagos-multiples.mjs";
+import {agregarMovimiento,movimientosActivos} from "./pagos-multiples.mjs";
 // La división se fija con el primer abono; comparte el mismo libro y revisión.
 export function movimientoIndividual(plan,d,partidas,personas){
  if(!plan.division&&d.asignaciones===undefined){
@@ -19,7 +19,7 @@ export function movimientoIndividual(plan,d,partidas,personas){
  if(!Number.isSafeInteger(d.comensal)||d.comensal<1||d.comensal>division.totales.length)throw Error("Selecciona un comensal.");
  const previo=plan.movimientos.find(m=>m.id===d.id);
  if(previo&&previo.comensal!==d.comensal)throw Error("Identificador ya utilizado.");
- const saldo=division.totales[d.comensal-1]-plan.movimientos.filter(m=>m.comensal===d.comensal).reduce((s,m)=>s+m.consumoCentavos,0);
+ const saldo=division.totales[d.comensal-1]-movimientosActivos(plan).filter(m=>m.comensal===d.comensal).reduce((s,m)=>s+m.consumoCentavos,0);
  if(!previo&&d.consumoCentavos>saldo)throw Error("El abono excede el saldo individual.");
  const nuevo=agregarMovimiento(plan,d);
  if(nuevo===plan)return plan;
@@ -28,7 +28,7 @@ export function movimientoIndividual(plan,d,partidas,personas){
 export function subcuentas(plan){
  if(!plan.division)return [];
  return plan.division.totales.map((total,i)=>{
-  const movimientos=plan.movimientos.filter(m=>m.comensal===i+1);
+  const movimientos=movimientosActivos(plan).filter(m=>m.comensal===i+1);
   const abonado=movimientos.reduce((s,m)=>s+m.consumoCentavos,0);
   return {comensal:i+1,total,abonado,saldo:total-abonado,propina:movimientos.reduce((s,m)=>s+m.propinaCentavos,0),liquidada:total===abonado,movimientos};
  });
