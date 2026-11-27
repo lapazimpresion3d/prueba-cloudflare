@@ -14,7 +14,7 @@ export function crearPlanCobro(consumoCentavos) {
 export function resumenPlanCobro(plan) {
   const consumo=importe(plan.consumoCentavos);
   let abonado=0,propina=0,recibido=0,cambio=0;
-  for (const m of plan.movimientos) {
+  for (const m of movimientosActivos(plan)) {
     abonado+=m.consumoCentavos;propina+=m.propinaCentavos;
     recibido+=m.recibidoCentavos;cambio+=m.cambioCentavos;
   }
@@ -32,14 +32,15 @@ export function agregarMovimiento(plan,d,fecha=Date.now()) {
   const referencia=d.metodo==="efectivo"?"":d.referencia;
   if(d.metodo!=="efectivo"&&(typeof referencia!=="string"||!/^DEMO-[0-9]{6}$/.test(referencia))) throw Error("Usa un folio ficticio DEMO-123456.");
   const movimiento={id:d.id,metodo:d.metodo,consumoCentavos:consumo,propinaCentavos:propina,recibidoCentavos:recibido,cambioCentavos:recibido-total,referencia};
+  if((plan.anulaciones||[]).some(a=>a.id===d.id))throw Error("Identificador ya utilizado.");
   if(previo){
     if(Object.keys(movimiento).every(k=>previo[k]===movimiento[k])) return plan;
     throw Error("Identificador ya utilizado.");
   }
   if(d.revision!==plan.revision) throw Error("La cuenta cambió. Actualiza.");
-  if(plan.movimientos.length>=100) throw Error("Límite de movimientos de práctica.");
+  if(plan.revision>=100) throw Error("Límite de movimientos de práctica.");
   if(consumo>resumenPlanCobro(plan).saldoCentavos) throw Error("El abono excede el saldo.");
-  if(referencia&&plan.movimientos.some(m=>m.referencia===referencia)) throw Error("Folio repetido.");
+  if(referencia&&movimientosActivos(plan).some(m=>m.referencia===referencia)) throw Error("Folio repetido.");
   return {...plan,revision:plan.revision+1,movimientos:[...plan.movimientos,{...movimiento,fecha}]};
 }
 // División aritmética exacta; no registra movimientos.
@@ -48,4 +49,21 @@ export function dividirImporte(centavos,personas) {
   if(!Number.isSafeInteger(personas)||personas<1||personas>100) throw Error("Número de personas inválido.");
   const base=Math.floor(centavos/personas),resto=centavos%personas;
   return Array.from({length:personas},(_,i)=>base+(i<resto?1:0));
+}
+
+export const motivosAnulacionMultiple=Object.freeze(["Importe incorrecto","Método incorrecto","Propina incorrecta","Folio incorrecto","Asignación incorrecta","Otro error de registro"]);
+export function movimientosActivos(plan){
+ const anulados=new Set((plan.anulaciones||[]).map(a=>a.movimiento));
+ return plan.movimientos.filter(m=>!anulados.has(m.id));
+}
+export function anularMovimiento(plan,d,fecha=Date.now()){
+ identificador(d.id);identificador(d.movimiento);
+ if(!motivosAnulacionMultiple.includes(d.motivo))throw Error("Motivo de anulación inválido.");
+ const anterior=(plan.anulaciones||[]).find(a=>a.id===d.id);
+ if(anterior){if(anterior.movimiento===d.movimiento&&anterior.motivo===d.motivo)return plan;throw Error("Identificador ya utilizado.");}
+ if(plan.movimientos.some(m=>m.id===d.id))throw Error("Identificador ya utilizado.");
+ if(d.revision!==plan.revision)throw Error("La cuenta cambió. Actualiza.");
+ if(plan.revision>=100)throw Error("Límite de movimientos de práctica.");
+ if(!movimientosActivos(plan).some(m=>m.id===d.movimiento))throw Error("Pago inexistente o ya anulado.");
+ return {...plan,revision:plan.revision+1,anulaciones:[...(plan.anulaciones||[]),{id:d.id,movimiento:d.movimiento,motivo:d.motivo,fecha}]};
 }
