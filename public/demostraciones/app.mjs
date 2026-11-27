@@ -27,11 +27,11 @@ function guardarURL(){
   const url=new URL(location.href);url.searchParams.set("negocio",negocio.id);url.searchParams.set("plan",plan.id);
   if(vistaNegocio)url.searchParams.set("vista","negocio");else url.searchParams.delete("vista");
   history.replaceState(null,"",url);
-  const enlace=new URL(url);enlace.searchParams.set("vista","negocio");$("compartir-vista").href=enlace.href;
+  const enlace=new URL(url.pathname,url.origin);enlace.searchParams.set("negocio",negocio.id);enlace.searchParams.set("plan",plan.id);enlace.searchParams.set("vista","negocio");$("compartir-vista").href=enlace.href;
 }
 function renderSelectores(){
   $("negocios").replaceChildren(...establecimientos.map(e=>boton([["span",e.marca.icono,"icono"],["strong",e.nombre],["small",e.giroNombre]],e.id===negocio.id,()=>{
-    negocio=e;editorAbierto=false;reiniciarFormulario();$("aviso-editor").textContent="";$("buscar").value="";$("tipo").value="";renderTodo(true);$("negocios").querySelector('[aria-pressed="true"]')?.focus();
+    negocio=e;editorAbierto=false;reiniciarFormulario();$("aviso-editor").textContent="";$("buscar").value="";$("tipo").value="";$("categoria").value="";renderTodo(true);$("negocios").querySelector('[aria-pressed="true"]')?.focus();
   })));
   $("planes").replaceChildren(...planes.map(p=>boton([["strong",p.nombre],["span",importe(p.mensualidad,p.moneda)+"/mes","precio-plan"],["small","Implementación: "+importe(p.implementacion,p.moneda)],["small",p.descripcion]],p.id===plan.id,()=>{
     plan=p;renderTodo(false);$("planes").querySelector('[aria-pressed="true"]')?.focus();
