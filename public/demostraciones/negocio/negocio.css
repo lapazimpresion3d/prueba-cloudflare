@@ -19,3 +19,7 @@ body[data-estilo=taller]{--hero:#193b5c;--acento:#ffcc76;--papel:#e3edf6;--radio
 a.boton-agregar{display:block;text-align:center;text-decoration:none}a.boton-agregar:hover{text-decoration:underline}
 
 .producto-agotado .imagen-producto{filter:grayscale(1);opacity:.65}.estado-agotado{font-weight:750;color:#9a3525;background:#fff1ed;border-radius:6px;padding:7px 9px;font-size:.86rem}.producto-agotado .precio{color:var(--suave)}
+
+/* Lectura móvil, controles de teclado y diferenciación de las copias privadas. */
+#plan-visible{display:block;color:#d7e2e8;font-size:.72rem}.aviso-practica{background:#fff5d9;color:#3d3324;padding:12px max(18px,calc((100% - var(--ancho))/2));font-size:.9rem;line-height:1.5}.aviso-practica a{font-weight:700}button:focus-visible{outline:3px solid #2979b8;outline-offset:3px}.identidad,#nombre,.producto-texto{min-width:0;overflow-wrap:anywhere}.logo{flex-shrink:0}.destacados{grid-template-columns:repeat(auto-fit,minmax(min(100%,140px),1fr))}.cabecera nav a{padding:6px 0}.producto-texto .boton-agregar{min-height:42px}.hero-arte:has(.portada-ilustrada) .arte-emblema{aspect-ratio:auto}.hero-arte:has(.portada-ilustrada) .portada-ilustrada svg{object-fit:cover}.producto-texto .descripcion{overflow-wrap:anywhere}
+@media(max-width:380px){body[data-estilo=barberia] .producto,body[data-estilo=taller] .producto{grid-template-columns:76px minmax(0,1fr)}.filtros label{min-width:0;flex-basis:100%}.destacados{grid-template-columns:1fr}.cabecera nav{gap:8px 14px}}
