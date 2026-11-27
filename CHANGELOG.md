@@ -1,4 +1,10 @@
 # Registro de cambios
+## 2026-11-27 — Presentación pública separada de laboratorio
+- Cinco diseños sectoriales, portadas, emblemas vectoriales, navegación y catálogos. Nueva ruta /demostraciones/negocio/ con negocio/plan; compatibilidad vista=negocio.
+- Panel de práctica con catálogo/perfil y vista personalizada explícita, separado del laboratorio D1. Página pública limpia por defecto.
+- 20 combinaciones y 20 filtros en DOM simulado, 3 inválidas y 1 práctica correctas; pendiente navegador real y despliegue. No activar contratación ni anunciar P2+.
+- Configuración previa DEMO_DB y secreto reportada funcional por propietario; sin cambios a main, datos remotos o página comercial.
+
 ## 2026-11-26 — Personalización de demos y preparación D1
 - Editor local de identidad visual, horarios, ubicación y contacto ficticio, independiente por establecimiento y restaurable; sin cambiar IDs, giros ni datos publicados.
 - Comprobación de identidad de esquema D1 antes de permitir sesiones o guardado. 0001_practica.sql añade demo_identidad; aplicar exclusivamente a D1 nueva de demos.
