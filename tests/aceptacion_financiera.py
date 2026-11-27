@@ -47,6 +47,7 @@ class Acceptance(unittest.TestCase):
     def test_pending_blocks(self):
         request(self.db);self.assertEqual(blocked(self.db),1)
         self.reject(lambda:request(self.db,c=B,op="o2"))
+        self.db.execute("INSERT INTO demo_terminal_resoluciones VALUES(?,?,2,?)",(S,"old","Solicitud histórica sin datos"))
         self.reject(lambda:request(self.db,t="t2",op="o2"))
         self.reject(lambda:book(self.db))
         self.reject(lambda:close(self.db))
@@ -87,6 +88,10 @@ class Acceptance(unittest.TestCase):
         for t in threads:t.start()
         for t in threads:t.join()
         self.assertCountEqual(out,["ok","blocked"])
+    def test_clean_install(self):
+        with sqlite3.connect(":memory:") as db:
+            db.execute("PRAGMA foreign_keys=ON");migrate(db);seed(db);request(db);resolve(db);book(db,op="o1");close(db)
+            self.assertEqual(db.execute("PRAGMA foreign_key_check").fetchall(),[])
     def test_foreign_keys(self):
         self.assertEqual(self.db.execute("PRAGMA foreign_key_check").fetchall(),[])
         self.assertEqual(self.db.execute("PRAGMA integrity_check").fetchone()[0],"ok")
