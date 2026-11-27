@@ -1,9 +1,11 @@
 import {planes,capacidades,importe} from "./config.mjs";
 import {establecimientos,obtenerEstablecimiento,filtrarCatalogo} from "./establecimientos.mjs";
 import {crearCatalogosLocales,centavosDesdeTexto} from "./catalogo-local.mjs";
+import {crearPerfilesLocales,perfilPlano} from "./perfil-local.mjs";
 let almacenamiento;
 try { almacenamiento=window.sessionStorage; } catch {}
 const catalogos=crearCatalogosLocales(almacenamiento);
+const perfiles=crearPerfilesLocales(almacenamiento);
 
 const $ = id=>document.getElementById(id);
 const crear=(tag,texto,clase)=>{const el=document.createElement(tag);if(texto!==undefined)el.textContent=texto;if(clase)el.className=clase;return el;};
@@ -13,7 +15,7 @@ const params=new URLSearchParams(location.search);
 let negocio=obtenerEstablecimiento(params.get("negocio")) ?? establecimientos[0];
 let plan=planes.find(p=>p.id===params.get("plan")) ?? planes[0];
 let vistaNegocio=params.get("vista")==="negocio";
-let editorAbierto=false;
+let editorAbierto=false, perfilAbierto=false;
 let editando=null;
 let contextoServidor=null, consultaContexto=0, ocupada=false;
 const revisiones=new Map();
@@ -34,18 +36,18 @@ function guardarURL(){
 }
 function renderSelectores(){
   $("negocios").replaceChildren(...establecimientos.map(e=>boton([["span",e.marca.icono,"icono"],["strong",e.nombre],["small",e.giroNombre]],e.id===negocio.id,()=>{
-    negocio=e;editorAbierto=false;reiniciarFormulario();$("aviso-editor").textContent="";$("buscar").value="";$("tipo").value="";$("categoria").value="";renderTodo(true);$("negocios").querySelector('[aria-pressed="true"]')?.focus();
+    negocio=e;editorAbierto=false;perfilAbierto=false;reiniciarFormulario();$("aviso-editor").textContent="";$("buscar").value="";$("tipo").value="";$("categoria").value="";renderTodo(true);$("negocios").querySelector('[aria-pressed="true"]')?.focus();
   })));
   $("planes").replaceChildren(...planes.map(p=>boton([["strong",p.nombre],["span",importe(p.mensualidad,p.moneda)+"/mes","precio-plan"],["small","Implementación: "+importe(p.implementacion,p.moneda)],["small",p.descripcion]],p.id===plan.id,()=>{
     plan=p;renderTodo(false);$("planes").querySelector('[aria-pressed="true"]')?.focus();
   })));
 }
 function renderPerfil(){
-  const m=negocio.marca;
+  const perfil=perfiles.leer(negocio.id),m=perfil.marca;
   document.documentElement.style.setProperty("--marca",m.color);
   document.documentElement.style.setProperty("--marca-fondo",m.fondo);
-  $("marca").textContent=m.icono;$("giro").textContent=negocio.giroNombre;$("nombre").textContent=negocio.nombre;
-  $("lema").textContent=m.lema;$("descripcion").textContent=m.descripcion;$("horario").textContent=negocio.horario;$("ubicacion").textContent=negocio.ubicacion;
+  $("marca").textContent=m.icono;$("giro").textContent=negocio.giroNombre;$("nombre").textContent=perfil.nombre;
+  $("lema").textContent=m.lema;$("descripcion").textContent=m.descripcion;$("horario").textContent=perfil.horario;$("ubicacion").textContent=perfil.ubicacion;$("contacto-demo").textContent=perfil.contacto;
   $("perfil").hidden=false;
 }
 function categorias(){
@@ -94,9 +96,10 @@ function renderVista(){
   $("seccion-capacidades").hidden=vistaNegocio;
   $("vista-cliente").hidden=vistaNegocio;$("vista-comparador").hidden=!vistaNegocio;
   $("abrir-editor").hidden=vistaNegocio||editorAbierto;$("editor").hidden=vistaNegocio||!editorAbierto;
+  $("abrir-perfil").hidden=vistaNegocio||perfilAbierto;$("editor-perfil").hidden=vistaNegocio||!perfilAbierto;
   if(vistaNegocio)$("legado").hidden=true;
   if(editorAbierto&&!vistaNegocio)renderEditor();
-  document.title=(vistaNegocio?negocio.nombre:"Demostraciones comerciales")+" | Lapazimpresion3d";
+  document.title=(vistaNegocio?perfiles.leer(negocio.id).nombre:"Demostraciones comerciales")+" | Lapazimpresion3d";
 }
 function ajustarDuracion(){
   const servicio=campo("tipo").value==="servicio";
@@ -129,10 +132,31 @@ function renderEditor(){
     fila.append(info,editar,borrar);return fila;
   }));
 }
-$("vista-cliente").addEventListener("click",()=>{vistaNegocio=true;editorAbierto=false;reiniciarFormulario();renderTodo(false);});
+$("vista-cliente").addEventListener("click",()=>{vistaNegocio=true;editorAbierto=false;perfilAbierto=false;reiniciarFormulario();renderTodo(false);});
 $("vista-comparador").addEventListener("click",()=>{vistaNegocio=false;renderTodo(false);});
-$("abrir-editor").addEventListener("click",()=>{editorAbierto=true;renderVista();actualizarBotonesServidor();campo("nombre").focus();});
+$("abrir-editor").addEventListener("click",()=>{perfilAbierto=false;editorAbierto=true;renderVista();actualizarBotonesServidor();campo("nombre").focus();});
 $("cerrar-editor").addEventListener("click",()=>{editorAbierto=false;reiniciarFormulario();renderVista();$("abrir-editor").focus();});
+function cargarPerfil(){
+  const p=perfilPlano(perfiles.leer(negocio.id));
+  for(const [k,v] of Object.entries(p))$("form-perfil").elements.namedItem(k).value=v;
+}
+$("abrir-perfil").addEventListener("click",()=>{
+  editorAbierto=false;reiniciarFormulario();perfilAbierto=true;cargarPerfil();$("aviso-perfil").textContent="";
+  renderVista();$("form-perfil").elements.namedItem("nombre").focus();
+});
+$("cerrar-perfil").addEventListener("click",()=>{perfilAbierto=false;renderVista();$("abrir-perfil").focus();});
+$("form-perfil").addEventListener("submit",e=>{
+  e.preventDefault();
+  try{
+    const guardado=perfiles.guardar(negocio.id,Object.fromEntries(new FormData(e.currentTarget)));
+    renderPerfil();$("aviso-perfil").textContent=guardado?"Identidad actualizada en esta pestaña.":"Identidad actualizada en memoria; se perderá al recargar.";
+  }catch(error){$("aviso-perfil").textContent=error.message;}
+});
+$("restaurar-perfil").addEventListener("click",()=>{
+  if(!confirm("¿Restaurar la identidad ficticia original de "+negocio.nombre+"?"))return;
+  const guardado=perfiles.restaurar(negocio.id);cargarPerfil();renderPerfil();
+  $("aviso-perfil").textContent=guardado?"Identidad original restaurada.":"Restaurada en memoria; no se conserva al recargar.";
+});
 $("cancelar-edicion").addEventListener("click",reiniciarFormulario);
 campo("tipo").addEventListener("change",ajustarDuracion);
 $("form-oferta").addEventListener("submit",e=>{
