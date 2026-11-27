@@ -116,4 +116,7 @@ El Comal de desarrollo/pruebas y su demo pública final deben estar separados. M
 - Orden de entrega: auditoría, diseño, núcleo, módulos/planes, páginas/catálogos, citas/agendas, restaurante, POS/caja/inventarios, especializaciones. No desarrollar todos los giros a la vez.
 
 ## 11. Decisiones abiertas
-ADR de D1; esquema SQL y migraciones; proveedor/estrategia de autenticación; nombres de demos nuevos; alcance final y límites por plan; dependencia modular definitiva, política de descuentos/contratos, pagos, impresión, facturación y offline. No se han ejecutado migraciones, cambios funcionales, pruebas nuevas ni despliegue.
+ADR de D1; esquema SQL y migraciones; proveedor/estrategia de autenticación; alcance final y límites por plan; dependencia modular definitiva, política de descuentos/contratos, pagos, impresión, facturación y offline. No se han ejecutado migraciones, cambios funcionales, pruebas nuevas ni despliegue.
+
+## 12. Demostraciones tempranas
+Se incorpora una línea paralela de presentación comercial antes de completar el núcleo: cinco negocios ficticios (Café Mirador, Barbería Elite, Mundo Mascotas, Taquería El Comal y Auto Servicio Bahía), una interfaz y cuatro planes seleccionables independientemente. Registro compartido de módulos con disponibilidad real, datos de catálogo sintéticos y sin API de escritura. El escaparate inicial no es autorización ni un entorno SaaS operativo; al incorporar módulos verificados, conectar al contexto, capacidades y permisos de servidor. No alterar El Comal ni datos reales. Ver docs/demostraciones-multicomercio.md y ROADMAP.md actualizados.
