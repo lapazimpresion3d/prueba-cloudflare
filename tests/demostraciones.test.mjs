@@ -13,16 +13,16 @@ test("20 combinaciones independientes; pedidos de práctica solo en giros y plan
     const lista=capacidades(e,p.id);
     const interactivo=p.id!=="p1"&&["cafeteria","tienda","restaurante"].includes(e.giro);
     const citas=p.id!=="p1"&&["barberia","taller"].includes(e.giro);
-    assert.deepEqual(lista.filter(m=>m.estadoEfectivo==="disponible").map(m=>m.id),interactivo?["web","catalogo","pedidos","seguimiento",...(e.giro==="restaurante"?["reservaciones","qr_mesa"]:[]),...(["restaurante","cafeteria"].includes(e.giro)?["cocina"]:[]),"pagos",...(["p3","p4"].includes(p.id)?["pos","caja","comprobantes","inventario","almacen","compras"]:[]),...(e.giro==="restaurante"&&["p3","p4"].includes(p.id)?["mesas"]:[]),...(p.id==="p4"?["recetas"]:[])]:citas?["web","catalogo","citas","agendas",...(["p3","p4"].includes(p.id)?["pos","caja","comprobantes","inventario","almacen","compras"]:[]),...(p.id==="p4"?["recetas"]:[])]:["web","catalogo"]);
+    assert.deepEqual(lista.filter(m=>m.estadoEfectivo==="disponible").map(m=>m.id),interactivo?["web","catalogo","pedidos","seguimiento",...(e.giro==="restaurante"?["reservaciones","qr_mesa"]:[]),...(["restaurante","cafeteria"].includes(e.giro)?["cocina"]:[]),"pagos",...(["p3","p4"].includes(p.id)?["pos","caja","comprobantes","inventario","almacen","compras"]:[]),...(e.giro==="restaurante"&&["p3","p4"].includes(p.id)?["mesas"]:[]),...(e.giro==="tienda"&&["p3","p4"].includes(p.id)?["cotizaciones","ordenes_servicio"]:[]),...(p.id==="p4"?["recetas"]:[])]:citas?["web","catalogo","citas","agendas",...(["p3","p4"].includes(p.id)?["pos","caja","comprobantes","inventario","almacen","compras"]:[]),...(["p3","p4"].includes(p.id)?["cotizaciones","ordenes_servicio"]:[]),...(p.id==="p4"?["recetas"]:[])]:["web","catalogo"]);
     assert.ok(lista.every(m=>m.estadoEfectivo==="otro_plan" || m.desde<=planes.indexOf(p)+1));
     assert.ok(lista.every(m=>!m.giros||m.giros.includes(e.giro)));
   }
 });
 test("el plan superior no activa una función sin implementar",()=>{
   const taller=obtenerEstablecimiento("auto-servicio-bahia");
-  assert.equal(capacidades(taller,"p4").find(m=>m.id==="ordenes_servicio").estadoEfectivo,"en_desarrollo");
+  assert.equal(capacidades(taller,"p4").find(m=>m.id==="ordenes_servicio").estadoEfectivo,"disponible");
   assert.equal(capacidades(taller,"p1").find(m=>m.id==="ordenes_servicio").estadoEfectivo,"otro_plan");
-  assert.ok(!capacidades(taller,"p4").some(m=>m.id==="cocina"));
+  assert.ok(!capacidades(taller,"p4").some(m=>m.id==="cocina"));assert.equal(capacidades(taller,"p4").find(m=>m.id==="reportes").estadoEfectivo,"en_desarrollo");
 });
 test("los módulos disponibles exigen dependencias disponibles y sin ciclos",()=>{
   const e=establecimientos[0], base={id:"a",desde:1,estado:"disponible"}, otro={id:"b",desde:1,estado:"disponible",depende:["a"]};
