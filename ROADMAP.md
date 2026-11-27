@@ -164,3 +164,7 @@ Documentos vigentes: docs/arquitectura-multicomercio.md, docs/auditoria-multicom
 ### v0.8 — Inicio de Negocio interactivo
 - [x] Carrito, modalidades, pedidos, panel de estados y seguimiento de práctica local para cafetería, restaurante y tienda (P2+). 30 pruebas lógicas y flujo DOM simulado correctos. No hay pedidos reales ni persistencia D1 del módulo.
 - [ ] Validar Preview y navegador, API de pedidos de práctica privada con revisión/idempotencia, citas y agendas. Ver docs/pedidos-practica.md.
+
+### v0.9 — Pedidos privados en servidor
+- [x] API de pedidos con importes recalculados, idempotencia, revisión de catálogo y transición condicional; modos local y servidor explícitos.
+- [ ] Aplicar 0003_pedidos.sql únicamente en DEMO_DB y verificar Preview, navegador, reintentos y sesión compartida. Ver docs/pedidos-servidor-demo.md.
