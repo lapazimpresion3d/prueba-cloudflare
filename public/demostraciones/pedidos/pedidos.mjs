@@ -52,5 +52,5 @@ if(!negocio||!admitePedidos(id,plan)){
   async function detectar(){if(ocupado||comprobando)return;comprobando=true;controles();try{const v=await detectarPedidos(remoto,{preferencia,locales:repo.leer().length,encargado:true});configurado=v.configurado;servidor=v.servidor;totalRemoto=v.estado?.pedidos.length??null;}catch(e){configurado=null;totalRemoto=null;aviso(e.message);}finally{comprobando=false;await render();}}
   $("filtro").addEventListener("change",()=>{if(!ocupado&&!comprobando)render();});$("actualizar").addEventListener("click",detectar);
   $("restaurar").addEventListener("click",()=>{if(comprobando||servidor||ocupado)return;if(!confirm("¿Eliminar todos los pedidos de práctica de "+negocio.nombre+" de esta pestaña?"))return;try{repo.restaurar();aviso("Historial restablecido.");}catch(e){aviso(e.message);}render();});
-  window.addEventListener("pageshow",e=>{if(e.persisted)detectar();});window.addEventListener("focus",detectar);document.title="Pedidos · "+negocio.nombre;detectar();$("contenido-pedidos").hidden=false;
+  window.addEventListener("pageshow",e=>{if(e.persisted)detectar();});window.addEventListener("focus",detectar);document.title="Empresa · Administración de pedidos · "+negocio.nombre;detectar();$("contenido-pedidos").hidden=false;
 }
