@@ -17,3 +17,5 @@ main{max-width:1152px;margin:auto;padding:24px 16px 48px}.introduccion{padding:1
 .perfil>div:nth-child(2){background:#fffffff0;border-radius:10px;padding:12px;color:var(--tinta)}.perfil-info{background:#fffffff0;color:var(--tinta)}
 
 .cabecera-admin{border:1px solid var(--borde);background:#fff;border-radius:16px;padding:24px}.cabecera-admin h1{font-size:clamp(1.7rem,3vw,2.4rem)}.accion-admin{display:inline-flex;background:#225a76;color:white;text-decoration:none;border-radius:8px;padding:10px 14px;font-weight:700}.cabecera-admin button[aria-pressed=true]{background:#edf5fa;border:2px solid #225a76;font-weight:700}.editor-servidor[hidden],.acciones-demo[hidden],.cabecera-admin[hidden]{display:none!important}
+
+.imagenes-perfil{border:1px solid var(--borde);padding:12px;border-radius:8px}.imagenes-perfil img{display:block;max-width:100%;height:auto;max-height:150px;object-fit:contain;margin:8px 0;background:white}.imagenes-perfil img[hidden]{display:none}.imagenes-perfil button{margin-top:5px}.imagenes-perfil input[type=file]{max-width:100%}
