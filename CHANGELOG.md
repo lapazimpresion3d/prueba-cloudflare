@@ -1,4 +1,11 @@
 # Registro de cambios
+## 2026-11-26 — Seguridad y pruebas reproducibles
+- Lector JSON compartido con límites por operación; HTTP 413/415.
+- Reserva atómica de intentos de inicio de sesión y enrutamiento de API reforzado.
+- 12 pruebas de seguridad y 4 de migración 0018 aprobadas en Node/SQLite local; 10 casos de rutas correctos en entorno simulado.
+- Pruebas y documentación de respaldo agregadas. Sin nuevas migraciones; 0018 pendiente de aplicación remota.
+- Ver docs/seguridad-nucleo-2026-11-26.md y docs/respaldo-d1.md.
+
 ## 2026-11-26 — Estabilización del núcleo operativo
 - Coherencia de estados, envíos y cobros; cancelación de pagados bloqueada y conciliación de legados.
 - Paginación de activos y cocina; recuperación de token en la misma pestaña; seguimiento de cobros por verificar.
