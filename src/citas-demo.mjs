@@ -1,3 +1,4 @@
+import {datosCitaDemo,seleccionCita} from "../public/demostraciones/clientes-practica.mjs";
 import {admiteCitas,horariosCita,serviciosCita,transicionesCita} from "../public/demostraciones/citas-practica.mjs";
 import {leerJsonLimitado} from "./seguridad.mjs";
 const error=(json,m,status)=>json({error:m},status);
@@ -21,7 +22,8 @@ export async function atenderCitasDemo(request,db,s,ctx,json){
  if(!uuid(d?.solicitud))return error(json,"Identificador inválido.",400);
  if(request.method==="POST"){
   if(!["original","personalizado"].includes(d.catalogo)||typeof d.servicio!=="string"||d.servicio.length>80||typeof d.recurso!=="string"||d.recurso.length>80||typeof d.fecha!=="string"||d.fecha.length!==10||!Number.isInteger(d.inicio)||!Number.isSafeInteger(d.precioEsperado)||!Number.isInteger(d.duracionEsperada))return error(json,"Solicitud inválida.",400);
-  const firma=await huella({catalogo:d.catalogo,servicio:d.servicio,recurso:d.recurso,fecha:d.fecha,inicio:d.inicio,precioEsperado:d.precioEsperado,duracionEsperada:d.duracionEsperada});
+  let seleccion,cliente;try{if(d.datosCliente!==undefined){seleccion=seleccionCita(d.datosCliente);cliente=datosCitaDemo(seleccion);}}catch(e){return error(json,e.message,400);}
+  const firma=await huella({...(seleccion?{datosCliente:seleccion}:{}),catalogo:d.catalogo,servicio:d.servicio,recurso:d.recurso,fecha:d.fecha,inicio:d.inicio,precioEsperado:d.precioEsperado,duracionEsperada:d.duracionEsperada});
   const previo=await buscar(d.solicitud);
   if(previo)return previo.huella===firma?json({cita:leer(previo),repetida:true}):error(json,"Solicitud ya utilizada.",409);
   let catalogo=ctx.establecimiento.catalogo,revision=0;
@@ -34,7 +36,7 @@ export async function atenderCitasDemo(request,db,s,ctx,json){
   if(!p||p.precioCentavos!==d.precioEsperado||p.duracionMinutos!==d.duracionEsperada)return error(json,"El servicio cambió. Revisa el catálogo guardado.",409);
   const slot=horariosCita(id,catalogo,[],d).find(h=>h.inicio===d.inicio);
   if(!slot)return error(json,"Horario no disponible.",409);
-  const cita={folio:"CITA-"+d.solicitud,solicitud:d.solicitud,servicio:p.id,nombreServicio:p.nombre,precioCentavos:p.precioCentavos,recurso:d.recurso,fecha:d.fecha,...slot,estado:"pendiente",historial:[{estado:"pendiente",fecha:Date.now()}]};
+  const cita={...(cliente?{datosCliente:cliente}:{}),folio:"CITA-"+d.solicitud,solicitud:d.solicitud,servicio:p.id,nombreServicio:p.nombre,precioCentavos:p.precioCentavos,recurso:d.recurso,fecha:d.fecha,...slot,estado:"pendiente",historial:[{estado:"pendiente",fecha:Date.now()}]};
   // Un único INSERT comprueba sesión, límite, revisión e intervalos concurrentes.
   const fila=await db.prepare("INSERT INTO demo_citas (sesion_id,establecimiento_id,solicitud_id,huella,recurso,fecha,inicio,fin,estado,datos_json) SELECT ?,?,?,?,?,?,?,?,'pendiente',? WHERE EXISTS (SELECT 1 FROM demo_sesiones WHERE id=? AND expira>?) AND (SELECT count(*) FROM demo_citas WHERE sesion_id=? AND establecimiento_id=?)<60 AND (?=0 OR EXISTS (SELECT 1 FROM demo_catalogos WHERE sesion_id=? AND establecimiento_id=? AND revision=?)) AND NOT EXISTS (SELECT 1 FROM demo_citas WHERE sesion_id=? AND establecimiento_id=? AND recurso=? AND fecha=? AND estado<>'cancelada' AND inicio<? AND fin>?) ON CONFLICT(sesion_id,establecimiento_id,solicitud_id) DO NOTHING RETURNING datos_json").bind(s.id,id,d.solicitud,firma,d.recurso,d.fecha,slot.inicio,slot.fin,JSON.stringify(cita),s.id,ahora(),s.id,id,revision,s.id,id,revision,s.id,id,d.recurso,d.fecha,slot.fin,slot.inicio).first();
   if(fila)return json({cita:leer(fila),repetida:false},201);
