@@ -54,24 +54,28 @@ if(!negocio||!admitePedidos(id,plan)){
   });
   async function render(){
     const n=++generacion,modo=servidor;controles();
-    let pedidos,cuentas=[];try{if(modo){const v=await remoto.leerEstado();pedidos=v.pedidos;cuentas=v.cuentas||[];expiraActual=v.expira;}else{pedidos=repo.leer();expiraActual=null;}}catch(e){if(n===generacion){totalRemoto=null;controles();$("pedidos").replaceChildren();$("resumen").replaceChildren();$("resumen-cobros").replaceChildren();aviso(e.message+" Activa la práctica en servidor o actualiza.");}return;}
+    let pedidos,cuentas=[],multiples=[];try{if(modo){const v=await remoto.leerEstado();pedidos=v.pedidos;cuentas=v.cuentas||[];multiples=v.multiples||[];expiraActual=v.expira;}else{pedidos=repo.leer();expiraActual=null;}}catch(e){if(n===generacion){totalRemoto=null;controles();$("pedidos").replaceChildren();$("resumen").replaceChildren();$("resumen-cobros").replaceChildren();aviso(e.message+" Activa la práctica en servidor o actualiza.");}return;}
     if(n!==generacion||modo!==servidor)return;if(modo)totalRemoto=pedidos.length;controles();
     const estado=$("filtro").value,modos=modalidadesPedido(id);
     $("resumen").replaceChildren(...Object.entries(nombresEstado).map(([k,n])=>{const c=el("div",undefined,"contador-pedido");c.append(el("strong",String(pedidos.filter(p=>p.estado===k).length)),el("span",n));return c;}));
-    const rc=resumenCobros(pedidos);
+    const porCuenta=new Map(multiples.map(m=>[m.cuenta,m]));
+    const estadoFin=p=>porCuenta.has(p.cuenta)&&p.estado!=="cancelado"?(porCuenta.get(p.cuenta).resumen.liquidada?"cobrado":"pendiente"):estadoCobro(p);
+    const rc=resumenCobros(pedidos.filter(p=>!porCuenta.has(p.cuenta)));
+    for(const m of multiples){rc.cobrado+=m.resumen.abonadoCentavos;rc.pendiente+=m.resumen.saldoCentavos;if(m.resumen.saldoCentavos>0)rc.cantidadPendiente++;for(const v of m.movimientos)rc[v.metodo]+=v.consumoCentavos;}
     $("resumen-cobros").replaceChildren(...[["Cobrado",importe(rc.cobrado)],["Efectivo",importe(rc.efectivo)],["Transferencia",importe(rc.transferencia)],["Tarjeta externa",importe(rc.tarjeta_externa)],["Pendiente ("+rc.cantidadPendiente+")",importe(rc.pendiente)],["Históricos sin registro",String(rc.historicos)]].map(([n,v])=>{const c=el("div",undefined,"contador-pedido");c.append(el("strong",v),el("span",n));return c;}));
-    const mesa=$("filtro-mesa").value,pago=$("filtro-cobro").value;const lista=pedidos.filter(p=>(!estado||p.estado===estado)&&(!mesa||p.datosCliente?.mesa===mesa)&&(!pago||estadoCobro(p)===pago));
+    const mesa=$("filtro-mesa").value,pago=$("filtro-cobro").value;const lista=pedidos.filter(p=>(!estado||p.estado===estado)&&(!mesa||p.datosCliente?.mesa===mesa)&&(!pago||estadoFin(p)===pago));
     $("pedidos").replaceChildren(...lista.map(p=>{
       const card=el("article",undefined,"pedido-admin"),head=el("div",undefined,"encabezado");
       head.append(el("strong",p.folio),el("span",nombresEstado[p.estado],"etiqueta disponible"));
       const detalle=el("ul");for(const l of p.detalle)detalle.append(el("li",l.cantidad+" × "+textoLinea(l)+" · "+importe(l.subtotal)));
       card.append(head,el("p",modos.find(m=>m.id===p.modalidad)?.nombre||"Modalidad de ejemplo"),detalle,el("p","Subtotal: "+importe(p.subtotal)+" · Entrega: "+importe(p.cargo)),el("strong","Total: "+importe(p.total)));
       if(p.datosCliente?.cliente){const d=p.datosCliente;card.append(el("p","Cliente: "+d.cliente.nombre),el("p","Teléfono: "+d.cliente.telefono),el("p","Pago previsto: "+d.pago.nombre),el("p","Instrucciones: "+d.nota));if(d.mesa)card.append(el("p","Mesa "+d.mesa));if(d.entrega)card.append(el("p","Entrega: "+d.entrega.calle+" · "+d.entrega.colonia+" · "+d.entrega.referencias));if(p.entrega)card.append(el("p","Tarifa de zona: "+importe(p.entrega.envioCentavos)+" · Mínimo: "+importe(p.entrega.minimoCentavos)+(p.entrega.horario==="simulado"?" · Horario simulado":"")));}else card.append(el("p","Pedido anterior sin datos de cliente.","nota"));
-      const cobro=el("section",undefined,"bloque-cobro"),ec=estadoCobro(p);cobro.dataset.estado=ec;cobro.append(el("h3",nombresCobro[ec]));
+      const cobro=el("section",undefined,"bloque-cobro"),ec=estadoFin(p);cobro.dataset.estado=ec;cobro.append(el("h3",nombresCobro[ec]));
       if(p.cobro){const v=p.cobro;cobro.append(el("p",metodosCobroDemo[v.metodo]+" · "+importe(v.importeCentavos)),el("p",v.metodo==="efectivo"?"Recibido: "+importe(v.recibidoCentavos)+" · Cambio: "+importe(v.cambioCentavos):"Comprobante ficticio: "+v.referencia));}
-      if(!p.cobro?.grupo&&p.estado!=="cancelado"&&(p.estado!=="entregado"||p.cuenta)&&p.total>0&&(!p.cuenta||cuentas.some(c=>c.cuenta_id===p.cuenta&&c.cerrado===null))){const b=el("button",p.cobro?"Anular registro de cobro":"Registrar cobro");b.type="button";b.addEventListener("click",()=>abrirCobro(p,p.cobro?"anular":"registrar",modo));cobro.append(b);}
+      if(!porCuenta.has(p.cuenta)&&!p.cobro?.grupo&&p.estado!=="cancelado"&&(p.estado!=="entregado"||p.cuenta)&&p.total>0&&(!p.cuenta||cuentas.some(c=>c.cuenta_id===p.cuenta&&c.cerrado===null))){const b=el("button",p.cobro?"Anular registro de cobro":"Registrar cobro");b.type="button";b.addEventListener("click",()=>abrirCobro(p,p.cobro?"anular":"registrar",modo));cobro.append(b);}
       if(p.cobro?.grupo)cobro.append(el("p","Asignación de cobro de mesa. Anula el grupo desde cuentas de mesa.","nota"));
       if(p.historialCobros?.length){const det=el("details"),log=el("ul");for(const v of p.historialCobros)log.append(el("li",(v.accion==="registrar"?"Registrado":"Anulado: "+v.motivo)+" · "+metodosCobroDemo[v.cobro.metodo]+" · "+importe(v.cobro.importeCentavos)+(v.cobro.referencia?" · "+v.cobro.referencia:"")+" · "+new Date(v.fecha).toLocaleString("es-MX")));det.append(el("summary","Historial de cobros"),log);cobro.append(det);}
+      if(porCuenta.has(p.cuenta))cobro.append(el("p","Cobro por cuenta de mesa; consulta el saldo y los abonos desde Cuentas.","nota"));
       if(p.cuenta)cobro.append(el("p","Cuenta de mesa: "+p.cuenta+" · "+(p.captura==="mesero"?"Captura de mesero":"Pedido del cliente"),"nota"));
       card.append(cobro);
       const acciones=el("div",undefined,"acciones-demo");
