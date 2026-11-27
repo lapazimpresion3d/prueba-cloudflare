@@ -168,3 +168,8 @@ Documentos vigentes: docs/arquitectura-multicomercio.md, docs/auditoria-multicom
 ### v0.9 — Pedidos privados en servidor
 - [x] API de pedidos con importes recalculados, idempotencia, revisión de catálogo y transición condicional; modos local y servidor explícitos.
 - [ ] Aplicar 0003_pedidos.sql únicamente en DEMO_DB y verificar Preview, navegador, reintentos y sesión compartida. Ver docs/pedidos-servidor-demo.md.
+
+### v0.10 — Citas de servicios
+- [x] Citas y agenda local para barbería/taller P2+, horarios por recurso, descansos, duración, conflicto, estados, cancelación y filtros. 14 pruebas lógicas y flujo DOM simulado correctos.
+- [x] Propietario reportó creación de demo_pedidos; sigue pendiente comprobación de Preview y pedidos remotos.
+- [ ] Persistencia de citas con reserva atómica, agenda editable y mesas. Ver docs/citas-practica.md.
