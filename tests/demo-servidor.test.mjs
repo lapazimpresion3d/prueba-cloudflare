@@ -13,6 +13,7 @@ function d1(){
   sql.exec(readFileSync(new URL("../migrations-demo/0003_pedidos.sql",import.meta.url),"utf8"));
   sql.exec(readFileSync(new URL("../migrations-demo/0004_citas.sql",import.meta.url),"utf8"));
   sql.exec(readFileSync(new URL("../migrations-demo/0005_reservaciones.sql",import.meta.url),"utf8"));
+  sql.exec(readFileSync(new URL("../migrations-demo/0006_cuentas.sql",import.meta.url),"utf8"));
   const wrap=(q,args=[])=>({bind:(...v)=>wrap(q,v),first:async()=>sql.prepare(q).get(...args)??null,all:async()=>({results:sql.prepare(q).all(...args)}),run:async()=>sql.prepare(q).run(...args)});
   return {sql,prepare:q=>wrap(q),batch:async ss=>{sql.exec("BEGIN");try{for(const s of ss)await s.run();sql.exec("COMMIT");}catch(e){sql.exec("ROLLBACK");throw e;}}};
 }
@@ -240,4 +241,28 @@ test("cobros: conciliación, folio único activo, conflictos e aislamiento",asyn
  assert.equal((await llamar(env,ruta,"PATCH",a,{solicitud:ganador,esperado:"listo",destino:"entregado"})).status,200);
  assert.equal((await patch(ganador,{accion:"anular",revision:3,motivo:"Importe incorrecto"})).status,409);
  const p=(await (await llamar(env,ruta,"GET",a)).json()).pedidos.find(p=>p.solicitud===ganador);assert.equal(p.historialCobros.length,3);assert.equal(p.cobro.cambioCentavos,2500);
+});
+
+test("cuentas abiertas: aislamiento, ocupación, comandas, entrega y cierre",async()=>{
+ const env=envDemo(),cuentas="/api/demo/cuentas?negocio=taqueria-el-comal&plan=p4",pedidos="/api/demo/pedidos?negocio=taqueria-el-comal&plan=p4",a=await iniciar(env,"192.0.2.1"),b=await iniciar(env,"192.0.2.2");
+ const cuenta="b7a48289-b63a-4ec4-8e19-c376f91aef77",otra="b7a48289-b63a-4ec4-8e19-c376f91aef78",solicitud="b7a48289-b63a-4ec4-8e19-c376f91aef79";
+ const abrir={cuenta,mesa:"3",personas:4};
+ assert.equal((await llamar(env,cuentas.replace("p4","p2"),"POST",a,abrir)).status,403);
+ assert.equal((await llamar(env,cuentas,"POST",a,abrir)).status,201);
+ assert.equal((await llamar(env,cuentas,"POST",a,abrir)).status,200);
+ assert.equal((await llamar(env,cuentas,"POST",a,{...abrir,cuenta:otra})).status,409);
+ assert.equal((await (await llamar(env,cuentas,"GET",b)).json()).cuentas.length,0);
+ const d={cuenta,captura:"mesero",solicitud,catalogo:"original",modalidad:"local",lineas:[{id:"pastor",cantidad:5,precioEsperado:2500}],totalEsperado:12500,datosCliente:{cliente:"cliente-1",pago:"efectivo",mesa:"3",nota:""}};
+ assert.equal((await llamar(env,pedidos,"POST",b,d)).status,409);
+ assert.equal((await llamar(env,pedidos,"POST",a,{...d,datosCliente:{...d.datosCliente,mesa:"2"}})).status,409);
+ assert.equal((await llamar(env,pedidos,"POST",a,d)).status,201);
+ assert.equal((await llamar(env,cuentas,"PATCH",a,{cuenta,accion:"cerrar"})).status,409);
+ for(const [esperado,destino] of [["recibido","preparando"],["preparando","listo"],["listo","entregado"]])assert.equal((await llamar(env,pedidos,"PATCH",a,{solicitud,esperado,destino})).status,200);
+ assert.equal((await llamar(env,cuentas,"PATCH",a,{cuenta,accion:"cerrar"})).status,409);
+ assert.equal((await llamar(env,pedidos,"PATCH",a,{solicitud,cobro:{accion:"registrar",revision:0,totalEsperado:12500,metodo:"efectivo",recibidoCentavos:12500}})).status,200);
+ assert.equal((await llamar(env,cuentas,"PATCH",a,{cuenta,accion:"cerrar"})).status,200);
+ assert.equal((await llamar(env,pedidos,"POST",a,{...d,solicitud:otra})).status,409);
+ assert.equal((await llamar(env,pedidos,"POST",a,d)).status,200);
+ assert.equal((await llamar(env,pedidos,"PATCH",a,{solicitud,cobro:{accion:"anular",revision:1,motivo:"Importe incorrecto"}})).status,409);
+ assert.equal((await llamar(env,cuentas,"POST",a,{...abrir,cuenta:otra})).status,201);
 });
