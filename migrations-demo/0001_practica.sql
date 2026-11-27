@@ -18,3 +18,10 @@ CREATE TABLE IF NOT EXISTS demo_catalogos (
   datos_json TEXT NOT NULL CHECK(json_valid(datos_json) AND json_type(datos_json)='array'),
   PRIMARY KEY(sesion_id, establecimiento_id)
 );
+
+-- Identificador de esquema requerido antes de permitir cualquier escritura de práctica.
+CREATE TABLE IF NOT EXISTS demo_identidad (
+  clave TEXT PRIMARY KEY CHECK(clave='lapaz-demo-practica'),
+  version INTEGER NOT NULL CHECK(version=1)
+);
+INSERT INTO demo_identidad (clave,version) VALUES ('lapaz-demo-practica',1) ON CONFLICT(clave) DO NOTHING;
