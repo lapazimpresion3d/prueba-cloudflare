@@ -41,7 +41,7 @@ export function iniciarCarrito(datos,plan,practica,mesa=null,visita=null){
   const porZona=datos.id==="taqueria-el-comal";
   const modoHorario=()=>$("simular-entrega").checked?"simulado":"actual";
   $("reglas-entrega-demo").hidden=!porZona;
-  $("horario-entrega-demo").textContent="Entregas: "+horarioEntregaDemo+". Tarifas ficticias de práctica.";
+  $("horario-entrega-demo").textContent="Entregas: "+horarioEntregaDemo+". Tarifas de ejemplo.";
   elegir("colonia-pedido",[...zonasEntregaDemo.map(z=>({id:z.id,nombre:z.nombre+" · "+importe(z.envioCentavos)})),{id:"fuera",nombre:"Mi colonia no aparece"}],"Selecciona colonia");
   function direccionesDisponibles(){
     const anterior=$("direccion-pedido").value,z=zonasEntregaDemo.find(z=>z.id===$("colonia-pedido").value);

@@ -217,7 +217,7 @@ $("form-perfil").addEventListener("submit",e=>{
   }catch(error){$("aviso-perfil").textContent=error.message;}
 });
 $("restaurar-perfil").addEventListener("click",()=>{
-  if(!confirm("¿Restaurar la identidad ficticia original de "+negocio.nombre+"?"))return;
+  if(!confirm("¿Restaurar la identidad original de demostración de "+negocio.nombre+"?"))return;
   const guardado=perfiles.restaurar(negocio.id);cargarPerfil();renderPerfil();renderVista();
   $("aviso-perfil").textContent=guardado?"Identidad original restaurada.":"Restaurada en memoria; no se conserva al recargar.";
 });

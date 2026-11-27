@@ -16,7 +16,7 @@ const semillas = [
       "descripcion": "Café artesanal, repostería y desayunos ligeros."
     },
     "horario": "Lunes a sábado · 8:00 a 19:00",
-    "ubicacion": "Sucursal ficticia · La Paz, BCS",
+    "ubicacion": "Ubicación de ejemplo · La Paz, BCS",
     "catalogo": [
       [
         "espresso",
@@ -82,7 +82,7 @@ const semillas = [
       "descripcion": "Cortes, barba y cuidado personal."
     },
     "horario": "Martes a domingo · 10:00 a 20:00",
-    "ubicacion": "Sucursal ficticia · La Paz, BCS",
+    "ubicacion": "Ubicación de ejemplo · La Paz, BCS",
     "catalogo": [
       [
         "corte",
@@ -142,7 +142,7 @@ const semillas = [
       "descripcion": "Accesorios y artículos de cuidado para mascotas."
     },
     "horario": "Lunes a domingo · 9:00 a 19:00",
-    "ubicacion": "Sucursal ficticia · La Paz, BCS",
+    "ubicacion": "Ubicación de ejemplo · La Paz, BCS",
     "catalogo": [
       [
         "alimento",
@@ -199,7 +199,7 @@ const semillas = [
       "descripcion": "Tacos preparados al momento. Demo principal del giro restaurantero."
     },
     "horario": "Martes a domingo · 12:00 a 22:00",
-    "ubicacion": "Sucursal ficticia · La Paz, BCS",
+    "ubicacion": "Ubicación de ejemplo · La Paz, BCS",
     "catalogo": []
   },
   {
@@ -215,7 +215,7 @@ const semillas = [
       "descripcion": "Mantenimiento preventivo y revisión automotriz."
     },
     "horario": "Lunes a sábado · 8:00 a 17:00",
-    "ubicacion": "Sucursal ficticia · La Paz, BCS",
+    "ubicacion": "Ubicación de ejemplo · La Paz, BCS",
     "catalogo": [
       [
         "diagnostico",

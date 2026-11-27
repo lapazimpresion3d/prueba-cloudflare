@@ -8,7 +8,7 @@
 </head>
 <body>
 <a class="salto" href="#contenido">Ir al contenido</a>
-<div class="demo-bar"><a class="demo-regreso" href="https://lapazimpresion3d.com/#paginas-web">← Volver a Lapazimpresion3d</a><span>Demostración comercial · negocio ficticio <span id="plan-visible"></span></span><div class="demo-bar-enlaces"><a id="administracion-arriba" href="../" hidden>Probar panel de la empresa</a></div></div>
+<div class="demo-bar"><a class="demo-regreso" href="https://lapazimpresion3d.com/#paginas-web">← Volver a Lapazimpresion3d</a><span>Demostración interactiva <span id="plan-visible"></span></span><div class="demo-bar-enlaces"><a id="administracion-arriba" href="../" hidden>Probar panel de la empresa</a></div></div>
 <p id="error" role="alert" hidden></p>
 <div id="pagina" hidden>
 <div id="aviso-practica-arriba" class="aviso-practica" hidden><strong>Estás viendo tu página editada.</strong> Los cambios son privados de esta pestaña. <a id="salir-practica" href="./">Ver página original</a></div>
@@ -25,19 +25,19 @@
   <section class="bloque" id="catalogo" aria-labelledby="titulo-catalogo">
     <div class="encabezado"><div><p class="sobrelinea">DESCUBRE NUESTRA SELECCIÓN</p><h2 id="titulo-catalogo"></h2></div><p class="nota">Precios ilustrativos en MXN</p></div>
     <div class="filtros"><label>Buscar<input id="buscar" type="search" placeholder="Buscar en el catálogo"></label><label>Categoría<select id="categoria"><option value="">Todas</option></select></label></div>
-    <p id="resultados" class="nota" role="status"></p><div id="productos" class="productos"></div><p class="aviso-imagenes-demo">Imágenes ilustrativas de negocios ficticios, algunas generadas mediante IA.</p>
+    <p id="resultados" class="nota" role="status"></p><div id="productos" class="productos"></div><p class="aviso-imagenes-demo">Imágenes ilustrativas de esta demostración, algunas generadas mediante IA.</p>
   </section>
   <section id="seccion-carrito" class="bloque bloque-pedido" hidden aria-labelledby="titulo-carrito">
     <div id="carrito" class="encabezado"><div><p class="sobrelinea">PEDIDOS DE PRÁCTICA</p><h2 id="titulo-carrito">Tu carrito</h2></div><button id="vaciar-carrito" class="boton-pedido" type="button">Vaciar</button></div>
-    <p class="nota">Pedidos ficticios. Selecciona datos de ejemplo. No se envían mensajes ni se cobran importes.</p>
+    <p class="nota">Prueba el proceso de pedido con datos de ejemplo. No se envían mensajes ni se realizan cobros reales.</p>
     <div class="controles-cantidad"><strong id="modo-pedidos" role="status">Práctica local</strong><button id="activar-pedidos" type="button" class="boton-pedido">Activar práctica en servidor</button><button id="pedidos-locales" type="button" class="boton-pedido">Usar práctica local</button></div>
     <p class="nota" id="estado-origen-pedidos" role="status"></p><button id="descartar-pedido" type="button" class="boton-pedido" hidden>Descartar reintento</button><p id="carrito-vacio">Aún no has agregado productos.</p><div id="lineas-carrito"></div>
     <div class="resumen-pedido">
       <label>Modalidad <select id="modalidad-pedido"></select></label>
-      <fieldset class="datos-pedido-demo"><legend>Datos del cliente</legend><p class="nota">Selecciona una identidad ficticia; no uses datos personales reales.</p><label>Nombre del cliente<select id="cliente-pedido" required></select></label><label>Teléfono<input id="telefono-pedido" readonly></label><label>Forma de pago (simulada)<select id="pago-pedido" required></select></label><label>Instrucciones (opcional)<select id="nota-pedido"></select></label>
+      <fieldset class="datos-pedido-demo"><legend>Datos del cliente</legend><p class="nota">Selecciona un cliente de ejemplo; no uses datos personales reales.</p><label>Nombre del cliente<select id="cliente-pedido" required></select></label><label>Teléfono<input id="telefono-pedido" readonly></label><label>Forma de pago (simulada)<select id="pago-pedido" required></select></label><label>Instrucciones (opcional)<select id="nota-pedido"></select></label>
       <label id="campo-mesa" hidden>Mesa<select id="mesa-pedido"></select></label><div id="campos-entrega" hidden><div id="reglas-entrega-demo" hidden><label>Colonia <select id="colonia-pedido"></select></label><p class="nota" id="horario-entrega-demo"></p><label><input type="checkbox" id="simular-entrega"> Simular horario abierto (solo demostración)</label><p id="cotizacion-entrega-demo" role="status" aria-live="polite"></p><button id="recoger-sin-cobertura" type="button" class="boton-pedido" hidden>Recoger en mostrador</button></div><label>Dirección de entrega<select id="direccion-pedido"></select></label><p id="detalle-direccion" class="nota"></p></div></fieldset>
       <p>Subtotal <strong id="pedido-subtotal"></strong></p><p>Entrega <strong id="pedido-cargo"></strong></p><p class="total-pedido">Total <strong id="pedido-total"></strong></p>
-      <button id="enviar-pedido" class="principal" type="button" disabled>Revisar pedido</button><dialog id="revision-pedido-demo" aria-labelledby="titulo-revision-demo"><h2 id="titulo-revision-demo">Revisa tu pedido</h2><div id="detalle-revision-demo"></div><p class="nota">Pedido ficticio. No se cobrará ni enviará a un negocio real.</p><div class="controles-cantidad"><button id="editar-revision-demo" type="button" class="boton-pedido">Volver a editar</button><button id="confirmar-revision-demo" type="button" class="boton-pedido">Confirmar pedido de práctica</button></div></dialog>
+      <button id="enviar-pedido" class="principal" type="button" disabled>Revisar pedido</button><dialog id="revision-pedido-demo" aria-labelledby="titulo-revision-demo"><h2 id="titulo-revision-demo">Revisa tu pedido</h2><div id="detalle-revision-demo"></div><p class="nota">Pedido de prueba. No genera un cobro ni un pedido real.</p><div class="controles-cantidad"><button id="editar-revision-demo" type="button" class="boton-pedido">Volver a editar</button><button id="confirmar-revision-demo" type="button" class="boton-pedido">Confirmar pedido de práctica</button></div></dialog>
       <p id="aviso-carrito" role="status" aria-live="polite"></p>
     </div>
   </section>
@@ -52,7 +52,7 @@
   </section>
   <section class="bloque contacto" id="contacto" aria-labelledby="titulo-contacto">
     <div><p class="sobrelinea">VISÍTANOS</p><h2 id="titulo-contacto">Horario y ubicación</h2><p id="horario"></p><p id="ubicacion"></p><p id="contacto-texto"></p></div>
-    <p class="nota">Este negocio es ficticio. No recibe pedidos, citas, pagos ni mensajes reales desde esta página.</p>
+    <p class="nota">Esta es una demostración interactiva. Puedes explorar sus funciones sin generar pedidos, citas, pagos ni mensajes reales.</p>
   </section>
 </main>
 <div id="anuncio-carrito" class="solo-lector" role="status" aria-live="polite" aria-atomic="true"></div>

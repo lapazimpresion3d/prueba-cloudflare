@@ -17,14 +17,14 @@ export const pagosDemo=Object.freeze([{id:"efectivo",nombre:"Efectivo"},{id:"tra
 export const mesasDemo=Object.freeze(["1","2","3","4","5"]);
 function elegir(lista,id,mensaje){const v=lista.find(x=>x.id===id);if(!v)throw Error(mensaje);return v;}
 export function datosCitaDemo(d){
- if(!d||typeof d!=="object")throw Error("Selecciona un cliente ficticio.");
- const c=elegir(clientesDemo,d.cliente,"Selecciona un cliente ficticio.");
+ if(!d||typeof d!=="object")throw Error("Selecciona un cliente de ejemplo.");
+ const c=elegir(clientesDemo,d.cliente,"Selecciona un cliente de ejemplo.");
  const n=elegir(notasCitaDemo,d.nota??"","Comentario de práctica inválido.");
  return {cliente:{...c},nota:n.nombre};
 }
 export function datosPedidoDemo(d,modalidad,giro){
- if(!d||typeof d!=="object")throw Error("Selecciona un cliente ficticio.");
- const c=elegir(clientesDemo,d.cliente,"Selecciona un cliente ficticio.");
+ if(!d||typeof d!=="object")throw Error("Selecciona un cliente de ejemplo.");
+ const c=elegir(clientesDemo,d.cliente,"Selecciona un cliente de ejemplo.");
  const p=elegir(pagosDemo,d.pago,"Selecciona la forma de pago.");
  const n=elegir(notasPedidoDemo,d.nota??"","Instrucción de práctica inválida.");
  const entrega=modalidad==="domicilio"?{...elegir(direccionesDemo,d.direccion,"Selecciona una dirección de ejemplo.")}:null;

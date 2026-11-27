@@ -35,7 +35,7 @@ export function montarEmpresa(root,id,plan,storage){
  negocio.value=id;paquete.value=plan;
  negocio.onchange=()=>location.assign(enlacesDemo(negocio.value,planesRepresentativos[negocio.value]).administracion);
  paquete.onchange=()=>location.assign(enlacesDemo(id,paquete.value).administracion);
- const nombreSucursal=s=>s===1?"Sucursal principal":"Sucursal ficticia "+s;
+ const nombreSucursal=s=>s===1?"Sucursal principal":"Sucursal de ejemplo "+s;
  rol.replaceChildren(...roles.slice(1).map(r=>option(r,r)));
  $("#empresa-limites").textContent=c.paquete.nombre+" · Hasta "+c.usuarios+" usuarios y "+c.sucursales+" sucursales (límites propuestos)";
  function render(d){
@@ -47,7 +47,7 @@ export function montarEmpresa(root,id,plan,storage){
    b.onclick=()=>{const actual=a.leer();if(actual.activas.includes(s)){if(actual.asignaciones.includes(s)){aviso.textContent="Reasigna primero al personal de esta sucursal.";return;}cambiar({...actual,activas:actual.activas.filter(x=>x!==s),sucursal:actual.sucursal===s?1:actual.sucursal});}else cambiar({...actual,activas:[...actual.activas,s]});};li.append(b);return li;
   }));
   $("#empresa-personal").replaceChildren(...d.personal.map((r,i)=>{
-   const li=el("li","Empleado ficticio "+(i+1)+" · ");if(!i){li.append("Propietario · Toda la empresa");return li;}
+   const li=el("li","Empleado de ejemplo "+(i+1)+" · ");if(!i){li.append("Propietario · Toda la empresa");return li;}
    const selector=el("select"),alcance=el("select"),b=el("button","Quitar");selector.setAttribute("aria-label","Rol del empleado "+(i+1));alcance.setAttribute("aria-label","Sucursal del empleado "+(i+1));
    selector.replaceChildren(...roles.slice(1).map(x=>option(x,x)));selector.value=r;
    alcance.replaceChildren(...(r==="administrador"?[option("Toda la empresa","")]:d.activas.map(s=>option(nombreSucursal(s),String(s)))));alcance.value=d.asignaciones[i]===null?"":String(d.asignaciones[i]);alcance.disabled=r==="administrador";

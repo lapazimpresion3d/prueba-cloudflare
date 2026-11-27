@@ -24,7 +24,7 @@ export function validarPerfil(id,datos){
 function inicial(id){
   const e=obtenerEstablecimiento(id);
   if(!e)throw Error("Establecimiento desconocido.");
-  return {nombre:e.nombre,marca:copiar(e.marca),horario:e.horario,ubicacion:e.ubicacion,contacto:"Contacto ficticio · sin atención real",logo:"",portada:""};
+  return {nombre:e.nombre,marca:copiar(e.marca),horario:e.horario,ubicacion:e.ubicacion,contacto:"Contacto de ejemplo · sin atención real",logo:"",portada:""};
 }
 export function perfilPlano(p){return {nombre:p.nombre,icono:p.marca.icono,color:p.marca.color,fondo:p.marca.fondo,lema:p.marca.lema,descripcion:p.marca.descripcion,horario:p.horario,ubicacion:p.ubicacion,contacto:p.contacto??"",logo:p.logo??"",portada:p.portada??""};}
 export function crearPerfilesLocales(almacen){
