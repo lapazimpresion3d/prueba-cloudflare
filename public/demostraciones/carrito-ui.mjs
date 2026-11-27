@@ -1,3 +1,4 @@
+import {estadoCobro,nombresCobro} from "./cobros-practica.mjs";
 import {zonasEntregaDemo,horarioEntregaDemo} from "./entrega-practica.mjs";
 import {nuevosListos} from "./cocina-practica.mjs";
 import {normalizarOpciones,claveLinea,textoLinea} from "./menu-comal-practica.mjs";
@@ -147,6 +148,7 @@ export function iniciarCarrito(datos,plan,practica,mesa=null){
       const c=nodo("article",undefined,"pedido-resumen");
       c.append(nodo("strong",p.folio),nodo("p",nombresEstado[p.estado],"estado-pedido"+(p.estado==="listo"?" pedido-listo":"")),nodo("p",p.detalle.map(l=>l.cantidad+" × "+textoLinea(l)).join(" · ")),nodo("p","Total: "+importe(p.total)));
       if(p.datosCliente?.cliente){const d=p.datosCliente;c.append(nodo("p","Cliente: "+d.cliente.nombre),nodo("p","Pago previsto: "+d.pago.nombre+(d.mesa?" · Mesa "+d.mesa:"")));if(d.entrega)c.append(nodo("p","Entrega: "+d.entrega.calle+" · "+d.entrega.colonia));if(p.entrega)c.append(nodo("p","Envío: "+importe(p.entrega.envioCentavos)+(p.entrega.horario==="simulado"?" · Horario simulado":"")));}
+      c.append(nodo("p",nombresCobro[estadoCobro(p)]+(p.cobro?" · "+importe(p.cobro.importeCentavos):"")+" (práctica)"));
       return c;
     }));
   }
