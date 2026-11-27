@@ -71,6 +71,14 @@
           <label>Horario <input name="horario" maxlength="120" required></label>
           <label>Ubicación ficticia <input name="ubicacion" maxlength="140" required></label>
           <label class="campo-ancho">Contacto de ejemplo (texto, no enlace) <input name="contacto" maxlength="140"></label>
+          <div class="campo-ancho imagenes-perfil">
+            <p>Imágenes de práctica: JPG, PNG o WebP; máximo 8 MB por archivo de origen. Se optimizan localmente a JPEG. No utilices fotos con datos personales.</p>
+            <div class="campos-editor">
+              <div><label>Logotipo <input id="archivo-logo" type="file" accept="image/jpeg,image/png,image/webp"></label><input type="hidden" name="logo"><img id="prev-logo" alt="Logotipo de práctica" width="120" hidden><button type="button" id="quitar-logo">Quitar logotipo</button></div>
+              <div><label>Portada <input id="archivo-portada" type="file" accept="image/jpeg,image/png,image/webp"></label><input type="hidden" name="portada"><img id="prev-portada" alt="Portada de práctica" width="220" hidden><button type="button" id="quitar-portada">Quitar portada</button></div>
+            </div>
+            <p id="aviso-imagenes" role="status" class="nota"></p>
+          </div>
         </div>
         <div class="acciones-demo"><button type="submit" class="principal">Aplicar personalización</button><button type="button" id="restaurar-perfil">Restaurar identidad original</button></div>
       </form>
