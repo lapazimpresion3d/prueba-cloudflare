@@ -1,3 +1,4 @@
+import {gruposPermisos,permisosBase,validarPermisos} from "./permisos-practica.mjs";
 import {obtenerEstablecimiento} from "./establecimientos.mjs";
 import {planes,capacidades,limitesPlanes as limites} from "./config.mjs";
 import {planesRepresentativos,enlacesDemo} from "./presentaciones.mjs";
@@ -7,11 +8,11 @@ export function validarRolesPersonalizados(lista=[]){
  if(!Array.isArray(lista)||lista.length>30)throw Error("Máximo 30 roles personalizados.");
  const ids=new Set(),nombres=new Set(roles);return lista.map(x=>{
  if(!x||typeof x.id!=="string"||!/^ROL-[a-zA-Z0-9-]{1,80}$/.test(x.id)||typeof x.nombre!=="string"||!x.nombre.trim()||x.nombre.trim().length>60||!roles.slice(1).includes(x.base)||ids.has(x.id)||nombres.has(normalizarNombre(x.nombre)))throw Error("Nombre, perfil base o identificador de rol inválido o repetido.");
- ids.add(x.id);nombres.add(normalizarNombre(x.nombre));return {id:x.id,nombre:x.nombre.trim(),base:x.base};});
+ ids.add(x.id);nombres.add(normalizarNombre(x.nombre));const permisos=validarPermisos(x.base,x.permisos);return {id:x.id,nombre:x.nombre.trim(),base:x.base,...(permisos===undefined?{}:{permisos})};});
 }
-export function guardarRolPersonalizado(d,id,nombre,base){
+export function guardarRolPersonalizado(d,id,nombre,base,permisos){
  const lista=d.rolesPersonalizados??[],actual=lista.find(x=>x.id===id);
- const rolesPersonalizados=validarRolesPersonalizados(actual?lista.map(x=>x.id===id?{id,nombre,base}:x):[...lista,{id,nombre,base}]);
+ const seleccion=permisos??(actual?.permisos===undefined?undefined:actual.permisos.filter(x=>permisosBase(base).includes(x)));const nuevo={id,nombre,base,...(seleccion===undefined?{}:{permisos:seleccion})};const rolesPersonalizados=validarRolesPersonalizados(actual?lista.map(x=>x.id===id?nuevo:x):[...lista,nuevo]);
  const personal=[...d.personal],asignaciones=[...d.asignaciones],rolesAsignados=[...(d.rolesAsignados??personal.map(()=>null))];
  rolesAsignados.forEach((r,i)=>{if(r===id){personal[i]=base;asignaciones[i]=base==="administrador"?null:(asignaciones[i]??d.sucursal);}});
  return {...d,rolesPersonalizados,personal,asignaciones,rolesAsignados};
@@ -71,7 +72,7 @@ export function montarEmpresa(root,id,plan,storage){
  $("#empresa-limites").textContent=c.paquete.nombre+" · Hasta "+c.usuarios+" usuarios y "+c.sucursales+" sucursales (límites propuestos)";
  function render(d){
   const personalizados=d.rolesPersonalizados??[],opcionesRoles=()=>[...roles.slice(1).map(r=>option(r,r)),...personalizados.map(r=>option(r.nombre+" ("+r.base+")",r.id))];rol.replaceChildren(...opcionesRoles());
-  $("#empresa-roles-personalizados").replaceChildren(...personalizados.map(r=>{const li=el("li",r.nombre+" · Permisos de "+r.base+" ");const editar=el("button","Editar"),borrar=el("button","Eliminar");editar.type=borrar.type="button";editar.onclick=()=>{$("#empresa-rol-id").value=r.id;$("#empresa-rol-nombre").value=r.nombre;$("#empresa-rol-base").value=r.base;$("#empresa-rol-nombre").focus();};borrar.onclick=()=>{if(!confirm("¿Eliminar el rol "+r.nombre+"?"))return;try{cambiar(quitarRolPersonalizado(a.leer(),r.id));}catch(e){aviso.textContent=e.message;}};li.append(editar," ",borrar);return li;}));
+  $("#empresa-roles-personalizados").replaceChildren(...personalizados.map(r=>{const li=el("li",r.nombre+" · Permisos de "+r.base+" ");const editar=el("button","Editar"),borrar=el("button","Eliminar");editar.type=borrar.type="button";editar.onclick=()=>{$("#empresa-rol-id").value=r.id;$("#empresa-rol-nombre").value=r.nombre;$("#empresa-rol-base").value=r.base;mostrarPermisos(r.permisos??permisosBase(r.base));$("#empresa-rol-nombre").focus();};borrar.onclick=()=>{if(!confirm("¿Eliminar el rol "+r.nombre+"?"))return;try{cambiar(quitarRolPersonalizado(a.leer(),r.id));}catch(e){aviso.textContent=e.message;}};li.append(editar," ",borrar);return li;}));
   sucursal.replaceChildren(...d.activas.map(s=>option(nombreSucursal(s),String(s))));
   sucursal.value=String(d.sucursal);
   $("#empresa-uso").textContent=d.personal.length+" / "+c.usuarios+" usuarios · "+d.activas.length+" / "+c.sucursales+" sucursales activas";
@@ -93,9 +94,11 @@ export function montarEmpresa(root,id,plan,storage){
  function cambiar(d){try{render(a.guardar(d));aviso.textContent="Cambio guardado en este navegador.";}catch(e){render(a.leer());aviso.textContent=e.message;}}
  sucursal.onchange=()=>cambiar({...a.leer(),sucursal:Number(sucursal.value)});
  $("#empresa-agregar").onclick=()=>{const d=a.leer(),p=(d.rolesPersonalizados??[]).find(x=>x.id===rol.value),base=p?.base??rol.value;cambiar({...d,personal:[...d.personal,base],asignaciones:[...d.asignaciones,base==="administrador"?null:d.sucursal],...(d.rolesPersonalizados?{rolesAsignados:[...(d.rolesAsignados??d.personal.map(()=>null)),p?.id??null]}:{})});};
- const limpiarRol=()=>{$("#empresa-rol-id").value="";$("#empresa-rol-nombre").value="";$("#empresa-rol-base").value="encargado";};
+ function mostrarPermisos(seleccion=permisosBase($("#empresa-rol-base").value)){const permitidos=permisosBase($("#empresa-rol-base").value);$("#empresa-permisos").replaceChildren(...gruposPermisos.map(([nombre,...items])=>{const f=el("fieldset"),l=el("legend",nombre);f.append(l);for(const [id,t] of items){const label=el("label"),ch=el("input");ch.type="checkbox";ch.value=id;ch.disabled=!permitidos.includes(id);ch.checked=!ch.disabled&&seleccion.includes(id);label.append(ch," "+t);f.append(label);}return f;}));}
+ $("#empresa-rol-base").onchange=()=>mostrarPermisos();$("#empresa-permisos-todos").onclick=()=>mostrarPermisos();$("#empresa-permisos-ninguno").onclick=()=>mostrarPermisos([]);mostrarPermisos();
+ const limpiarRol=()=>{$("#empresa-rol-id").value="";$("#empresa-rol-nombre").value="";$("#empresa-rol-base").value="encargado";mostrarPermisos();};
  $("#empresa-rol-nuevo").onclick=limpiarRol;
- $("#empresa-rol-guardar").onclick=()=>{try{const d=a.leer(),id=$("#empresa-rol-id").value||"ROL-"+crypto.randomUUID();const v=guardarRolPersonalizado(d,id,$("#empresa-rol-nombre").value,$("#empresa-rol-base").value);render(a.guardar(v));limpiarRol();aviso.textContent="Rol personalizado guardado.";}catch(e){aviso.textContent=e.message;}};
+ $("#empresa-rol-guardar").onclick=()=>{try{const d=a.leer(),id=$("#empresa-rol-id").value||"ROL-"+crypto.randomUUID();const v=guardarRolPersonalizado(d,id,$("#empresa-rol-nombre").value,$("#empresa-rol-base").value,[...$("#empresa-permisos").querySelectorAll("input:checked")].map(x=>x.value));render(a.guardar(v));limpiarRol();aviso.textContent="Rol personalizado guardado.";}catch(e){aviso.textContent=e.message;}};
 
  $("#empresa-restaurar").onclick=()=>{if(confirm("¿Restaurar solo personal y contexto de este negocio y plan?"))try{render(a.restaurar());aviso.textContent="Contexto restaurado.";}catch(e){aviso.textContent=e.message;}};
  $("#empresa-modulos").replaceChildren(...c.modulos.map(m=>el("li",m.nombre+" — "+({disponible:"Práctica disponible",en_desarrollo:"En desarrollo",otro_plan:"Plan superior",ejemplo:"Vista previa"}[m.estadoEfectivo]))));
