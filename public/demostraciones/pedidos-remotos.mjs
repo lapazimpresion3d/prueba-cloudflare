@@ -8,18 +8,29 @@ export function crearPedidosRemotos(id,plan,peticion=fetch){
     if(!res.ok){const e=Error(cuerpo.error||"No se pudo completar la operación.");e.status=res.status;throw e;}
     return cuerpo;
   }
-  async function leer(){
+  async function leerEstado(){
     const r=await api("pedidos?"+query);
     if(r.establecimiento!==id||!Array.isArray(r.pedidos)||!Number.isSafeInteger(r.expira))throw Error("Respuesta de pedidos inválida.");
-    return r.pedidos;
+    return r;
   }
+  async function leer(){return (await leerEstado()).pedidos;}
+  async function disponibilidad(){return (await api("contexto?"+query)).pedidosConfigurados===true;}
   async function conectar(){
-    const ctx=await api("contexto?"+query);
-    if(!ctx.pedidosConfigurados)throw Error("Pedidos en servidor pendientes de configuración. Puedes usar la práctica local.");
+    if(!await disponibilidad())throw Error("Pedidos en servidor pendientes de configuración. Puedes usar la práctica local.");
     await api("sesion","POST");return leer();
   }
-  return {conectar,leer,crear:datos=>api("pedidos?"+query,"POST",datos),cambiar:(solicitud,esperado,destino)=>api("pedidos?"+query,"PATCH",{solicitud,esperado,destino})};
+  return {conectar,leer,leerEstado,disponibilidad,crear:datos=>api("pedidos?"+query,"POST",datos),cambiar:(solicitud,esperado,destino)=>api("pedidos?"+query,"PATCH",{solicitud,esperado,destino})};
 }
 export function prepararSolicitudPedido(resumen,personalizado,solicitud){
   return {solicitud,catalogo:personalizado?"personalizado":"original",modalidad:resumen.modalidad,totalEsperado:resumen.total,lineas:resumen.detalle.map(l=>({id:l.id,cantidad:l.cantidad,precioEsperado:l.precioCentavos}))};
+}
+
+// No crea sesiones al visitar una página. No mezcla historiales.
+export async function detectarPedidos(remoto,{preferencia=null,locales=0,personalizado=false,pendiente=false,encargado=false}={}){
+  const configurado=await remoto.disponibilidad();
+  if(!configurado)return {servidor:pendiente||preferencia==="servidor",configurado:false,estado:null};
+  let estado=null;
+  try{estado=await remoto.leerEstado();}catch(e){if(e.status!==401)throw e;}
+  const servidor=pendiente||preferencia==="servidor"||preferencia!=="local"&&locales===0&&(!!estado||!encargado&&!personalizado);
+  return {servidor,configurado,estado};
 }
