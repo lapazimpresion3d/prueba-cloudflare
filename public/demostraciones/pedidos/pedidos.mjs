@@ -41,7 +41,7 @@ if(!negocio||!admitePedidos(id,plan)){
     $("campos-cobro").hidden=anular;$("campo-motivo-cobro").hidden=!anular;
     $("metodo-cobro").value=p.datosCliente?.pago?.id==="transferencia"?"transferencia":"efectivo";
     $("recibido-cobro").value=(p.total/100).toFixed(2);$("referencia-cobro").value="";$("motivo-cobro").value="";
-    $("error-cobro").textContent="";$("confirmar-cobro").textContent=anular?"Anular registro (no reembolso)":"Confirmar cobro ficticio";actualizarCobro();dialogo.showModal();
+    $("error-cobro").textContent="";$("confirmar-cobro").textContent=anular?"Anular registro (no reembolso)":"Confirmar cobro simulado";actualizarCobro();dialogo.showModal();
   }
   $("cerrar-cobro").addEventListener("click",()=>{if(!ocupado)dialogo.close();});
   dialogo.addEventListener("cancel",e=>{if(ocupado)e.preventDefault();});dialogo.addEventListener("close",()=>{objetivoCobro=null;});
@@ -71,7 +71,7 @@ if(!negocio||!admitePedidos(id,plan)){
       card.append(head,el("p",modos.find(m=>m.id===p.modalidad)?.nombre||"Modalidad de ejemplo"),detalle,el("p","Subtotal: "+importe(p.subtotal)+" · Entrega: "+importe(p.cargo)),el("strong","Total: "+importe(p.total)));
       if(p.datosCliente?.cliente){const d=p.datosCliente;card.append(el("p","Cliente: "+d.cliente.nombre),el("p","Teléfono: "+d.cliente.telefono),el("p","Pago previsto: "+d.pago.nombre),el("p","Instrucciones: "+d.nota));if(d.mesa)card.append(el("p","Mesa "+d.mesa));if(d.entrega)card.append(el("p","Entrega: "+d.entrega.calle+" · "+d.entrega.colonia+" · "+d.entrega.referencias));if(p.entrega)card.append(el("p","Tarifa de zona: "+importe(p.entrega.envioCentavos)+" · Mínimo: "+importe(p.entrega.minimoCentavos)+(p.entrega.horario==="simulado"?" · Horario simulado":"")));}else card.append(el("p","Pedido anterior sin datos de cliente.","nota"));
       const cobro=el("section",undefined,"bloque-cobro"),ec=estadoFin(p);cobro.dataset.estado=ec;cobro.append(el("h3",nombresCobro[ec]));
-      if(p.cobro){const v=p.cobro;cobro.append(el("p",metodosCobroDemo[v.metodo]+" · "+importe(v.importeCentavos)),el("p",v.metodo==="efectivo"?"Recibido: "+importe(v.recibidoCentavos)+" · Cambio: "+importe(v.cambioCentavos):"Comprobante ficticio: "+v.referencia));}
+      if(p.cobro){const v=p.cobro;cobro.append(el("p",metodosCobroDemo[v.metodo]+" · "+importe(v.importeCentavos)),el("p",v.metodo==="efectivo"?"Recibido: "+importe(v.recibidoCentavos)+" · Cambio: "+importe(v.cambioCentavos):"Comprobante de prueba: "+v.referencia));}
       if(!porCuenta.has(p.cuenta)&&!p.cobro?.grupo&&p.estado!=="cancelado"&&(p.estado!=="entregado"||p.cuenta)&&p.total>0&&(!p.cuenta||cuentas.some(c=>c.cuenta_id===p.cuenta&&c.cerrado===null))){const b=el("button",p.cobro?"Anular registro de cobro":"Registrar cobro");b.type="button";b.addEventListener("click",()=>abrirCobro(p,p.cobro?"anular":"registrar",modo));cobro.append(b);}
       if(p.cobro?.grupo)cobro.append(el("p","Asignación de cobro de mesa. Anula el grupo desde cuentas de mesa.","nota"));
       if(p.historialCobros?.length){const det=el("details"),log=el("ul");for(const v of p.historialCobros)log.append(el("li",(v.accion==="registrar"?"Registrado":"Anulado: "+v.motivo)+" · "+metodosCobroDemo[v.cobro.metodo]+" · "+importe(v.cobro.importeCentavos)+(v.cobro.referencia?" · "+v.cobro.referencia:"")+" · "+new Date(v.fecha).toLocaleString("es-MX")));det.append(el("summary","Historial de cobros"),log);cobro.append(det);}

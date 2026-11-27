@@ -28,10 +28,10 @@ try{
   if(actual){$("turno").textContent=actual.id+" · Empleado "+(actual.empleado+1);$("movimientos").hidden=ctx.rol==="cajero";$("cerrar").disabled=ctx.rol==="cajero"&&actual.empleado!==a[1];$("totales").replaceChildren(...Object.entries(campos).map(([k,n])=>{const div=el("div");div.append(el("span",n),el("strong",importe(actual.resumen[k])));return div;}));$("lista-movimientos").replaceChildren(...actual.movimientos.map(m=>el("p",m.tipo+" · "+m.motivo+" · "+importe(m.importe))));diferencia();}
   $("historial").replaceChildren(...ts.filter(t=>t.estado==="cerrado").map(t=>{const div=el("div"),b=el("button","Ver corte");b.type="button";b.onclick=()=>corte(t);div.append(el("p",t.id+" · "+importe(t.resumen.totalVentas)+" · Diferencia "+importe(t.cierre.diferencia)),b);return div;}));
  }
- function hacer(fn){try{fn();render();aviso("Operación ficticia registrada.");}catch(e){aviso(e.message);}}
+ function hacer(fn){try{fn();render();aviso("Operación de prueba registrada.");}catch(e){aviso(e.message);}}
  $("sucursal").onchange=()=>{empleados();$("corte").hidden=true;$("contado").value="";render();};$("empleado").onchange=render;$("tipo").onchange=motivos;$("contado").oninput=diferencia;
  $("abrir").onclick=()=>hacer(()=>store.abrir(...actor(),centavosCobro($("fondo").value)));
  $("mover").onclick=()=>hacer(()=>{store.mover(...actor(),$("tipo").value,centavosCobro($("importe").value),$("motivo").value);$("importe").value="";});
- $("cerrar").onclick=()=>{if(confirm("¿Cerrar turno ficticio? No podrá modificarse después."))hacer(()=>{const t=store.cerrar(...actor(),centavosCobro($("contado").value));corte({...t,resumen:t.cierre.resumen});$("contado").value="";});};
+ $("cerrar").onclick=()=>{if(confirm("¿Cerrar turno de prueba? No podrá modificarse después."))hacer(()=>{const t=store.cerrar(...actor(),centavosCobro($("contado").value));corte({...t,resumen:t.cierre.resumen});$("contado").value="";});};
  motivos();render();$("contenido").hidden=false;
 }catch(e){$("aviso").textContent=e.message;}
