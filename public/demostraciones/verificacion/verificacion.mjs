@@ -1,3 +1,4 @@
+import {admiteMesas} from "../mesas-practica.mjs";
 import {establecimientos} from "../establecimientos.mjs";
 import {admitePedidos} from "../pedidos-practica.mjs";
 import {admiteCitas} from "../citas-practica.mjs";
@@ -21,6 +22,7 @@ async function comprobar(){
     const flags=[["Catálogo",v.persistenciaConfigurada],["Identidad",v.perfilConfigurado]];
     if(admitePedidos(e.id,plan))flags.push(["Pedidos",v.pedidosConfigurados]);
     if(admiteCitas(e.id,plan))flags.push(["Citas",v.citasConfiguradas]);
+    if(admiteMesas(e.id,plan))flags.push(["Reservaciones",v.reservacionesConfiguradas]);
     const listo=flags.every(x=>x[1]===true);
     if(listo)correctos++;
     p.append(el("strong",listo?"Configuración correcta":"Configuración pendiente"),el("span"," · "+flags.map(([n,b])=>n+": "+(b===true?"sí":"no")).join(" / ")));
