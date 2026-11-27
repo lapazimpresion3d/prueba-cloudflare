@@ -13,7 +13,7 @@ test("20 combinaciones independientes; pedidos de práctica solo en giros y plan
     const lista=capacidades(e,p.id);
     const interactivo=p.id!=="p1"&&["cafeteria","tienda","restaurante"].includes(e.giro);
     const citas=p.id!=="p1"&&["barberia","taller"].includes(e.giro);
-    assert.deepEqual(lista.filter(m=>m.estadoEfectivo==="disponible").map(m=>m.id),interactivo?["web","catalogo","pedidos","seguimiento"]:citas?["web","catalogo","citas","agendas"]:["web","catalogo"]);
+    assert.deepEqual(lista.filter(m=>m.estadoEfectivo==="disponible").map(m=>m.id),interactivo?["web","catalogo","pedidos","seguimiento",...(e.giro==="restaurante"?["reservaciones","qr_mesa"]:[])]:citas?["web","catalogo","citas","agendas"]:["web","catalogo"]);
     assert.ok(lista.every(m=>m.estadoEfectivo==="otro_plan" || m.desde<=planes.indexOf(p)+1));
     assert.ok(lista.every(m=>!m.giros||m.giros.includes(e.giro)));
   }
