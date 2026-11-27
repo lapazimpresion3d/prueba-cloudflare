@@ -1,3 +1,4 @@
+import {zonasEntregaDemo,horarioEntregaDemo} from "../entrega-practica.mjs";
 import {admiteCocina,admiteComandas} from "../cocina-practica.mjs";
 import {textoLinea} from "../menu-comal-practica.mjs";
 import {importe} from "../config.mjs";
@@ -20,6 +21,7 @@ if(!negocio||!admitePedidos(id,plan)){
   function controles(){ for(const [k,permitido,vista] of [["ir-cocina",admiteCocina(id,plan),false],["ir-comandas",admiteComandas(id,plan),true]]){$(k).hidden=!permitido;$(k).href="/demostraciones/cocina/?"+new URLSearchParams({negocio:id,plan,...(vista?{vista:"mesas"}:{}),origen:servidor?"servidor":"local"});} $("modo-pedidos").textContent=servidor?"Práctica en servidor":"Práctica local";$("activar-pedidos").disabled=comprobando||ocupado||configurado===false;$("pedidos-locales").disabled=comprobando||ocupado||!servidor;$("estado-origen").textContent=comprobando?"Comprobando sesión…":configurado===false?"Servidor no configurado.":configurado===null?"No se pudo comprobar el servidor.":servidor?"Sesión privada en servidor.":"Solo pedidos locales de esta pestaña.";$("cantidad-local").textContent=String(repo.leer().length);$("cantidad-remota").textContent=totalRemoto===null?"—":String(totalRemoto);$("restaurar").hidden=servidor; }
   $("nombre").textContent=negocio.nombre;$("volver-panel").href=links.administracion;$("ver-cliente").href=links.negocio;$("ver-practica").href=enlacesDemo(id,plan,true).negocio;
   if(id==="taqueria-el-comal"){$("filtro-mesa-campo").hidden=false;$("filtro-mesa").replaceChildren(new Option("Todas",""),...["1","2","3","4","5","6"].map(m=>new Option("Mesa "+m+(m==="6"?" (histórica)":""),m)));}
+  if(id==="taqueria-el-comal"){$("reglas-entrega-empresa").hidden=false;$("horario-entrega-empresa").textContent=horarioEntregaDemo;$("zonas-entrega-empresa").replaceChildren(...zonasEntregaDemo.map(z=>el("li",z.nombre+" · Envío "+importe(z.envioCentavos)+" · Mínimo "+importe(z.minimoCentavos))));}
   const aviso=s=>{$("aviso").textContent=s;};
   async function render(){
     const n=++generacion,modo=servidor;controles();
