@@ -104,7 +104,7 @@ else{
   const nuevos=new Map();
   await Promise.all(cuentas.filter(c=>{const s=consumoCuenta(c,pedidos);return !s.todos.some(p=>p.cobro)&&!s.porEntregar&&(s.total>0||c.cerrado!==null);}).map(async c=>{
    try{const datos=await api("/api/demo/pagos-multiples?"+query+"&cuenta="+encodeURIComponent(c.cuenta_id));nuevos.set(c.cuenta_id,{datos});}
-   catch(e){if(e.status===503&&e.message==="Falta configurar las migraciones de pagos múltiples.")return;if(c.cerrado!==null&&e.status===409)return;nuevos.set(c.cuenta_id,{error:"Pagos múltiples: "+e.message+" Actualiza para verificar."});}
+   catch(e){if(e.status===503&&e.message==="Falta configurar las migraciones de pagos múltiples."&&!p.multiples?.some(m=>m.cuenta===c.cuenta_id))return;if(c.cerrado!==null&&e.status===409)return;nuevos.set(c.cuenta_id,{error:"Pagos múltiples: "+e.message+" Actualiza para verificar."});}
   }));
   pagosPorCuenta=nuevos;valida=true;
   if(pendiente&&(pendiente.expira!==expira||cuentas.some(c=>c.cuenta_id===pendiente.datos.cuenta))){sessionStorage.removeItem(clave);pendiente=null;}
@@ -112,7 +112,7 @@ else{
  async function operar(fn){if(ocupado)return;ocupado=true;controles();try{await fn();}catch(e){valida=false;aviso(e.message+" Actualiza para recuperar el estado.");}finally{ocupado=false;render();}}
  async function detectar(){if(dialogo.open||document.activeElement?.closest(".pagos-multiples"))return;await operar(async()=>{const ctx=await api("/api/demo/contexto?"+query);configurado=ctx.cuentasConfiguradas===true;valida=false;if(configurado){try{await cargar();}catch(e){if(e.status!==401)throw e;}}});}
  $("activar").addEventListener("click",()=>operar(async()=>{await api("/api/demo/sesion","POST");await cargar();aviso("Sesión de práctica activa.");}));
- $("actualizar").addEventListener("click",detectar);window.addEventListener("focus",detectar);window.addEventListener("pageshow",e=>{if(e.persisted)detectar();});
+ $("actualizar").addEventListener("click",()=>{document.activeElement?.blur();detectar();});window.addEventListener("focus",detectar);window.addEventListener("pageshow",e=>{if(e.persisted)detectar();});
  setInterval(()=>{if(!document.hidden&&!ocupado)detectar();},20000);
  $("contenido").hidden=false;detectar();
 }
