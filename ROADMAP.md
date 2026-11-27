@@ -194,3 +194,7 @@ La galería deja de tener selector global. Café Mirador P1, Barbería Elite P2,
 ### v0.11.8 — Datos de cliente y recuperación de El Comal
 - [x] Formularios de cliente ficticio, mesa/domicilio, preferencias de pago y revisión previa; persistencia y paneles existentes.
 - [ ] Completar paridad con menú original, reservaciones, QR por mesa, entrega por zonas, cocina, WhatsApp simulado y registro de cobros. Ver docs/recuperacion-el-comal.md.
+
+### v0.11.9 — Menú original y personalización
+- [x] Nueve productos originales, ingredientes, extras, tamaños, combos y partidas diferenciadas, precios validados en servidor.
+- [ ] Reservaciones y QR de mesa; precios especiales y edición de opciones. Ver docs/recuperacion-el-comal.md.
