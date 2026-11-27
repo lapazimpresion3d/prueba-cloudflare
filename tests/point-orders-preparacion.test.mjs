@@ -1,0 +1,11 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {construirOrdenPoint,verificarOrdenPoint} from "../src/point-orders-preparacion.mjs";
+const e={id:"operacion-1",terminal:"NEWLAND_N950__TEST123",centavos:38501,orderId:"ORD_TEST",vendedor:"123"};
+const o={id:e.orderId,type:"point",user_id:e.vendedor,external_reference:e.id,currency:"MXN",country_code:"MEX",config:{point:{terminal_id:e.terminal}},status:"processed",status_detail:"accredited",transactions:{payments:[{id:"PAY_TEST",amount:"385.01",status:"processed",status_detail:"accredited"}]}};
+test("importe exacto en centavos",()=>assert.equal(construirOrdenPoint(e).transactions.payments[0].amount,"385.01"));
+test("rechaza importes inválidos",()=>{for(const centavos of [0,-1,1.5,NaN])assert.throws(()=>construirOrdenPoint({...e,centavos}));});
+test("orden acreditada coincide",()=>assert.equal(verificarOrdenPoint(o,e),true));
+test("no acredita estados no finales",()=>{for(const status of ["created","at_terminal","canceled","refunded"])assert.equal(verificarOrdenPoint({...o,status},e),false);});
+test("rechaza vendedor, moneda y referencia distintos",()=>{for(const v of [{user_id:"456"},{currency:"USD"},{external_reference:"otra"},{id:"otra"},{country_code:"ARG"},{config:{point:{terminal_id:"otra"}}}])assert.equal(verificarOrdenPoint({...o,...v},e),false);});
+test("rechaza monto y estado de pago inconsistentes",()=>{for(const v of [{amount:"385.00"},{status:"created"},{status_detail:"pending"},{id:""}])assert.equal(verificarOrdenPoint({...o,transactions:{payments:[{...o.transactions.payments[0],...v}]}},e),false);});
