@@ -40,7 +40,7 @@ test("creación, fotografía de precios, seguimiento y estados terminales",()=>{
   assert.throws(()=>otro.cambiar(p.folio,"recibido","entregado"));
   otro.cambiar(p.folio,"recibido","preparando");
   assert.throws(()=>r.cambiar(p.folio,"recibido","cancelado"));
-  otro.cambiar(p.folio,"preparando","listo");otro.cambiar(p.folio,"listo","entregado");
+  otro.cambiar(p.folio,"preparando","listo");assert.throws(()=>otro.cambiar(p.folio,"listo","entregado"));otro.cobrar(p.folio,{accion:"registrar",revision:0,totalEsperado:p.total,metodo:"efectivo",recibidoCentavos:p.total});otro.cambiar(p.folio,"listo","entregado");
   assert.equal(r.leer()[0].historial.length,4);assert.equal(r.leer()[0].estado,"entregado");
   assert.deepEqual(transicionesPedido("entregado"),[]);
   assert.throws(()=>r.cambiar(p.folio,"entregado","cancelado"));
