@@ -1,3 +1,4 @@
+import {aplicarCobro,validarCambioPedido} from "../public/demostraciones/cobros-practica.mjs";
 import {datosPedidoDemo,seleccionPedido} from "../public/demostraciones/clientes-practica.mjs";
 import {admitePedidos,resumirPedidoConfirmado,transicionesPedido} from "../public/demostraciones/pedidos-practica.mjs";
 import {leerJsonLimitado} from "./seguridad.mjs";
@@ -47,8 +48,14 @@ export async function atenderPedidosDemo(request,db,s,ctx,json){
   }
   const fila=await buscar(datos.solicitud);
   if(!fila)return error(json,"Pedido no encontrado en esta práctica.",404);
+  if(datos.cobro!==undefined){
+    let p;try{p=aplicarCobro(leerFila(fila),datos.cobro);}catch(e){return error(json,e.message,409);}
+    const referencia=p.cobro?.referencia||"";
+    const actual=await db.prepare("UPDATE demo_pedidos SET datos_json=? WHERE sesion_id=? AND establecimiento_id=? AND solicitud_id=? AND estado=? AND datos_json=? AND EXISTS (SELECT 1 FROM demo_sesiones WHERE id=? AND expira>?) AND (?='' OR NOT EXISTS(SELECT 1 FROM demo_pedidos AS otro WHERE otro.sesion_id=? AND otro.establecimiento_id=? AND otro.solicitud_id<>? AND json_extract(otro.datos_json,'$.cobro.referencia')=?)) RETURNING datos_json").bind(JSON.stringify(p),s.id,id,datos.solicitud,fila.estado,fila.datos_json,s.id,ahora(),referencia,s.id,id,datos.solicitud,referencia).first();
+    return actual?json({pedido:leerFila(actual)}):error(json,"El pedido cambió, la sesión caducó o el folio ya fue utilizado. Actualiza antes de continuar.",409);
+  }
   if(fila.estado!==datos.esperado||!transicionesPedido(fila.estado).includes(datos.destino))return error(json,"El estado cambió o la transición no está permitida.",409);
-  const p=leerFila(fila);p.estado=datos.destino;p.historial.push({estado:p.estado,fecha:Date.now()});
-  const actualizado=await db.prepare("UPDATE demo_pedidos SET estado=?,datos_json=? WHERE sesion_id=? AND establecimiento_id=? AND solicitud_id=? AND estado=? AND EXISTS (SELECT 1 FROM demo_sesiones WHERE id=? AND expira>?) RETURNING datos_json").bind(p.estado,JSON.stringify(p),s.id,id,datos.solicitud,datos.esperado,s.id,ahora()).first();
+  const p=leerFila(fila);try{validarCambioPedido(p,datos.destino);}catch(e){return error(json,e.message,409);}p.estado=datos.destino;p.historial.push({estado:p.estado,fecha:Date.now()});
+  const actualizado=await db.prepare("UPDATE demo_pedidos SET estado=?,datos_json=? WHERE sesion_id=? AND establecimiento_id=? AND solicitud_id=? AND estado=? AND datos_json=? AND EXISTS (SELECT 1 FROM demo_sesiones WHERE id=? AND expira>?) RETURNING datos_json").bind(p.estado,JSON.stringify(p),s.id,id,datos.solicitud,datos.esperado,fila.datos_json,s.id,ahora()).first();
   return actualizado?json({pedido:leerFila(actualizado)}):error(json,"El pedido cambió. Actualiza el listado.",409);
 }
