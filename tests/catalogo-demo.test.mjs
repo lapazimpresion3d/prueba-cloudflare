@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {crearCatalogosLocales,validarOferta,centavosDesdeTexto} from "../public/demostraciones/catalogo-local.mjs";
+import {crearCatalogosLocales,validarOferta,centavosDesdeTexto,imagenOfertaSegura,validarTamanoCatalogo} from "../public/demostraciones/catalogo-local.mjs";
 import {establecimientos} from "../public/demostraciones/establecimientos.mjs";
 const datos={nombre:"Ejemplo de práctica",categoria:"Pruebas",tipo:"fisico",descripcion:"Sin datos reales",precioCentavos:12345,disponible:true};
 function almacenamiento(){
@@ -47,7 +47,8 @@ test("validación monetaria exacta y rechazo de entradas inválidas",()=>{
   for(const precio of [-1,0.5,Infinity,100000001])assert.throws(()=>validarOferta({...datos,precioCentavos:precio},"a"));
 });
 test("atributos tipados e imágenes externas rechazadas",()=>{
-  const p=validarOferta({...datos,tipo:"servicio",duracionMinutos:30,imagen:"https://example.invalid/x"},"a");
+  assert.throws(()=>validarOferta({...datos,imagen:"https://example.invalid/x"},"a"));
+  const p=validarOferta({...datos,tipo:"servicio",duracionMinutos:30},"a");
   assert.equal(p.duracionMinutos,30);assert.equal(p.imagen,undefined);
   assert.equal(validarOferta({...datos,duracionMinutos:30},"a").duracionMinutos,undefined);
   assert.throws(()=>validarOferta({...datos,tipo:"servicio",duracionMinutos:0},"a"));
@@ -75,4 +76,26 @@ test("límite y unicidad de IDs, permite restaurar catálogo vacío",()=>{
   assert.equal(new Set(c.leer(id).map(p=>p.id)).size,100);
   assert.throws(()=>c.crear(id,datos));
   c.restaurar(id);assert.equal(c.leer(id).length,6);
+});
+
+test("foto local validada y eliminada explícitamente, incluso en semillas",()=>{
+  const id="taqueria-el-comal",store=almacenamiento(),c=crearCatalogosLocales(store),original=c.leer(id)[0];
+  assert.ok(imagenOfertaSegura(original.imagen));
+  const muestra="data:image/jpeg;base64,/9j/AA==";
+  c.editar(id,original.id,{...original,imagen:muestra});
+  assert.equal(crearCatalogosLocales(store).leer(id)[0].imagen,muestra);
+  c.editar(id,original.id,{...original,imagen:""});
+  assert.equal(crearCatalogosLocales(store).leer(id)[0].imagen,"");
+  c.restaurar(id);assert.equal(c.leer(id)[0].imagen,original.imagen);
+  assert.throws(()=>validarOferta({...datos,imagen:"/imagenes/pastor.webp"},"local-1"));
+  assert.throws(()=>validarOferta({...datos,imagen:"data:image/svg+xml;base64,AAAA"},"local-1"));
+  assert.throws(()=>validarOferta({...datos,imagen:"data:image/jpeg;base64,/9j/"+"A".repeat(45000)},"local-1"));
+  assert.throws(()=>validarTamanoCatalogo(["á".repeat(160000)]));
+});
+test("límite total mantiene intacta la copia ante una nueva foto demasiado grande",()=>{
+  const c=crearCatalogosLocales(almacenamiento()),id="cafe-mirador",foto="data:image/jpeg;base64,/9j/"+"A".repeat(44000);
+  for(let i=0;i<6;i++)c.crear(id,{...datos,imagen:foto});
+  const antes=c.leer(id);
+  assert.throws(()=>c.crear(id,{...datos,imagen:foto}));
+  assert.deepEqual(c.leer(id),antes);
 });
