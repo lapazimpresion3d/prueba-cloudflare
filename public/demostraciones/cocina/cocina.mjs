@@ -19,7 +19,7 @@ else{
  function guardarModo(){preferencia=servidor?"servidor":"local";try{almacen?.setItem(clave,preferencia);}catch{}}
  $("titulo").textContent=mesas?"Servicio y comandas por mesa":"Pantalla de cocina";
  $("negocio").textContent=obtenerEstablecimiento(id).nombre;
- $("intro").textContent=mesas?"Agrupa pedidos activos del salón. Marca cada pedido listo como entregado. El total visible no es una cuenta abierta. Confirma el cobro en administración antes de entregar.":"Recibe comandas, consulta cantidades, ingredientes y extras, inicia preparación y marca listo. No contiene datos de contacto, cobros ni cancelaciones.";
+ $("intro").textContent=mesas?"Agrupa pedidos activos del salón. Marca cada pedido listo como entregado. Los pedidos asociados a una cuenta abierta pueden entregarse antes del cobro. Los independientes requieren cobro conciliado.":"Recibe comandas, consulta cantidades, ingredientes y extras, inicia preparación y marca listo. No contiene datos de contacto, cobros ni cancelaciones.";
  $("panel").href=links.administracion;$("cliente").href=links.negocio;
  $("alternar").hidden=!admiteComandas(id,plan);$("alternar").textContent=mesas?"Ir a cocina":"Ver comandas por mesa";
  if(id==="taqueria-el-comal"){$("filtro-mesa").hidden=false;$("mesa").replaceChildren(new Option("Todas",""),...["1","2","3","4","5","6"].map(m=>new Option("Mesa "+m+(m==="6"?" (histórica)":""),m)),new Option("Local sin mesa","sin-mesa"));}
