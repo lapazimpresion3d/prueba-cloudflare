@@ -5,6 +5,7 @@ import {crearPerfilesLocales} from "../perfil-local.mjs";
 import {presentacionDe,enlacesDemo,simbolos} from "../presentaciones.mjs";
 import {ilustracionPortada} from "../ilustraciones.mjs";
 import {iniciarCarrito} from "../carrito-ui.mjs";
+import {admiteCitas,serviciosCita} from "../citas-practica.mjs";
 const $=id=>document.getElementById(id);
 const el=(tag,txt,clase)=>{const e=document.createElement(tag);if(txt!==undefined)e.textContent=txt;if(clase)e.className=clase;return e;};
 const q=new URLSearchParams(location.search);
@@ -37,6 +38,8 @@ if(!base||!plan||!t){
   $("arte").append(arte);
   $("destacados").replaceChildren(...t.destacados.map((x,i)=>{const a=el("a");a.href="#catalogo";a.append(el("span",String(i+1).padStart(2,"0"),"numero"),el("strong",x));a.addEventListener("click",()=>{const op=[...$("categoria").options].find(o=>o.value===x);$("categoria").value=op?x:"";$("buscar").value="";render();});return a;}));
   const carrito=iniciarCarrito(datos,plan.id,practica);
+  const citas=admiteCitas(base.id,plan.id),urlCitas="/demostraciones/citas/?"+new URLSearchParams({negocio:base.id,plan:plan.id,...(practica?{practica:"1"}:{})});
+  $("nav-citas").hidden=!citas;$("nav-citas").href=urlCitas;
   const cats=[...new Set(datos.catalogo.map(p=>p.categoria))];
   $("categoria").replaceChildren(new Option("Todas",""),...cats.map(c=>new Option(c,c)));
   function render(){
@@ -52,6 +55,7 @@ if(!base||!plan||!t){
       if(p.duracionMinutos)cuerpo.append(el("p",p.duracionMinutos+" min","nota"));
       if(p.disponible===false)cuerpo.append(el("p","Temporalmente no disponible","nota"));
       if(carrito&&carrito.puedeAgregar(p)){const b=el("button","Agregar al carrito","boton-agregar");b.type="button";b.addEventListener("click",()=>carrito.agregar(p));cuerpo.append(b);}
+      if(citas&&serviciosCita([p]).length){const a=el("a","Reservar cita","boton-agregar");a.href=urlCitas+"&servicio="+encodeURIComponent(p.id);cuerpo.append(a);}
       card.append(imagen,cuerpo);return card;
     }));
   }
