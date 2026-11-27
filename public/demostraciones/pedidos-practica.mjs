@@ -1,3 +1,4 @@
+import {datosPedidoDemo} from "./clientes-practica.mjs";
 // Flujo de práctica exclusivamente local. No accede a /api/pedidos ni a datos reales.
 import {obtenerEstablecimiento} from "./establecimientos.mjs";
 import {capacidades} from "./config.mjs";
@@ -64,14 +65,14 @@ export function crearPedidosPractica(almacen,id,plan,{ahora=()=>Date.now(),folio
     catch{throw Error("El navegador no permite guardar esta práctica. No se creó ni cambió el pedido.");}
     memoria=v;
   }
-  function crear(catalogo,lineas,modalidad){
+  function crear(catalogo,lineas,modalidad,datosCliente){
     const resumen=resumirCarrito(id,catalogo,lineas,modalidad);
     if(!resumen.detalle.length)throw Error("Agrega al menos un producto.");
     const pedidos=leer();
     if(pedidos.length>=MAX_PEDIDOS)throw Error("Límite de 30 pedidos de práctica. Restablece el historial desde el panel.");
     const f="DEMO-"+folio();
     if(!/^DEMO-[a-zA-Z0-9-]{1,80}$/.test(f)||pedidos.some(p=>p.folio===f))throw Error("No se pudo asignar un folio. Intenta de nuevo.");
-    const p={...resumen,folio:f,estado:"recibido",creado:ahora(),historial:[{estado:"recibido",fecha:ahora()}]};
+    const p={...resumen,...(datosCliente===undefined?{}:{datosCliente:datosPedidoDemo(datosCliente,modalidad,obtenerEstablecimiento(id).giro)}),folio:f,estado:"recibido",creado:ahora(),historial:[{estado:"recibido",fecha:ahora()}]};
     guardar([p,...pedidos]);return copiar(p);
   }
   function cambiar(folio,estadoEsperado,destino){
