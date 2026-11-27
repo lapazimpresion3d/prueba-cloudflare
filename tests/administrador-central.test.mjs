@@ -1,0 +1,23 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {DatabaseSync} from "node:sqlite";
+import {readFileSync,readdirSync} from "node:fs";
+import {crearAdministradorCentral} from "../src/administrador-central.mjs";
+import {crearGestorSuscripciones} from "../src/suscripciones-comerciales.mjs";
+async function fixture(){
+ const sql=new DatabaseSync(":memory:");sql.exec("PRAGMA foreign_keys=ON");
+ const dir=new URL("../migrations-comercios/",import.meta.url);
+ for(const f of readdirSync(dir).filter(x=>x.endsWith(".sql")).sort())sql.exec(readFileSync(new URL(f,dir),"utf8"));
+ sql.exec("INSERT INTO empresas(id,nombre) VALUES('a','A'),('b','B'); INSERT INTO central_operadores(id,emisor,sujeto) VALUES('central','issuer','admin')");
+ const db={prepare(q){return {first:async()=>sql.prepare(q).get()??null,bind(...a){return {q,a,first:async()=>sql.prepare(q).get(...a)??null,all:async()=>({results:sql.prepare(q).all(...a)})}}}},async batch(stm){sql.exec("BEGIN");try{const r=stm.map(({q,a})=>/RETURNING/i.test(q)?{results:sql.prepare(q).all(...a)}:{meta:sql.prepare(q).run(...a)});sql.exec("COMMIT");return r}catch(e){sql.exec("ROLLBACK");throw e}}};
+ const req=(s="admin",origin="https://example.com")=>new Request("https://example.com/central",{method:"POST",headers:{Origin:origin,"X-Test":s}});
+ const c=await crearAdministradorCentral({COMMERCE_DB:db},{habilitado:true,reloj:()=>1000,autenticarCentral:async r=>({emisor:"issuer",sujeto:r.headers.get("X-Test")})});
+ const g=await crearGestorSuscripciones({COMMERCE_DB:db},{habilitado:true,autorizarOperador:c.autorizarOperador,autorizarComercial:async()=>{throw Error("No autorizado")},reloj:()=>1000});
+ await g.inicializar(req());
+ return {sql,c,g,req};
+}
+test("acceso central separado de propietarios y revocable",async()=>{const {sql,c,req}=await fixture();assert.equal((await c.directorio(req())).length,2);await assert.rejects(c.directorio(req("owner")));sql.exec("UPDATE central_operadores SET activo=0");await assert.rejects(c.directorio(req()));});
+test("indicadores separan mensualidad contratada de pagos registrados",async()=>{const {c,g,req}=await fixture();await g.contratar(req(),{empresa:"a",plan:"p3",version:1,revision:0,estado:"activa",inicio:0,vence:2000});await g.contratar(req(),{empresa:"b",plan:"p4",version:1,revision:0,estado:"prueba",inicio:0,vence:2000});await c.registrarPago(req(),{id:"pago-1",empresa:"a",concepto:"implementacion",importe:250000,referencia:"REC-1"});const i=await c.indicadores(req());assert.equal(i.mrr_centavos,44900);assert.equal(i.registrado_centavos,250000);assert.equal(i.vigentes,1);});
+test("precios versionados conservan contratos previos",async()=>{const {c,g,req,sql}=await fixture();await g.contratar(req(),{empresa:"a",plan:"p1",version:1,revision:0,estado:"activa",inicio:0,vence:2000});await c.versionPlan(req(),{id:"p1",version:2,nombre:"Presencia digital",implementacion:80000,mensualidad:16900,usuarios:1,sucursales:1,modulos:["web"]});assert.equal((await c.indicadores(req())).mrr_centavos,14900);assert.equal(sql.prepare("SELECT count(*) n FROM comercial_planes WHERE id='p1'").get().n,2);});
+test("implementacion con revision y auditoria",async()=>{const {c,req,sql}=await fixture();await c.implementacion(req(),{empresa:"a",revision:0,estado:"pendiente"});await c.implementacion(req(),{empresa:"a",revision:1,estado:"entregada"});await assert.rejects(c.implementacion(req(),{empresa:"a",revision:1,estado:"revision"}));assert.equal(sql.prepare("SELECT count(*) n FROM central_auditoria").get().n,2);});
+test("pagos inmutables, duplicados y origen externo rechazados",async()=>{const {c,req,sql}=await fixture();const d={id:"pago-1",empresa:"a",concepto:"mensualidad",importe:14900,referencia:"REC-1"};await assert.rejects(c.registrarPago(req("admin","https://otro.example"),d));await c.registrarPago(req(),d);await assert.rejects(c.registrarPago(req(),{...d,id:"pago-2"}));assert.throws(()=>sql.exec("DELETE FROM central_pagos_servicio"));assert.equal((await c.pagos(req(),"a")).length,1);});
