@@ -42,6 +42,7 @@ export function transicionesPedido(estado){return Object.hasOwn(transiciones,est
 function pedidoValido(p,id){
   if(!p||typeof p.folio!=="string"||!/^DEMO-[a-zA-Z0-9-]{1,80}$/.test(p.folio)||!estados.includes(p.estado)||!Number.isSafeInteger(p.creado)||!Array.isArray(p.detalle)||!p.detalle.length||p.detalle.length>MAX_LINEAS||!Array.isArray(p.historial)||!p.historial.length||p.historial.length>5)return false;
   if(!p.detalle.every(l=>l&&typeof l.id==="string"&&typeof l.nombre==="string"&&l.nombre.length<=100&&Number.isSafeInteger(l.cantidad)&&l.cantidad>=1&&l.cantidad<=MAX_CANTIDAD&&Number.isSafeInteger(l.precioCentavos)&&l.precioCentavos>=0&&l.precioCentavos<=MAX_TOTAL&&l.subtotal===l.cantidad*l.precioCentavos))return false;
+  if(!p.detalle.every(l=>l.personalizacion===undefined||Array.isArray(l.personalizacion)&&l.personalizacion.length<=20&&l.personalizacion.every(x=>typeof x==="string"&&x.length<=120)))return false;
   if(new Set(p.detalle.map(claveLinea)).size!==p.detalle.length)return false;
   const modo=modalidadesPedido(id).find(m=>m.id===p.modalidad);
   if(!modo||p.cargo!==modo.cargo||p.subtotal!==p.detalle.reduce((sum,l)=>sum+l.subtotal,0)||p.total!==p.subtotal+p.cargo||!Number.isSafeInteger(p.total)||p.total>MAX_TOTAL)return false;
