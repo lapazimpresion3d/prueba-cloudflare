@@ -4,7 +4,7 @@ import {crearPlanCobro,agregarMovimiento,resumenPlanCobro} from "../public/demos
 import {cuentaIdValida} from "../public/demostraciones/cuentas-practica.mjs";
 const ahora=()=>Math.floor(Date.now()/1000);
 export async function pagosMultiplesListos(db){
- try{return (await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='demo_planes_cobro'").first())?.name==="demo_planes_cobro";}catch{return false;}
+ try{return (await db.prepare("SELECT count(*) AS n FROM sqlite_master WHERE (type='table' AND name='demo_planes_cobro') OR (type='trigger' AND name IN ('demo_pago_multiple_no_nueva_comanda','demo_pago_multiple_no_editar_comanda','demo_pago_multiple_cierre'))").first())?.n===4;}catch{return false;}
 }
 async function contexto(db,s,id){
  if(!cuentaIdValida(id))throw Error("Cuenta inválida.");
@@ -24,6 +24,7 @@ export async function leerPlanCobro(db,s,id){
  return {plan,resumen:resumenPlanCobro(plan)};
 }
 export async function guardarMovimiento(db,s,id,d){
+ if(!await pagosMultiplesListos(db))throw Error("Falta configurar la conciliación de pagos múltiples.");
  const {plan,filas}=await contexto(db,s,id);
  const nuevo=agregarMovimiento(plan,d);
  if(nuevo===plan)return {plan,resumen:resumenPlanCobro(plan),repetido:true};
@@ -42,4 +43,15 @@ export async function guardarMovimiento(db,s,id,d){
  const f=await db.prepare(sql).bind(s.id,id,nuevo.revision,JSON.stringify(nuevo),s.id,ahora(),s.id,id,s.id,id,filas.length,JSON.stringify(filas),s.id,s.id,id,plan.revision,plan.revision).first();
  if(!f)throw Error("La cuenta cambió o expiró. Actualiza antes de reintentar.");
  return {plan:nuevo,resumen:resumenPlanCobro(nuevo)};
+}
+
+// Cierre exclusivo del libro múltiple; nunca marca pedidos como pagados por el método anterior.
+export async function cerrarCuentaMultiple(db,s,id,revision){
+ if(!await pagosMultiplesListos(db))throw Error("Falta configurar la conciliación.");
+ if(!cuentaIdValida(id)||!Number.isSafeInteger(revision)||revision<1)throw Error("Cuenta o revisión inválida.");
+ const {plan}=await contexto(db,s,id);
+ if(plan.revision!==revision||!resumenPlanCobro(plan).liquidada)throw Error("La cuenta cambió o tiene saldo pendiente.");
+ const fila=await db.prepare("UPDATE demo_cuentas SET cerrado=? WHERE sesion_id=? AND cuenta_id=? AND cerrado IS NULL AND EXISTS(SELECT 1 FROM demo_sesiones WHERE id=? AND expira>?) AND EXISTS(SELECT 1 FROM demo_planes_cobro WHERE sesion_id=? AND cuenta_id=? AND revision=?) RETURNING cuenta_id,mesa,personas,abierto,cerrado").bind(Date.now(),s.id,id,s.id,ahora(),s.id,id,revision).first();
+ if(!fila)throw Error("La cuenta cambió o la sesión expiró.");
+ return fila;
 }
