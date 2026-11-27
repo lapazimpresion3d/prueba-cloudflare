@@ -4,14 +4,15 @@ import {movimientoIndividual} from "../public/demostraciones/subcuentas.mjs";
 const ahora=()=>Math.floor(Date.now()/1000);
 const identificador=x=>typeof x==="string"&&/^[a-zA-Z0-9_-]{1,80}$/.test(x);
 export async function terminalesListas(db){
- const r=await db.prepare("SELECT count(*) AS n FROM sqlite_master WHERE name IN ('demo_terminales','demo_terminal_operaciones','demo_terminal_ocupada','demo_terminal_cuenta_pendiente','demo_terminal_estado_final','demo_terminal_conectada','demo_terminal_solicitud_inmutable','demo_terminal_bloqueos','demo_terminal_bloqueo_solicitud','demo_terminal_bloqueo_comanda_insert','demo_terminal_bloqueo_comanda_update','demo_terminal_bloqueo_cierre','demo_terminal_bloqueo_libro_insert','demo_terminal_bloqueo_libro_update','demo_terminal_incidencias')").first();
- return r?.n===15;
+ const r=await db.prepare("SELECT count(*) AS n FROM sqlite_master WHERE name IN ('demo_terminales','demo_terminal_operaciones','demo_terminal_ocupada','demo_terminal_cuenta_pendiente','demo_terminal_estado_final','demo_terminal_conectada','demo_terminal_solicitud_inmutable','demo_terminal_bloqueos','demo_terminal_bloqueo_solicitud','demo_terminal_bloqueo_comanda_insert','demo_terminal_bloqueo_comanda_update','demo_terminal_bloqueo_cierre','demo_terminal_bloqueo_libro_insert','demo_terminal_bloqueo_libro_update','demo_terminal_incidencias','demo_terminal_resoluciones','demo_terminal_resolucion_validar','demo_terminal_resolucion_no_abono_insert','demo_terminal_resolucion_no_abono_update')").first();
+ return r?.n===19;
 }
 export async function listarTerminales(db,s){
  const terminales=(await db.prepare("SELECT t.terminal_id,t.nombre,t.proveedor,t.conectada,CASE WHEN EXISTS(SELECT 1 FROM demo_terminal_bloqueos o WHERE o.sesion_id=t.sesion_id AND o.terminal_id=t.terminal_id) THEN 'ocupada' WHEN t.conectada=0 THEN 'desconectada' ELSE 'disponible' END AS estado FROM demo_terminales t WHERE t.sesion_id=? ORDER BY t.nombre").bind(s.id).all()).results;
  const operaciones=(await db.prepare("SELECT o.operacion_id,o.terminal_id,o.cuenta_id,o.importe_centavos,o.revision_cuenta,o.estado,o.creado,o.resuelto,CASE WHEN o.solicitud_json IS NULL THEN 0 ELSE 1 END AS recuperable,CASE WHEN EXISTS(SELECT 1 FROM demo_planes_cobro p,json_each(p.datos_json,'$.movimientos') m WHERE p.sesion_id=o.sesion_id AND p.cuenta_id=o.cuenta_id AND json_extract(m.value,'$.terminal.id')=o.operacion_id) THEN 1 ELSE 0 END AS registrado,CASE WHEN EXISTS(SELECT 1 FROM demo_planes_cobro p,json_each(p.datos_json,'$.movimientos') m WHERE p.sesion_id=o.sesion_id AND p.cuenta_id=o.cuenta_id AND json_extract(m.value,'$.terminal.id')=o.operacion_id AND json_extract(m.value,'$.terminal.importeCentavos')=o.importe_centavos AND NOT EXISTS(SELECT 1 FROM json_each(p.datos_json,'$.anulaciones') a WHERE json_extract(a.value,'$.movimiento')=json_extract(m.value,'$.id'))) THEN 1 ELSE 0 END AS conciliada FROM demo_terminal_operaciones o WHERE o.sesion_id=? ORDER BY creado DESC LIMIT 100").bind(s.id).all()).results.map(({sesion_id,...o})=>o);
  const incidencias=(await db.prepare("SELECT operacion_id,fecha,codigo FROM demo_terminal_incidencias WHERE sesion_id=? ORDER BY fecha DESC LIMIT 100").bind(s.id).all()).results;
- return {terminales,operaciones,incidencias,modo:"simulado"};
+ const resoluciones=(await db.prepare("SELECT operacion_id,fecha,motivo FROM demo_terminal_resoluciones WHERE sesion_id=?").bind(s.id).all()).results;
+ return {terminales,operaciones,incidencias,resoluciones,modo:"simulado"};
 }
 export async function configurarTerminal(db,s,d){
  if(!identificador(d.terminal_id)||typeof d.nombre!=="string"||!d.nombre.trim()||d.nombre.trim().length>80||!["point_simulado","generico_simulado"].includes(d.proveedor)||![0,1].includes(d.conectada))throw Error("Terminal inválida.");
@@ -52,4 +53,13 @@ export async function conciliarTerminal(db,s,id){
  const d=JSON.parse(o.solicitud_json);
  await guardarMovimiento(db,s,o.cuenta_id,{...d,terminal:{proveedor:"point_simulado",estado:"aprobado",id,importeCentavos:o.importe_centavos}});
  return {registrado:true};
+}
+
+export async function resolverHistorica(db,s,id){
+ if(!identificador(id))throw Error("Identificador inválido.");
+ const previo=await db.prepare("SELECT operacion_id FROM demo_terminal_resoluciones WHERE sesion_id=? AND operacion_id=?").bind(s.id,id).first();
+ if(previo)return {resuelta:true,repetida:true};
+ const r=await db.prepare("INSERT INTO demo_terminal_resoluciones(sesion_id,operacion_id,fecha,motivo) SELECT ?,?,?,'Solicitud histórica sin datos' WHERE EXISTS(SELECT 1 FROM demo_sesiones WHERE id=? AND expira>?) ON CONFLICT DO NOTHING RETURNING operacion_id").bind(s.id,id,Date.now(),s.id,ahora()).first();
+ if(!r)throw Error("Resolución ficticia no permitida.");
+ return {resuelta:true};
 }
