@@ -1,3 +1,4 @@
+import {normalizarOpciones,claveLinea} from "./menu-comal-practica.mjs";
 import {datosPedidoDemo} from "./clientes-practica.mjs";
 // Flujo de práctica exclusivamente local. No accede a /api/pedidos ni a datos reales.
 import {obtenerEstablecimiento} from "./establecimientos.mjs";
@@ -26,11 +27,12 @@ export function resumirCarrito(id,catalogo,lineas,modalidad){
   if(!modo)throw Error("Elige una modalidad disponible.");
   const vistos=new Set();
   const detalle=lineas.map(l=>{
-    if(!l||typeof l.id!=="string"||vistos.has(l.id)||!Number.isSafeInteger(l.cantidad)||l.cantidad<1||l.cantidad>MAX_CANTIDAD)throw Error("Cantidad o producto inválido.");
-    vistos.add(l.id);
+    if(!l||typeof l.id!=="string"||!Number.isSafeInteger(l.cantidad)||l.cantidad<1||l.cantidad>MAX_CANTIDAD)throw Error("Cantidad o producto inválido.");
     const p=catalogo.find(x=>x.id===l.id);
     if(!ofertaPedible(p))throw Error("Hay productos que ya no están disponibles. Revisa el carrito.");
-    return {id:p.id,nombre:p.nombre,cantidad:l.cantidad,precioCentavos:p.precioCentavos,subtotal:p.precioCentavos*l.cantidad};
+    const o=normalizarOpciones(id,p,catalogo,l.opciones);
+    const linea={id:p.id,nombre:p.nombre,cantidad:l.cantidad,precioCentavos:o.precio,subtotal:o.precio*l.cantidad,...(o.seleccion?{opciones:o.seleccion,personalizacion:o.detalles}:{})};
+    const clave=claveLinea(linea);if(vistos.has(clave))throw Error("Partida repetida.");vistos.add(clave);return linea;
   });
   const subtotal=detalle.reduce((sum,p)=>sum+p.subtotal,0),cargo=detalle.length?modo.cargo:0,total=subtotal+cargo;
   if(!Number.isSafeInteger(total)||total>MAX_TOTAL)throw Error("El pedido supera el límite de práctica.");
@@ -40,7 +42,7 @@ export function transicionesPedido(estado){return Object.hasOwn(transiciones,est
 function pedidoValido(p,id){
   if(!p||typeof p.folio!=="string"||!/^DEMO-[a-zA-Z0-9-]{1,80}$/.test(p.folio)||!estados.includes(p.estado)||!Number.isSafeInteger(p.creado)||!Array.isArray(p.detalle)||!p.detalle.length||p.detalle.length>MAX_LINEAS||!Array.isArray(p.historial)||!p.historial.length||p.historial.length>5)return false;
   if(!p.detalle.every(l=>l&&typeof l.id==="string"&&typeof l.nombre==="string"&&l.nombre.length<=100&&Number.isSafeInteger(l.cantidad)&&l.cantidad>=1&&l.cantidad<=MAX_CANTIDAD&&Number.isSafeInteger(l.precioCentavos)&&l.precioCentavos>=0&&l.precioCentavos<=MAX_TOTAL&&l.subtotal===l.cantidad*l.precioCentavos))return false;
-  if(new Set(p.detalle.map(l=>l.id)).size!==p.detalle.length)return false;
+  if(new Set(p.detalle.map(claveLinea)).size!==p.detalle.length)return false;
   const modo=modalidadesPedido(id).find(m=>m.id===p.modalidad);
   if(!modo||p.cargo!==modo.cargo||p.subtotal!==p.detalle.reduce((sum,l)=>sum+l.subtotal,0)||p.total!==p.subtotal+p.cargo||!Number.isSafeInteger(p.total)||p.total>MAX_TOTAL)return false;
   return p.historial.every((h,i)=>h&&Number.isSafeInteger(h.fecha)&&(i===0?h.estado==="recibido":transicionesPedido(p.historial[i-1].estado).includes(h.estado)))&&p.historial.at(-1).estado===p.estado;
