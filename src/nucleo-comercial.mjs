@@ -19,6 +19,7 @@ export async function crearNucleoComercial(env,{autenticar}={}){
   if(sucursal!==null&&permiso!=="empresa.ver"&&(/^(proveedores|empresa|usuarios|sucursales)\./.test(permiso)))throw Error("Permiso de alcance empresa requerido.");
   const r=await db.prepare(`SELECT u.id AS actor,m.rol FROM usuarios u JOIN membresias m ON m.usuario=u.id JOIN empresas e ON e.id=m.empresa JOIN rol_permisos p ON p.empresa=m.empresa AND p.rol=m.rol
  WHERE u.emisor=? AND u.sujeto=? AND u.activo=1 AND m.activa=1 AND e.activa=1 AND m.empresa=? AND p.permiso=?
+ AND NOT EXISTS(SELECT 1 FROM membresia_permisos_denegados d WHERE d.empresa=m.empresa AND d.usuario=m.usuario AND d.permiso=p.permiso)
  AND ((? IS NULL AND m.alcance='empresa') OR (? IS NOT NULL AND EXISTS(SELECT 1 FROM sucursales s WHERE s.empresa=m.empresa AND s.id=? AND s.activa=1) AND (m.alcance='empresa' OR EXISTS(SELECT 1 FROM membresia_sucursales ms WHERE ms.empresa=m.empresa AND ms.usuario=u.id AND ms.sucursal=?))))`).bind(identidad.emisor,identidad.sujeto,empresa,permiso,sucursal,sucursal,sucursal,sucursal).first();
   if(!r)throw Error("Acceso comercial denegado.");
   return Object.freeze({empresa,sucursal,actor:r.actor,rol:r.rol,permiso});

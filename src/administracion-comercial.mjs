@@ -50,6 +50,20 @@ export async function crearAdministracionComercial(env,{autenticar,habilitado=fa
   const h=detalle(d.empresa,a,"membresia.asignada",d.usuario,null,estadoMembresia,[d.empresa,d.usuario],"usuarios.administrar"," AND EXISTS(SELECT 1 FROM membresias WHERE empresa=? AND usuario=? AND rol<>'propietario'"+filtro+")",[d.empresa,d.usuario,d.rol,JSON.stringify(suc)]);
   return ejecutar([h.previo,...stm,h.final],1);
  },
+ async guardarPermisosIndividuales(r,d){
+  const a=await contexto(r,d.empresa);
+  const permitidos=["pos.operar","caja.operar","caja.supervisar","reportes.ver","inventario.operar"];
+  if(!id(d.usuario)||!Array.isArray(d.denegados)||d.denegados.length>permitidos.length||new Set(d.denegados).size!==d.denegados.length||d.denegados.some(p=>!permitidos.includes(p)))throw Error("Restricciones individuales inválidas.");
+  const marca=crypto.randomUUID(),args=[d.empresa,a,"usuarios.administrar"];
+  const filtro=" AND EXISTS(SELECT 1 FROM membresias m JOIN usuarios u ON u.id=m.usuario WHERE m.empresa=? AND m.usuario=? AND m.rol<>'propietario' AND m.activa=1 AND u.activo=1)";
+  const estado="SELECT json_object('denegados',json((SELECT json_group_array(permiso) FROM (SELECT permiso FROM membresia_permisos_denegados WHERE empresa=membresias.empresa AND usuario=membresias.usuario ORDER BY permiso)))) FROM membresias WHERE empresa=? AND usuario=?";
+  const previo=q("INSERT INTO comercio_auditoria_detalle(id,empresa,actor,accion,objetivo,fecha,anterior) SELECT ?,?,?,'membresia.permisos',?,?,("+estado+") WHERE "+guard+filtro+" RETURNING id",marca,d.empresa,a,d.usuario,reloj(),d.empresa,d.usuario,...args,d.empresa,d.usuario);
+  const cond="EXISTS(SELECT 1 FROM comercio_auditoria_detalle WHERE id=? AND empresa=? AND actor=? AND posterior IS NULL)";
+  const stm=[previo,q("DELETE FROM membresia_permisos_denegados WHERE empresa=? AND usuario=? AND "+cond,d.empresa,d.usuario,marca,d.empresa,a)];
+  for(const p of d.denegados)stm.push(q("INSERT INTO membresia_permisos_denegados SELECT ?,?,? WHERE "+cond,d.empresa,d.usuario,p,marca,d.empresa,a));
+  stm.push(q("UPDATE comercio_auditoria_detalle SET posterior=("+estado+") WHERE id=?",d.empresa,d.usuario,marca));
+  return ejecutar(stm);
+ },
  async revocarInvitacion(r,d){
   const a=await contexto(r,d.empresa);if(!/^[a-f0-9]{64}$/.test(d.hash))throw Error("Invitación inválida.");
   return ejecutar([q("UPDATE comercio_invitaciones SET revocado=?,revocado_por=? WHERE empresa=? AND hash=? AND consumido IS NULL AND revocado IS NULL AND "+guard+" RETURNING hash",reloj(),a,d.empresa,d.hash,d.empresa,a,"usuarios.administrar"),log(d.empresa,a,"invitacion.revocada",d.hash)]);
