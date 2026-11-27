@@ -31,17 +31,19 @@ export function agregarMovimiento(plan,d,fecha=Date.now()) {
   if (recibido<total||(d.metodo!=="efectivo"&&recibido!==total)) throw Error("Importe recibido incorrecto.");
   const referencia=d.metodo==="efectivo"?"":d.referencia;
   if(d.metodo!=="efectivo"&&(typeof referencia!=="string"||!/^DEMO-[0-9]{6}$/.test(referencia))) throw Error("Usa un folio ficticio DEMO-123456.");
+  if(d.terminal!==undefined&&(d.metodo!=="tarjeta_externa"||d.terminal?.proveedor!=="point_simulado"||d.terminal?.estado!=="aprobado"||d.terminal?.id!==d.id||d.terminal?.importeCentavos!==total))throw Error("Aprobación simulada inválida.");
+  const terminal=d.terminal?{proveedor:"point_simulado",estado:"aprobado",id:d.id,importeCentavos:total}:null;
   const movimiento={id:d.id,metodo:d.metodo,consumoCentavos:consumo,propinaCentavos:propina,recibidoCentavos:recibido,cambioCentavos:recibido-total,referencia};
   if((plan.reasignaciones||[]).some(a=>a.id===d.id)||(plan.anulaciones||[]).some(a=>a.id===d.id))throw Error("Identificador ya utilizado.");
   if(previo){
-    if(Object.keys(movimiento).every(k=>previo[k]===movimiento[k])) return plan;
+    if(JSON.stringify(previo.terminal??null)===JSON.stringify(terminal)&&Object.keys(movimiento).every(k=>previo[k]===movimiento[k])) return plan;
     throw Error("Identificador ya utilizado.");
   }
   if(d.revision!==plan.revision) throw Error("La cuenta cambió. Actualiza.");
   if(plan.revision>=100) throw Error("Límite de movimientos de práctica.");
   if(consumo>resumenPlanCobro(plan).saldoCentavos) throw Error("El abono excede el saldo.");
   if(referencia&&movimientosActivos(plan).some(m=>m.referencia===referencia)) throw Error("Folio repetido.");
-  return {...plan,revision:plan.revision+1,movimientos:[...plan.movimientos,{...movimiento,fecha}]};
+  return {...plan,revision:plan.revision+1,movimientos:[...plan.movimientos,{...movimiento,fecha,...(terminal?{terminal}:{})}]};
 }
 // División aritmética exacta; no registra movimientos.
 export function dividirImporte(centavos,personas) {
