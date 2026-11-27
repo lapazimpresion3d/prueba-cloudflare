@@ -6,7 +6,8 @@ export async function optimizarImagenPerfil(archivo,tipo){
     const img=new Image();
     await new Promise((ok,no)=>{img.onload=ok;img.onerror=()=>no(Error("No se pudo leer la imagen."));img.src=url;});
     if(!img.naturalWidth||!img.naturalHeight||img.naturalWidth*img.naturalHeight>40000000)throw Error("Imagen demasiado grande.");
-    const max=tipo==="logo"?320:1000;
+    const max=tipo==="logo"?320:tipo==="producto"?640:1000;
+    const limite=tipo==="producto"?45000:100000;
     const escala=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight));
     const canvas=document.createElement("canvas");
     let w=Math.max(1,Math.round(img.naturalWidth*escala)),h=Math.max(1,Math.round(img.naturalHeight*escala));
@@ -16,7 +17,7 @@ export async function optimizarImagenPerfil(archivo,tipo){
       ctx.fillStyle="#fff";ctx.fillRect(0,0,w,h);ctx.drawImage(img,0,0,w,h);
       for(const calidad of [.85,.7,.55,.4]){
         const data=canvas.toDataURL("image/jpeg",calidad);
-        if(data.startsWith("data:image/jpeg;base64,")&&data.length<=100000)return data;
+        if(data.startsWith("data:image/jpeg;base64,")&&data.length<=limite)return data;
       }
       w=Math.max(1,Math.round(w*.75));h=Math.max(1,Math.round(h*.75));
     }
