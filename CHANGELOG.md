@@ -82,3 +82,7 @@
 - Carrito, modalidades, totales en centavos, folio, panel y seguimiento local; nueve combinaciones P2+ compatibles.
 - 30 pruebas lógicas, 20 combinaciones UI (9 activas, 11 desactivadas) y un flujo cliente/encargado/seguimiento correctos en simulación.
 - No se modificó D1 ni main; pendiente navegador, Preview, API de pedidos y agenda.
+
+## v0.9 — Pedidos privados en servidor
+- Migración demo_pedidos, API GET/POST/PATCH, cálculo de importes del catálogo, reintento idempotente, estado condicionado e interfaces de práctica remota.
+- 7 pruebas lógicas y 13 casos de API simulada; sentencias SQL comprobadas en SQLite local. Migración remota, despliegue y navegador pendientes. Sin cambios en main ni D1 operativa.
