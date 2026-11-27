@@ -1,4 +1,11 @@
 # Registro de cambios
+## 2026-11-26 — Estabilización del núcleo operativo
+- Coherencia de estados, envíos y cobros; cancelación de pagados bloqueada y conciliación de legados.
+- Paginación de activos y cocina; recuperación de token en la misma pestaña; seguimiento de cobros por verificar.
+- Migración 0018 de historial financiero, pendiente de aplicar en D1 de desarrollo.
+- Pruebas SQL locales correctas con esquema reducido; pendientes pruebas completas en Cloudflare y respaldo.
+- Ver docs/estabilizacion-nucleo-2026-11-26.md.
+
 ## 2026-11-26 — Etapa 0 / documentación técnica
 - Auditoría parcial de código y esquema D1; identificación de riesgos de entrega, cobros, idempotencia, cola y separación de establecimientos.
 - Reproducción SQL local con datos ficticios; no se probó D1 remoto.
