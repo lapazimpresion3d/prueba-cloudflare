@@ -49,7 +49,7 @@ export async function atenderPedidosDemo(request,db,s,ctx,json){
     if(fila)return json({pedido:leerFila(fila),repetido:false},201);
     const repetido=await buscar(datos.solicitud);
     if(repetido)return repetido.huella===firma?json({pedido:leerFila(repetido),repetido:true}):error(json,"Esta solicitud ya corresponde a otro pedido.",409);
-    return error(json,"La sesión expiró, el catálogo cambió o alcanzaste 30 pedidos. Actualiza antes de continuar.",409);
+    return error(json,cuenta?"La cuenta no está abierta en esta mesa, la sesión expiró, el catálogo cambió o alcanzaste 30 pedidos. Regresa a cuentas y actualiza.":"La sesión expiró, el catálogo cambió o alcanzaste 30 pedidos. Actualiza antes de continuar.",409);
   }
   const fila=await buscar(datos.solicitud);
   if(!fila)return error(json,"Pedido no encontrado en esta práctica.",404);
