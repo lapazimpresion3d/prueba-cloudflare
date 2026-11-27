@@ -1,3 +1,4 @@
+import {admiteMesas} from "./mesas-practica.mjs";
 import {planes,capacidades,importe} from "./config.mjs";
 import {establecimientos,obtenerEstablecimiento,filtrarCatalogo} from "./establecimientos.mjs";
 import {crearCatalogosLocales,centavosDesdeTexto,imagenOfertaSegura} from "./catalogo-local.mjs";
@@ -46,6 +47,7 @@ function guardarURL(){
   $("ver-catalogo-editado").href=enlacesDemo(negocio.id,plan.id,true).negocio;
   $("ver-original").href=enlaces.negocio;
   $("admin-pedidos").hidden=!admitePedidos(negocio.id,plan.id);$("admin-pedidos").href="/demostraciones/pedidos/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
+  $("admin-mesas").hidden=!admiteMesas(negocio.id,plan.id);$("admin-mesas").href="/demostraciones/reservaciones/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id,vista:"empresa"});
   $("admin-citas").hidden=!admiteCitas(negocio.id,plan.id);$("admin-citas").href="/demostraciones/citas/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id,vista:"agenda"});
 }
 function renderSelectores(){
