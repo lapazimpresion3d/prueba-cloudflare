@@ -418,6 +418,16 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  await asistente2.guardar(ra,{...ai,revision:4,paso:"revision"});
  const av=await asistente2.consultar(ca,{empresa:a.empresa});
  assert.equal(av.progreso.revision,5);assert.equal(av.preparado,false);
+ assert.ok(av.checklist.bloqueos.includes("modulo:pos"));
+ assert.ok(av.checklist.advertencias.includes("opcional:personal"));
+ await assert.rejects(asistente2.validar(rb,{empresa:a.empresa,revision:0}));
+ await assert.rejects(asistente2.validar(ra,{empresa:a.empresa,revision:0,preparado:true}));
+ const validaciones=await Promise.allSettled([asistente2.validar(ra,{empresa:a.empresa,revision:0}),asistente2.validar(ra,{empresa:a.empresa,revision:0})]);
+ assert.equal(validaciones.filter(v=>v.status==="fulfilled").length,1);
+ assert.equal((await asistente2.historialValidaciones(ca,{empresa:a.empresa}))[0].resultado.preparado,false);
+ assert.equal((await asistente2.consultar(ca,{empresa:a.empresa})).revision_validacion.vigente,true);
+ await assert.rejects(asistente2.historialValidaciones(ca,{empresa:b.empresa}));
+ assert.throws(()=>x.sql.exec("DELETE FROM comercio_asistente_validaciones"));
  assert.equal(av.implementacion,"configuracion");
  assert.equal(av.ruta.contrato.plan,"p3");
  assert.ok(av.ruta.modulos.some(m=>m.id==="cocina"));
@@ -469,6 +479,7 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  assert.equal(await perfil.consultarPublicacion(get(b.cookie),{empresa:b.empresa}),null);
  await perfil.guardarPresentacion(ra,{empresa:a.empresa,revision:6,presentacion:{estilo:"compacto",secciones:["descripcion"]}});
  assert.equal((await perfil.vistaPrevia(ca,{empresa:a.empresa})).contenido.estilo,"compacto");
+ assert.equal((await asistente2.consultar(ca,{empresa:a.empresa})).validacion,"obsoleta");
  assert.equal((await perfil.consultarPublicacion(ca,{empresa:a.empresa})).contenido.estilo,"clasico");
  await assert.rejects(perfil.publicar(ra,{...pub,versionActual:1}));
  await perfil.publicar(ra,{...pub,revision:7,versionActual:1});

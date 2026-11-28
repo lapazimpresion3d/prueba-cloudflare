@@ -1,0 +1,7 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {evaluarPreparacion} from "../src/validacion-asistente.mjs";
+const valido={estado_validacion:"valido",faltantes:[]};
+const base=()=>({ruta:{contrato:{vigente:true},pasos:["inicio","perfil","presentacion","sucursales","personal","modulos","revision"].map(id=>({id,obligatorio:id!=="personal"}))},progreso:{revision:1,estado:"en_curso"},perfil:{pasos:{perfil:valido,presentacion:valido}},organizacion:{pasos:{sucursales:valido,personal:{estado_validacion:"pendiente",faltantes:["asignacion"]}}},modulos:{paso:valido,modulos:[{id:"web",estado_validacion:"valido",disponibleTecnico:true,seleccionado:false}]}});
+test("preparación no equivale a selección, aprobación ni entrega",()=>{const r=evaluarPreparacion(base());assert.equal(r.preparado,true);assert.equal(r.aprobado,false);assert.equal(r.entregado,false);assert.ok(r.advertencias.includes("opcional:personal"));assert.ok(r.advertencias.includes("seleccion_central:web"));});
+test("sin evidencia o contrato vigente no se prepara",()=>{const b=base();b.ruta.contrato.vigente=false;b.modulos.modulos[0].disponibleTecnico=false;b.progreso.estado="pausado";b.perfil.pasos.perfil=undefined;const r=evaluarPreparacion(b);assert.equal(r.preparado,false);for(const k of ["contrato_no_vigente","tecnico:web","asistente_pausado","paso:perfil"])assert.ok(r.bloqueos.includes(k));});
