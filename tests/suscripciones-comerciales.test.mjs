@@ -11,7 +11,7 @@ import {crearGestorSuscripciones,catalogoInicial} from "../src/suscripciones-com
 async function fixture(){
  const sql=new DatabaseSync(":memory:");sql.exec("PRAGMA foreign_keys=ON");
  for(const f of readdirSync(new URL("../migrations-comercios/",import.meta.url)).filter(x=>x.endsWith(".sql")).sort())sql.exec(readFileSync(new URL("../migrations-comercios/"+f,import.meta.url),"utf8"));
- sql.exec("INSERT INTO empresas(id,nombre) VALUES('a','A'),('b','B'); INSERT INTO sucursales(empresa,id,nombre) VALUES('a','s','Centro'); INSERT INTO central_operadores VALUES('op','issuer','operador',1)");
+ sql.exec("INSERT INTO empresas(id,nombre) VALUES('a','A'),('b','B'); INSERT INTO sucursales(empresa,id,nombre) VALUES('a','s','Centro'); INSERT INTO central_operadores(id,emisor,sujeto,activo) VALUES('op','issuer','operador',1)");
  const db={prepare(q){return {first:async()=>sql.prepare(q).get()??null,bind(...a){return {q,a,first:async()=>sql.prepare(q).get(...a)??null}}}},async batch(stm){sql.exec("BEGIN");try{const r=stm.map(({q,a})=>/RETURNING/i.test(q)?{results:sql.prepare(q).all(...a)}:{meta:sql.prepare(q).run(...a)});sql.exec("COMMIT");return r}catch(e){sql.exec("ROLLBACK");throw e}}};
  let now=1000;
  const g=await crearGestorSuscripciones({COMMERCE_DB:db},{habilitado:true,reloj:()=>now,modulosOperativos:["web","pos"],identificarOperador:async r=>r.headers.get("X-Test")==="operador"?"op":null,autorizarComercial:async(r,d)=>{if(r.headers.get("X-Test")!=="cliente"||d.empresa!=="a")throw Error("Denegado");return {actor:"u",empresa:d.empresa};}});
