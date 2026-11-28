@@ -1,3 +1,4 @@
+import {crearCicloComercial} from "../src/ciclo-comercial.mjs";
 import {crearEntregaComercial} from "../src/entrega-comercial.mjs";
 import {crearRutasAsistente} from "../src/rutas-http-asistente.mjs";
 import {crearAsistenteImplementacion} from "../src/asistente-implementacion.mjs";
@@ -433,6 +434,14 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  await assert.rejects(asistente2.solicitarRevision(rb,solicitud));
  await asistente2.solicitarRevision(ra,solicitud);
  await assert.rejects(asistente2.solicitarRevision(ra,solicitud));
+ const ciclo=await crearCicloComercial(x.env,seg);
+ const estadoCiclo=await ciclo.consultar(get(cc),{empresa:a.empresa});
+ assert.equal(estadoCiclo.estado_efectivo,"activa");
+ assert.equal(estadoCiclo.operaciones_habilitadas,false);
+ assert.deepEqual(await ciclo.historial(get(cc),{empresa:a.empresa}),[]);
+ await assert.rejects(ciclo.consultar(ca,{empresa:a.empresa}));
+ await assert.rejects(ciclo.consultar(post(cc),{empresa:a.empresa}));
+ assert.throws(()=>x.sql.prepare("UPDATE comercial_suscripciones SET estado='suspendida',revision=revision+1 WHERE empresa=?").run(a.empresa));
  const revisionEntrega=await entrega.consultar(get(cc),{empresa:a.empresa});
  assert.equal(revisionEntrega.estado,"solicitada");assert.equal(revisionEntrega.aprobable,false);
  await assert.rejects(entrega.consultar(ca,{empresa:a.empresa}));
