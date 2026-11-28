@@ -1,0 +1,9 @@
+// Read-only P4 external busy intervals. No event descriptions or attendee data retained.
+const iso=x=>typeof x==="string"&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(x)&&Number.isFinite(Date.parse(x));
+export async function consultarOcupacionGoogle({plan,token,transporte,calendarios,inicio,fin,habilitado=false}){
+ if(!habilitado||plan!=="p4"||typeof token!=="string"||!token||!iso(inicio)||!iso(fin)||Date.parse(fin)<=Date.parse(inicio)||Date.parse(fin)-Date.parse(inicio)>31*86400000||!Array.isArray(calendarios)||!calendarios.length||calendarios.length>40||calendarios.some(x=>typeof x!=="string"||!x||x.length>1024))throw Error("Consulta no permitida.");
+ const ids=[...new Set(calendarios)],r=await transporte("https://www.googleapis.com/calendar/v3/freeBusy",{method:"POST",redirect:"error",signal:AbortSignal.timeout(10000),headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify({timeMin:inicio,timeMax:fin,items:ids.map(id=>({id}))})});
+ if(!r.ok)throw Error("Ocupación no confirmada.");const d=await r.json();
+ return ids.map(id=>{const x=Object.hasOwn(d.calendars??{},id)?d.calendars[id]:null;if(!x||x.errors?.length||!Array.isArray(x.busy)||x.busy.length>1000||x.busy.some(b=>!iso(b.start)||!iso(b.end)||Date.parse(b.end)<=Date.parse(b.start)))throw Error("Ocupación incompleta.");return {calendario:id,intervalos:x.busy.map(b=>({inicio:b.start,fin:b.end}))};});
+}
+export function detectarCoincidencias(eventos,ocupacion){return eventos.flatMap(e=>{if(!iso(e.inicio)||!iso(e.fin)||Date.parse(e.fin)<=Date.parse(e.inicio))throw Error("Intervalo inválido.");return ocupacion.filter(c=>e.calendarios.includes(c.calendario)).flatMap(c=>c.intervalos.filter(b=>Date.parse(e.inicio)<Date.parse(b.fin)&&Date.parse(b.inicio)<Date.parse(e.fin)).map(b=>({evento:e.id,calendario:c.calendario,inicio:b.inicio,fin:b.fin})));});}
