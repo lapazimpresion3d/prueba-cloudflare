@@ -1,3 +1,5 @@
+import {crearIdentificacionProspecto} from "../src/prospectos-oidc.mjs";
+import {crearAltaAutorizada} from "../src/alta-autorizada.mjs";
 import {crearRecuperacionCuenta,crearLimiteOidc} from "../src/recuperacion-cuenta.mjs";
 import {crearAccesoCentral} from "../src/acceso-central.mjs";
 import test from "node:test";import assert from "node:assert/strict";import {DatabaseSync} from "node:sqlite";import {readFileSync,readdirSync} from "node:fs";import {crearAccesoComercial} from "../src/acceso-comercial.mjs";import {crearFlujoOidc} from "../src/flujo-oidc.mjs";
@@ -20,3 +22,32 @@ let i=await inicio();await assert.rejects(a.completar(x.req(i)));x.sql.exec("INS
 
 test("recuperación OIDC separada revoca solo identidad verificada y registra evento",async()=>{const x=await fixture();x.sql.exec("INSERT INTO usuarios(id,emisor,sujeto) VALUES('u','https://id.example.invalid','u'),('v','https://id.example.invalid','v'); INSERT INTO comercio_sesiones(hash,usuario,creado,expira,ultima) VALUES('"+ "a".repeat(64)+"','u',1,2000000000,1),('"+ "b".repeat(64)+"','v',1,2000000000,1)");const a=await crearRecuperacionCuenta(x.env,{habilitado:true,config,reloj:x.reloj,transporte:x.transporte,limitarInicio:async()=>true});const post=new Request("https://app.example.invalid/login",{method:"POST",headers:{Origin:"https://app.example.invalid"}});const i=await a.iniciar(post);x.ponerAuth(i.url);assert.equal(new URL(i.url).searchParams.get("prompt"),"login");await assert.rejects(x.f.completar(x.req(i)));const r=await a.completar(x.req(i));assert.equal(r.recuperada,true);assert.equal(x.sql.prepare("SELECT revocado FROM comercio_sesiones WHERE usuario='u'").get().revocado,x.reloj());assert.equal(x.sql.prepare("SELECT revocado FROM comercio_sesiones WHERE usuario='v'").get().revocado,null);assert.equal(x.sql.prepare("SELECT count(*) n FROM comercio_recuperaciones").get().n,1);await assert.rejects(a.completar(x.req(i)));});
 test("límite atómico por origen confiable",async()=>{const x=await fixture(),r=new Request("https://app.example.invalid/login");const limite=await crearLimiteOidc(x.env,{habilitado:true,secreto:"s".repeat(32),origenConfiable:()=> "test-origin",reloj:x.reloj});for(let i=0;i<10;i++)assert.equal(await limite(r),true);assert.equal(await limite(r),false);x.expirar();x.expirar();assert.equal(await limite(r),true);assert.ok(!JSON.stringify(x.sql.prepare("SELECT * FROM comercio_limites_oidc").all()).includes("test-origin"));});
+
+test("prospecto: propósito separado, prueba opaca y consumo atómico por central",async()=>{
+ const x=await fixture(),op={habilitado:true,config,reloj:x.reloj,transporte:x.transporte,limitarInicio:async()=>true};
+ const p=await crearIdentificacionProspecto(x.env,op);
+ const post=new Request("https://app.example.invalid/prospecto",{method:"POST",headers:{Origin:"https://app.example.invalid"}});
+ const inicio=await p.iniciar(post);x.ponerAuth(inicio.url);
+ assert.equal(new URL(inicio.url).searchParams.get("prompt"),"login");
+ await assert.rejects(x.f.completar(x.req(inicio)));
+ const prueba=await p.completar(x.req(inicio));
+ assert.match(prueba.prueba,/^[a-f0-9]{64}$/);
+ assert.ok(!JSON.stringify(prueba).includes("u@example.invalid"));
+ assert.ok(!JSON.stringify(x.sql.prepare("SELECT * FROM comercio_prospectos_oidc").all()).includes(prueba.prueba));
+ await assert.rejects(p.completar(x.req(inicio)));
+ assert.equal(x.sql.prepare("SELECT count(*) n FROM usuarios").get().n,0);
+ assert.equal(x.sql.prepare("SELECT count(*) n FROM comercio_sesiones").get().n,0);
+ const token="a".repeat(64),hash=Buffer.from(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(token))).toString("hex");
+ x.sql.exec("INSERT INTO central_operadores(id,emisor,sujeto) VALUES('op','issuer','central'); INSERT INTO comercial_planes VALUES('p1',1,'P1',75000,14900,'MXN',1,1,'[]')");
+ x.sql.prepare("INSERT INTO central_sesiones(hash,operador,creado,expira,ultima) VALUES(?,'op',?,?,?)").run(hash,x.reloj(),x.reloj()+100000,x.reloj());
+ const alta=await crearAltaAutorizada(x.env,{habilitado:true,reloj:x.reloj,autenticarCentral:async()=>({emisor:"issuer",sujeto:"central"}),verificarPropietario:async()=>null});
+ const req=new Request(post.url,{method:"POST",headers:{Origin:"https://app.example.invalid",Cookie:"__Host-lapaz-central="+token}});
+ const d={nombre:"Tienda",sucursal:"Principal",giro:"tienda",plan:"p1",version:1};
+ await assert.rejects(alta.prepararProspecto(req,{...d,sujeto:"impostor"},prueba.prueba));
+ await assert.rejects(alta.prepararProspecto(post,d,prueba.prueba));
+ const r=await alta.prepararProspecto(req,d,prueba.prueba);
+ assert.equal(x.sql.prepare("SELECT sujeto FROM comercio_altas_pendientes WHERE id=?").get(r.id).sujeto,"u");
+ assert.equal(x.sql.prepare("SELECT count(*) n FROM comercio_prospectos_oidc").get().n,0);
+ await assert.rejects(alta.prepararProspecto(req,d,prueba.prueba));
+ assert.equal(x.sql.prepare("SELECT count(*) n FROM empresas").get().n,0);
+});

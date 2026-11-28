@@ -1,3 +1,4 @@
+import {hashPruebaProspecto,pruebaProspectoValida} from "./prospectos-oidc.mjs";
 import {rolesIniciales} from "./nucleo-comercial.mjs";
 const giros=["restaurante","cafeteria","tienda","barberia","taller","otro"];
 const id=x=>typeof x==="string"&&x.length>0&&x.length<=128;
@@ -13,6 +14,20 @@ export async function crearAltaAutorizada(env,{habilitado=false,autenticarCentra
  async function central(r){exigir(r);const a=await autenticarCentral(r);const c=(r.headers.get("Cookie")||"").split(";").map(x=>x.trim()).filter(x=>x.startsWith("__Host-lapaz-central="));const t=c.length===1?c[0].slice("__Host-lapaz-central=".length):"";if(!id(a?.emisor)||!id(a?.sujeto)||!/^[a-f0-9]{64}$/.test(t))throw Error("Alta no autorizada.");return [a.emisor,a.sujeto,await hash(t)];}
  const guard="SELECT o.id FROM central_operadores o JOIN central_sesiones s ON s.operador=o.id WHERE o.emisor=? AND o.sujeto=? AND s.hash=? AND o.activo=1 AND s.revocado IS NULL AND s.expira>? AND s.ultima>? AND s.creado>?";
  return Object.freeze({
+ // New onboarding path: only a verified, server-stored proof supplies identity.
+ async prepararProspecto(r,d,prueba){
+  const a=await central(r),n=reloj();
+  if(!pruebaProspectoValida(prueba)||!nombre(d?.nombre)||!nombre(d.sucursal)||!giros.includes(d.giro)||!["p1","p2","p3","p4"].includes(d.plan)||!Number.isSafeInteger(d.version)||d.version<1||Object.hasOwn(d,"emisor")||Object.hasOwn(d,"sujeto"))throw Error("Datos de alta inválidos.");
+  const k=crypto.randomUUID(),h=await hashPruebaProspecto(prueba);
+  const res=await db.batch([
+   q("INSERT INTO comercio_altas_pendientes(id,nombre,sucursal,giro,plan,version,emisor,sujeto,operador,creado,expira) SELECT ?,?,?,?,?,?,p.emisor,p.sujeto,("+guard+"),?,? FROM comercio_prospectos_oidc p WHERE p.hash=? AND p.expira>? AND EXISTS(SELECT 1 FROM comercial_planes WHERE id=? AND version=? AND usuarios>=1 AND sucursales>=1) AND NOT EXISTS(SELECT 1 FROM usuarios u WHERE u.emisor=p.emisor AND u.sujeto=p.sujeto AND u.activo=0) RETURNING id",k,d.nombre.trim(),d.sucursal.trim(),d.giro,d.plan,d.version,...a,n,n-600000,n-300000,n,n+86400000,h,n,d.plan,d.version),
+   q("DELETE FROM comercio_prospectos_oidc WHERE hash=? AND EXISTS(SELECT 1 FROM comercio_altas_pendientes WHERE id=?)",h,k),
+   q("INSERT INTO central_auditoria(actor,empresa,accion,objetivo,fecha) SELECT operador,NULL,'alta.prospecto_verificado',id,? FROM comercio_altas_pendientes WHERE id=?",n,k)
+  ]);
+  if(!res[0].results?.length)throw Error("Alta no autorizada.");
+  return {id:k,expira:n+86400000};
+ },
+ // Historical internal API; do not expose to browser.
  async preparar(r,d){
   const a=await central(r),n=reloj();if(!nombre(d?.nombre)||!nombre(d.sucursal)||!giros.includes(d.giro)||!["p1","p2","p3","p4"].includes(d.plan)||!Number.isSafeInteger(d.version)||d.version<1||!id(d.emisor)||!id(d.sujeto))throw Error("Datos de alta inválidos.");
   const k=crypto.randomUUID();
