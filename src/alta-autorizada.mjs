@@ -21,11 +21,24 @@ export async function crearAltaAutorizada(env,{habilitado=false,autenticarCentra
   const k=crypto.randomUUID(),h=await hashPruebaProspecto(prueba);
   const res=await db.batch([
    q("INSERT INTO comercio_altas_pendientes(id,nombre,sucursal,giro,plan,version,emisor,sujeto,operador,creado,expira) SELECT ?,?,?,?,?,?,p.emisor,p.sujeto,("+guard+"),?,? FROM comercio_prospectos_oidc p WHERE p.hash=? AND p.expira>? AND EXISTS(SELECT 1 FROM comercial_planes WHERE id=? AND version=? AND usuarios>=1 AND sucursales>=1) AND NOT EXISTS(SELECT 1 FROM usuarios u WHERE u.emisor=p.emisor AND u.sujeto=p.sujeto AND u.activo=0) RETURNING id",k,d.nombre.trim(),d.sucursal.trim(),d.giro,d.plan,d.version,...a,n,n-600000,n-300000,n,n+86400000,h,n,d.plan,d.version),
+   q("INSERT INTO comercio_altas_prospecto(alta) SELECT id FROM comercio_altas_pendientes WHERE id=?",k),
    q("DELETE FROM comercio_prospectos_oidc WHERE hash=? AND EXISTS(SELECT 1 FROM comercio_altas_pendientes WHERE id=?)",h,k),
    q("INSERT INTO central_auditoria(actor,empresa,accion,objetivo,fecha) SELECT operador,NULL,'alta.prospecto_verificado',id,? FROM comercio_altas_pendientes WHERE id=?",n,k)
   ]);
   if(!res[0].results?.length)throw Error("Alta no autorizada.");
   return {id:k,expira:n+86400000};
+ },
+ // First issuance only. Renewal/cancellation will use a separate guarded operation.
+ async emitirInvitacion(r,k){
+  const a=await central(r),n=reloj();
+  if(!id(k)||!Number.isSafeInteger(n)||n<0||n>Number.MAX_SAFE_INTEGER-86400000)throw Error("Invitación no disponible.");
+  const token=Array.from(crypto.getRandomValues(new Uint8Array(32)),x=>x.toString(16).padStart(2,"0")).join(""),h=await hash(token),i=crypto.randomUUID();
+  const res=await db.batch([
+   q("INSERT INTO comercio_invitaciones_propietario(id,alta,hash,operador,creado,expira) SELECT ?,p.id,?,p.operador,?,MIN(p.expira,?) FROM comercio_altas_pendientes p JOIN comercio_altas_prospecto v ON v.alta=p.id WHERE p.id=? AND p.estado='pendiente' AND p.expira>? AND p.operador=("+guard+") AND NOT EXISTS(SELECT 1 FROM usuarios u WHERE u.emisor=p.emisor AND u.sujeto=p.sujeto AND u.activo=0) AND NOT EXISTS(SELECT 1 FROM comercio_invitaciones_propietario j WHERE j.alta=p.id) RETURNING id,expira",i,h,n,n+86400000,k,n,...a,n,n-600000,n-300000),
+   q("INSERT INTO central_auditoria(actor,empresa,accion,objetivo,fecha) SELECT operador,NULL,'alta.invitacion_emitida',id,? FROM comercio_invitaciones_propietario WHERE id=?",n,i)
+  ]);
+  const fila=res[0].results?.[0];if(!fila)throw Error("Invitación no disponible.");
+  return {id:i,alta:k,token,expira:fila.expira};
  },
  // Historical internal API; do not expose to browser.
  async preparar(r,d){
@@ -39,7 +52,7 @@ export async function crearAltaAutorizada(env,{habilitado=false,autenticarCentra
  async aceptar(r,k){
   exigir(r);if(!id(k))throw Error("Alta no disponible.");const i=await verificarPropietario(r);if(i?.emailVerified!==true||!id(i.emisor)||!id(i.sujeto))throw Error("Alta no disponible.");
   const n=reloj(),e=crypto.randomUUID(),s=crypto.randomUUID(),u=crypto.randomUUID();
-  const pendiente="id=? AND estado='pendiente' AND expira>? AND emisor=? AND sujeto=? AND EXISTS(SELECT 1 FROM central_operadores WHERE id=comercio_altas_pendientes.operador AND activo=1)";
+  const pendiente="id=? AND NOT EXISTS(SELECT 1 FROM comercio_altas_prospecto v WHERE v.alta=comercio_altas_pendientes.id) AND estado='pendiente' AND expira>? AND emisor=? AND sujeto=? AND EXISTS(SELECT 1 FROM central_operadores WHERE id=comercio_altas_pendientes.operador AND activo=1)";
   const p=[k,n,i.emisor,i.sujeto], stm=[
    q("INSERT INTO empresas(id,nombre) SELECT ?,nombre FROM comercio_altas_pendientes WHERE "+pendiente,e,...p),
    q("UPDATE comercio_altas_pendientes SET estado='aceptada',empresa=? WHERE "+pendiente+" AND EXISTS(SELECT 1 FROM empresas WHERE id=?) RETURNING id",e,...p,e),
