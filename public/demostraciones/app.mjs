@@ -1,6 +1,6 @@
 import {gruposIconos} from "./iconos-perfil.mjs";
 import {admiteCotizaciones} from "./cotizaciones-practica.mjs";
-import {montarInicioAdmin} from "./panel-admin.mjs";
+import {montarInicioAdmin} from "./panel-admin.mjs?v=admin-2";
 import {admitePos} from "./pos-practica.mjs";
 import {montarEmpresa} from "./empresa-practica.mjs";
 import {admiteCuentas} from "./cuentas-practica.mjs";
@@ -390,4 +390,4 @@ $("demo-guardar").addEventListener("click",()=>operarServidor("guardar"));
 $("buscar").addEventListener("input",renderCatalogo);
 $("tipo").addEventListener("change",renderCatalogo);
 $("categoria").addEventListener("change",renderCatalogo);
-if(!redirigirNegocio){renderTodo(true);if(vistaAdmin){let local;try{local=window.localStorage;}catch{}montarEmpresa($("empresa-contexto"),negocio.id,plan.id,local);montarInicioAdmin({negocio,plan,catalogos,perfiles});renderVista();const destino={productos:"admin-catalogo",personal:"admin-empresa",perfil:"admin-perfil"}[params.get("seccion")];if(destino&&params.get("rolVista")!=="1")$(destino).click();}}
+if(!redirigirNegocio){renderTodo(true);if(vistaAdmin){let local;try{local=window.localStorage;}catch{}montarInicioAdmin({negocio,plan,catalogos,perfiles,empresaStorage:local});montarEmpresa($("empresa-contexto"),negocio.id,plan.id,local);renderVista();const destino={productos:"admin-catalogo",personal:"admin-empresa",perfil:"admin-perfil"}[params.get("seccion")];if(destino&&params.get("rolVista")!=="1")$(destino).click();}document.documentElement.dataset.demoLista="si";}

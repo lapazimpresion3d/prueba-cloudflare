@@ -1,0 +1,23 @@
+name: Paneles públicos en navegador
+on:
+  push:
+    branches: [desarrollo]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  navegador:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright@1.55.0 wrangler@4.169.0
+      - run: npx playwright install --with-deps chromium
+      - run: |
+          npx wrangler dev --local --config wrangler.demos-publicas.json --ip 127.0.0.1 --port 8787 > /tmp/demos-worker.log 2>&1 &
+          for i in $(seq 1 60); do if curl -fsS http://127.0.0.1:8787/demostraciones/ejemplos/ >/dev/null; then break; fi; sleep 1; done
+          curl -fsS http://127.0.0.1:8787/demostraciones/ejemplos/ >/dev/null
+          node tests/browser-panel.mjs || { cat /tmp/demos-worker.log; exit 1; }
