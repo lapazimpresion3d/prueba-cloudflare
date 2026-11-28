@@ -1,3 +1,4 @@
+import {crearInvitacionesEmpleados} from "../src/invitaciones-empleados.mjs";
 import {crearAsignacionesPersonal} from "../src/asignaciones-personal.mjs";
 import {crearRolesOperativos} from "../src/roles-operativos.mjs";
 import {crearEmpleadosComerciales} from "../src/empleados-comerciales.mjs";
@@ -314,6 +315,30 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  await asignaciones.asignarLabor(ra,{...laboral,revision:1,principal:null,sucursales:[],servicios:[]});
  assert.deepEqual((await asignaciones.consultar(ca,{empresa:a.empresa,empleado:otro.id})).sucursales_efectivas,[]);
  assert.throws(()=>x.sql.exec("DELETE FROM comercio_asignaciones_personal"));
+ const invitaciones=await crearInvitacionesEmpleados(x.env,{...opts,autorizarComercial:nucleo.autorizar,limitarInicio:async()=>true});
+ const fichaInv=await personal.guardar(ra,{...de,codigo:"EMP-03",correo:"u@example.invalid"});
+ const di={empresa:a.empresa,empleado:fichaInv.id,rol:rol.rol,sucursales:[a.sucursal]};
+ await assert.rejects(invitaciones.emitir(rb,di));
+ const cancel=await invitaciones.emitir(ra,di);
+ await invitaciones.cancelar(ra,{empresa:a.empresa,id:cancel.id});
+ await assert.rejects(invitaciones.iniciarAceptacion(post(),cancel.token));
+ const invit=await invitaciones.emitir(ra,di);
+ await assert.rejects(invitaciones.emitir(ra,di));
+ x.cambiarSujeto("staff-invitado");
+ const inicioInv=await invitaciones.iniciarAceptacion(post(),invit.token);x.ponerAuth(inicioInv.url);
+ await invitaciones.completarAceptacion(x.req(inicioInv));
+ await assert.rejects(invitaciones.completarAceptacion(x.req(inicioInv)));
+ await assert.rejects(invitaciones.iniciarAceptacion(post(),invit.token));
+ const fichaV=(await personal.listar(ca,{empresa:a.empresa})).empleados.find(v=>v.id===fichaInv.id);
+ assert.ok(fichaV.usuario);
+ const inicioNuevo=await acceso.iniciar(post());x.ponerAuth(inicioNuevo.url);
+ const cookieNuevo=(await acceso.completar(x.req(inicioNuevo))).cookies[1].split(";")[0];
+ await roles.autorizarOperacion(get(cookieNuevo),{empresa:a.empresa,sucursal:a.sucursal,permiso:"cocina.consultar"});
+ await invitaciones.estadoAcceso(ra,{empresa:a.empresa,usuario:fichaV.usuario,activa:0});
+ await assert.rejects(roles.autorizarOperacion(get(cookieNuevo),{empresa:a.empresa,sucursal:a.sucursal,permiso:"cocina.consultar"}));
+ assert.equal((await personal.listar(ca,{empresa:a.empresa})).empleados.find(v=>v.id===fichaInv.id).activo,1);
+ // Keep plan downgrade fixture within its original user limit by leaving this membership suspended.
+
 
  x.cambiarSujeto("staff");
  let accesoStaff=await acceso.iniciar(post());x.ponerAuth(accesoStaff.url);

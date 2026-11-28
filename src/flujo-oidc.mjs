@@ -18,7 +18,7 @@ export async function crearFlujoOidc(env,{habilitado=false,config,reloj=Date.now
  const auth=endpoint(autorizacion),token=endpoint(intercambio),callback=endpoint(retorno);
  if(typeof secreto!=="string"||!secreto||secreto.length>4096)throw Error("Cliente confidencial no configurado.");
  const verificar=crearVerificadorIdentidad({emisor,audiencia,claves,acrCentral,reloj});
- if(!["acceso","recuperacion","prospecto","alta"].includes(proposito)||limitarInicio!==null&&typeof limitarInicio!=="function")throw Error("Configuración inválida.");
+ if(!["acceso","recuperacion","prospecto","alta","empleado"].includes(proposito)||limitarInicio!==null&&typeof limitarInicio!=="function")throw Error("Configuración inválida.");
  const marca=await hash(JSON.stringify([emisor,audiencia,auth.href,token.href,callback.href,acrCentral,proposito]));
  const q=(sql,...a)=>db.prepare(sql).bind(...a);
  const exigir=()=>{if(habilitado!==true)throw Error("Flujo deshabilitado.");};
@@ -26,8 +26,8 @@ export async function crearFlujoOidc(env,{habilitado=false,config,reloj=Date.now
  return Object.freeze({
  async iniciar(r,{central=false,invitacionHash=null}={}){
   exigir();const u=new URL(r.url);if(r.method!=="POST"||u.protocol!=="https:"||u.origin!==callback.origin||r.headers.get("Origin")!==callback.origin||typeof central!=="boolean")throw Error("Solicitud no permitida.");
-  if((proposito==="prospecto"||proposito==="alta")&&central)throw Error("Solicitud no permitida.");
-  if(proposito==="alta"?typeof invitacionHash!=="string"||!/^[a-f0-9]{64}$/.test(invitacionHash):invitacionHash!==null)throw Error("Solicitud no permitida.");
+  if((proposito==="prospecto"||proposito==="alta"||proposito==="empleado")&&central)throw Error("Solicitud no permitida.");
+  if(["alta","empleado"].includes(proposito)?typeof invitacionHash!=="string"||!/^[a-f0-9]{64}$/.test(invitacionHash):invitacionHash!==null)throw Error("Solicitud no permitida.");
   if(limitarInicio&&!await limitarInicio(r))throw Error("Intenta nuevamente más tarde.");
   const estado=random(),browser=random(),nonce=random(),verificador=random(),n=ahora();
   // bounded cleanup, no access to other tables; abandoned transactions expire logically.
@@ -36,6 +36,8 @@ export async function crearFlujoOidc(env,{habilitado=false,config,reloj=Date.now
   if(proposito==="alta"){
    const tx=await q("INSERT INTO comercio_oidc_solicitudes(estado_hash,navegador_hash,nonce,verificador,contexto,configuracion,expira,invitacion_hash) SELECT ?,?,?,?,?,?,MIN(?,j.expira,p.expira),j.hash FROM comercio_invitaciones_propietario j JOIN comercio_altas_pendientes p ON p.id=j.alta JOIN central_operadores o ON o.id=p.operador WHERE j.hash=? AND j.consumido IS NULL AND j.cancelado IS NULL AND j.expira>? AND p.estado='pendiente' AND p.expira>? AND o.activo=1 AND j.operador=p.operador AND NOT EXISTS(SELECT 1 FROM usuarios u WHERE u.emisor=p.emisor AND u.sujeto=p.sujeto AND u.activo=0) RETURNING estado_hash",eh,bh,nonce,verificador,"comercial",marca,n+TTL,invitacionHash,n,n).first();
    if(!tx)throw Error("Invitación no disponible.");
+  }else if(proposito==="empleado"){
+   const tx=await q("INSERT INTO comercio_oidc_solicitudes(estado_hash,navegador_hash,nonce,verificador,contexto,configuracion,expira,invitacion_hash) SELECT ?,?,?,?,?,?,MIN(?,expira),hash FROM comercio_invitaciones_empleado WHERE hash=? AND consumido IS NULL AND cancelado IS NULL AND expira>? RETURNING estado_hash",eh,bh,nonce,verificador,"comercial",marca,n+TTL,invitacionHash,n).first();if(!tx)throw Error("Invitación no disponible.");
   }else await q("INSERT INTO comercio_oidc_solicitudes(estado_hash,navegador_hash,nonce,verificador,contexto,configuracion,expira) VALUES(?,?,?,?,?,?,?)",eh,bh,nonce,verificador,central?"central":"comercial",marca,n+TTL).run();
   const url=new URL(auth);url.search=new URLSearchParams({response_type:"code",response_mode:"query",client_id:audiencia,redirect_uri:callback.href,scope:"openid email",state:estado,nonce,code_challenge:b64(await digest(verificador)),code_challenge_method:"S256",max_age:proposito!=="acceso"?"0":"300",...(proposito!=="acceso"?{prompt:"login"}:{}),...(central?{acr_values:acrCentral}:{})}).toString();
   return {url:url.href,cookie:cookie(browser,TTL/1000)};
@@ -54,7 +56,7 @@ export async function crearFlujoOidc(env,{habilitado=false,config,reloj=Date.now
    if(!respuesta.ok)throw Error();
    const datos=await leerJsonLimitado(respuesta,65536);
    const identidad=await verificar(datos?.id_token,{nonce:tx.nonce,central:tx.contexto==="central"});
-   return {identidad,contexto:tx.contexto,cookie:cookie("",0),...(proposito==="alta"?{invitacionHash:tx.invitacion_hash}:{})};
+   return {identidad,contexto:tx.contexto,cookie:cookie("",0),...(["alta","empleado"].includes(proposito)?{invitacionHash:tx.invitacion_hash}:{})};
   }catch{throw Error("Autenticación no completada.");}
  }
  });
