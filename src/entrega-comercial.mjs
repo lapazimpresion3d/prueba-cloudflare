@@ -38,8 +38,8 @@ export async function crearEntregaComercial(env,{habilitado=false,autenticarCent
   if(critico&&!revisar(x,a.n).aprobable)throw Error("Entrega bloqueada.");
   const stm=[q("INSERT INTO central_entrega_revisiones(empresa,revision,validacion,estado,motivo,operador,fecha) SELECT ?,?,?,?,?,("+guard+"),? WHERE ("+guard+") IS NOT NULL AND (SELECT MAX(revision) FROM central_entrega_revisiones WHERE empresa=?)=?"+(critico?" AND (SELECT evidencia FROM comercio_evidencia_entrega WHERE empresa=?)=?": "")+" RETURNING revision,estado",d.empresa,d.revision+1,x.validacion,d.estado,d.motivo.trim(),...a.args,a.n,...a.args,d.empresa,d.revision,...(critico?[d.empresa,x.actual]:[]))];
   stm.push(q("INSERT INTO central_auditoria(actor,empresa,accion,objetivo,fecha,posterior) SELECT operador,empresa,'entrega.'||estado,CAST(revision AS TEXT),fecha,json_object('validacion',validacion,'estado',estado) FROM central_entrega_revisiones WHERE empresa=? AND revision=? AND changes()=1",d.empresa,d.revision+1));
-  if(d.estado==="entregada")stm.push(q("UPDATE central_implementaciones SET estado='entregada',revision=revision+1 WHERE empresa=? AND revision=? AND changes()=1 RETURNING revision",d.empresa,x.revision_implementacion));
-  const res=await db.batch(stm);if(!res[0].results?.length)throw Error("Conflicto de autorización.");if(d.estado==="entregada"&&!res[2].results?.length)throw Error("Entrega no confirmada.");return res[0].results[0];
+  // The SQL trigger commits implementation state with the delivery row, or aborts the entire batch.
+  const res=await db.batch(stm);if(!res[0].results?.length)throw Error("Conflicto de autorización.");return res[0].results[0];
  }
  });
 }
