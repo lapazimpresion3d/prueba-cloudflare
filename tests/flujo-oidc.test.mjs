@@ -430,13 +430,23 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
 
  assert.equal(av.pasos.find(p=>p.id==="perfil").estado_validacion,"valido");
  assert.equal(av.pasos.find(p=>p.id==="presentacion").estado_validacion,"valido");
- assert.ok(av.pasos.filter(p=>!["perfil","presentacion"].includes(p.id)).every(p=>p.estado_validacion==="pendiente"));
+ assert.ok(av.pasos.filter(p=>!["perfil","presentacion","sucursales","personal"].includes(p.id)).every(p=>p.estado_validacion==="pendiente"));
+ assert.equal(av.organizacion.pasos.sucursales.estado_validacion,"valido");
+ assert.equal(av.organizacion.sucursales.activas,1);
+ assert.equal(av.organizacion.personal.usuarios_activos,2);
+ assert.equal(av.organizacion.personal.fichas.length,3);
+ assert.equal(av.organizacion.pasos.personal.estado_validacion,"pendiente");
+ assert.ok(av.organizacion.personal.detalles.find(v=>v.id===otro.id).faltantes.includes("turnos_sin_asignacion"));
+ assert.equal(av.organizacion.personal.permisos_efectivos_verificados,false);
  assert.equal(av.perfil.vista_previa.contacto.whatsapp,"+526120000001");
  assert.equal(Object.hasOwn(av.perfil.vista_previa.contacto,"correo"),false);
  assert.equal(av.perfil.contacto.correo,"negocio@example.com");
  const inicialB=await asistente2.consultar(get(b.cookie),{empresa:b.empresa});
  assert.equal(inicialB.perfil.pasos.presentacion.estado_validacion,"pendiente");
  assert.equal(inicialB.perfil.identidad.logotipo,null);
+ assert.equal(inicialB.organizacion.personal.fichas.length,0);
+ assert.equal(inicialB.organizacion.sucursales.datos[0].id,b.sucursal);
+ await assert.rejects(asistente2.consultar(rs,{empresa:a.empresa}));
  await assert.rejects(asistente2.consultar(ca,{empresa:b.empresa}));
  assert.equal((await asistente2.consultar(get(b.cookie),{empresa:b.empresa})).progreso.revision,0);
  await assert.rejects(asistente2.historial(ca,{empresa:b.empresa}));
