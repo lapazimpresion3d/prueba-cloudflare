@@ -193,6 +193,25 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  assert.deepEqual((await perfil.consultarHorario(get(b.cookie),{empresa:b.empresa})).horario_semanal,[[],[],[],[],[],[],[]]);
  await assert.rejects(perfil.consultarHorario(ca,{empresa:b.empresa}));
  assert.equal(x.sql.prepare("SELECT count(*) n FROM comercio_auditoria WHERE empresa=? AND accion='perfil.horario_guardado'").get(a.empresa).n,1);
+ const inicialContacto=await perfil.consultarContacto(ca,{empresa:a.empresa});
+ assert.deepEqual(inicialContacto.vista_previa,{modalidades:[],enlaces:{}});
+ const dc={empresa:a.empresa,revision:5,contacto:{telefono:"+52 612 000 0000",whatsapp:"+526120000001",correo:"negocio@example.com",direccion:"Dirección de prueba",coordenadas:{latitud:24.1,longitud:-110.3},instagram:"https://www.instagram.com/negocio/",modalidades:["establecimiento","domicilio"],visibilidad:{whatsapp:true,instagram:true,coordenadas:true}}};
+ await assert.rejects(perfil.guardarContacto(rb,dc));
+ await assert.rejects(perfil.guardarContacto(post(cc),dc));
+ await assert.rejects(perfil.guardarContacto(ra,{...dc,contacto:{...dc.contacto,instagram:"https://instagram.com.evil.com/negocio"}}));
+ const ccr=await Promise.allSettled([perfil.guardarContacto(ra,dc),perfil.guardarContacto(ra,dc)]);
+ assert.equal(ccr.filter(v=>v.status==="fulfilled").length,1);
+ const cv=await perfil.consultarContacto(ca,{empresa:a.empresa});
+ assert.equal(cv.revision,6);assert.equal(cv.contacto.telefono,"+526120000000");
+ assert.equal(cv.vista_previa.enlaces.whatsapp,"https://wa.me/526120000001");
+ assert.equal(Object.hasOwn(cv.vista_previa,"telefono"),false);
+ assert.equal(Object.hasOwn(cv.vista_previa,"correo"),false);
+ assert.equal(Object.hasOwn(cv.vista_previa,"direccion"),false);
+ assert.equal((await perfil.consultarContacto(get(b.cookie),{empresa:b.empresa})).contacto.telefono,"");
+ await assert.rejects(perfil.consultarContacto(ca,{empresa:b.empresa}));
+ await assert.rejects(perfil.guardarHorario(ra,{...dh,revision:5}));
+ assert.equal(x.sql.prepare("SELECT count(*) n FROM comercio_auditoria WHERE empresa=? AND accion='perfil.contacto_guardado'").get(a.empresa).n,1);
+
 
 
 
@@ -233,6 +252,7 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  await assert.rejects(perfil.guardar(ra,{...cambioPerfil,revision:4}));
  await assert.rejects(perfil.guardarVisual(ra,{...paleta,revision:5}));
  await assert.rejects(perfil.guardarHorario(ra,{...dh,revision:5}));
+ await assert.rejects(perfil.guardarContacto(ra,{...dc,revision:6}));
  await assert.rejects(gestor.consultar(ra,a.empresa));
  await assert.rejects(compat.consultar(ca,{empresa:a.empresa}));
 });

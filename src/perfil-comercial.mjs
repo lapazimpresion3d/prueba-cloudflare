@@ -1,9 +1,12 @@
+import {validarContacto,proyectarContacto} from "./contacto-comercial.mjs";
 import {validarHorario,estadoHorario} from "./horarios-comerciales.mjs";
 import {inspeccionarJpeg} from "./seguridad-imagen-comercial.mjs";
 import {hashSesionComercial} from "./sesiones-comerciales.mjs";
 const id=x=>typeof x==="string"&&x.length>0&&x.length<=128;
 const texto=(x,min,max)=>typeof x==="string"&&x.trim().length>=min&&x.trim().length<=max&&!/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/u.test(x);
 const campos="empresa,giro,nombre_publico,descripcion,lema,color,revision,actualizado";
+const contacto="empresa,contacto,revision,actualizado";
+const decodificarContacto=x=>{const c=validarContacto(JSON.parse(x.contacto));return {...x,contacto:c,vista_previa:proyectarContacto(c)};};
 const horario="empresa,zona_horaria,horario_semanal,excepciones_horario,revision,actualizado";
 const decodificarHorario=x=>({...x,horario_semanal:JSON.parse(x.horario_semanal),excepciones_horario:JSON.parse(x.excepciones_horario)});
 const visual="empresa,color,color_secundario,color_acento,color_fondo,color_texto,logotipo,portada,revision,actualizado";
@@ -27,6 +30,22 @@ export async function crearPerfilComercial(env,{habilitado=false,autorizarComerc
   const a=await contexto(r,empresa,"GET");
   const x=await q("SELECT "+campos+" FROM comercio_perfiles_privados WHERE empresa=? AND "+guard,empresa,...a.args).first();
   if(!x)throw Error("Perfil no disponible.");return x;
+ },
+ async consultarContacto(r,{empresa}={}){
+  const a=await contexto(r,empresa,"GET");
+  const x=await q("SELECT "+contacto+" FROM comercio_perfiles_privados WHERE empresa=? AND "+guard,empresa,...a.args).first();
+  if(!x)throw Error("Perfil no disponible.");return decodificarContacto(x);
+ },
+ async guardarContacto(r,d){
+  const a=await contexto(r,d?.empresa,"POST");
+  if(!Number.isSafeInteger(d.revision)||d.revision<1||d.revision>=Number.MAX_SAFE_INTEGER||!Object.hasOwn(d,"contacto")||Object.keys(d).some(k=>!["empresa","revision","contacto"].includes(k)))throw Error("Contacto inválido.");
+  const c=validarContacto(d.contacto),json=JSON.stringify(c);
+  if(json.length>16000)throw Error("Contacto inválido.");
+  const res=await db.batch([
+   q("UPDATE comercio_perfiles_privados SET contacto=?,actualizado=?,revision=revision+1 WHERE empresa=? AND revision=? AND "+guard+" RETURNING "+contacto,json,a.n,d.empresa,d.revision,...a.args),
+   q("INSERT INTO comercio_auditoria(empresa,actor,accion,objetivo,fecha) SELECT ?,?,'perfil.contacto_guardado',?,? WHERE changes()=1",d.empresa,a.actor,d.empresa,a.n)
+  ]);
+  if(!res[0].results?.length)throw Error("Conflicto de revisión o autorización.");return decodificarContacto(res[0].results[0]);
  },
  async consultarHorario(r,{empresa}={}){
   const a=await contexto(r,empresa,"GET");
