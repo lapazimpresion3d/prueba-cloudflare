@@ -1,0 +1,9 @@
+import {fechaTurismo} from "./turismo-catalogo.mjs";
+import {categoriasCosto} from "./turismo-rentabilidad.mjs";
+const importe=n=>Number.isSafeInteger(n)&&n>0&&n<=100000000;
+const referencia=s=>typeof s==="string"&&/^DEMO-[A-Z0-9-]{1,32}$/.test(s);
+export function crearCostosEfectivos(storage,plan,r,v,hoy){if(plan!=="p4"||!fechaTurismo(hoy))throw Error("Costos efectivos desde P4.");const key="lapaz:turismo:efectivos:v1:p4";
+function leer(){const raw=storage.getItem(key);if(raw===null)return [];if(raw.length>150000)throw Error("Costos inválidos.");const d=JSON.parse(raw);if(d.version!==1||!Array.isArray(d.items)||d.items.length>300||new Set(d.items.map(x=>x.ref)).size!==d.items.length||d.items.some(x=>!x||typeof x.experiencia!=="string"||!fechaTurismo(x.fecha)||!fechaTurismo(x.registro)||!categoriasCosto.includes(x.categoria)||!importe(x.importe)||!referencia(x.ref)))throw Error("Costos inválidos.");return d.items;}
+function registrar(x){const d=leer();if(d.length>=300||!v.reporte().some(g=>g.experiencia===x.experiencia&&g.fecha===x.fecha)||!categoriasCosto.includes(x.categoria)||!importe(x.importe)||!referencia(x.ref)||d.some(y=>y.ref===x.ref))throw Error("Costo efectivo inválido o duplicado.");const item={experiencia:x.experiencia,fecha:x.fecha,categoria:x.categoria,importe:x.importe,ref:x.ref,registro:hoy};storage.setItem(key,JSON.stringify({version:1,items:[...d,item]}));return item;}
+function comparar(asignaciones=[]){const d=leer(),cajas=r.cajas();return v.reporte(asignaciones).map(g=>{const a=d.filter(x=>x.experiencia===g.experiencia&&x.fecha===g.fecha),efectivo=a.reduce((n,x)=>n+x.importe,0),estimado=g.fijos===null?null:g.fijos+g.variables;return {...g,costoRegistrado:efectivo,diferencia:estimado===null?null:efectivo-estimado,registros:a.map(x=>({...x,conciliado:cajas.some(t=>t.fecha===x.registro&&t.extras.some(m=>m.concepto==="gasto_operativo"&&m.referencia===x.ref&&m.importe===x.importe))}))};});}
+return {leer,registrar,comparar};}

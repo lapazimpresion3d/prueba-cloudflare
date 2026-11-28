@@ -1,0 +1,9 @@
+import {fechaTurismo} from "./turismo-catalogo.mjs";
+const codigoValido=x=>typeof x==="string"&&/^[A-Z0-9-]{3,24}$/.test(x);
+const valida=x=>x&&codigoValido(x.codigo)&&fechaTurismo(x.inicio)&&fechaTurismo(x.fin)&&x.inicio<=x.fin&&Number.isInteger(x.minimo)&&x.minimo>=1&&x.minimo<=50&&Number.isInteger(x.pb)&&x.pb>=1&&x.pb<=10000&&typeof x.activa==="boolean";
+export function crearPromociones(storage,plan){const key="lapaz:turismo:promociones:v1:p4";
+function leer(){if(plan!=="p4")return [];const raw=storage.getItem(key);if(raw===null)return [];if(raw.length>30000)throw Error("Promociones inválidas.");const d=JSON.parse(raw);if(d.version!==1||!Array.isArray(d.items)||d.items.length>50||d.items.some(x=>!valida(x))||new Set(d.items.map(x=>x.codigo)).size!==d.items.length)throw Error("Promociones inválidas.");return d.items;}
+function guardar(x){if(plan!=="p4"||!valida(x))throw Error("Promoción inválida.");const a=leer().filter(y=>y.codigo!==x.codigo);if(a.length>=50)throw Error("Límite de promociones.");a.push({codigo:x.codigo,inicio:x.inicio,fin:x.fin,minimo:x.minimo,pb:x.pb,activa:x.activa});storage.setItem(key,JSON.stringify({version:1,items:a}));}
+function aplicar(c,fecha,codigo=""){if(!codigo)return c;if(plan!=="p4")throw Error("Promociones desde P4.");const p=leer().find(x=>x.codigo===String(codigo).trim().toUpperCase());if(!p?.activa||fecha<p.inicio||fecha>p.fin||c.pasajeros<p.minimo)throw Error("Código no aplicable / Promotion not applicable.");const descuento=Math.round(c.total*p.pb/10000);return {...c,total:c.total-descuento,promocion:{codigo:p.codigo,pb:p.pb,base:c.total,descuento}};}
+return {leer,guardar,aplicar};}
+export function totalConPromocion(base,p,plan){if(p===undefined)return base;if(plan!=="p4"||!p||!codigoValido(p.codigo)||!Number.isInteger(p.pb)||p.pb<1||p.pb>10000||p.base!==base||p.descuento!==Math.round(base*p.pb/10000))throw Error("Descuento guardado inválido.");return base-p.descuento;}
