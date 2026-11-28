@@ -1,3 +1,4 @@
+import {crearAsistenteImplementacion} from "../src/asistente-implementacion.mjs";
 import {crearDisponibilidadLaboral} from "../src/disponibilidad-laboral.mjs";
 import {crearInvitacionesEmpleados} from "../src/invitaciones-empleados.mjs";
 import {crearAsignacionesPersonal} from "../src/asignaciones-personal.mjs";
@@ -400,6 +401,29 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
 
 
 
+ const asistente=await crearAsistenteImplementacion(x.env,{habilitado:true,reloj:x.reloj,autorizarComercial:nucleo.autorizar});
+ const ai={empresa:a.empresa,revision:0,paso:"inicio",accion:"navegar"};
+ assert.equal((await asistente.consultar(ca,{empresa:a.empresa})).progreso.estado,"sin_iniciar");
+ await assert.rejects(asistente.guardar(rb,ai));
+ await assert.rejects(asistente.guardar(ra,{...ai,preparado:true}));
+ await assert.rejects(asistente.guardar(ra,{...ai,paso:"revision"}));
+ const acs=await Promise.allSettled([asistente.guardar(ra,ai),asistente.guardar(ra,ai)]);
+ assert.equal(acs.filter(v=>v.status==="fulfilled").length,1);
+ await asistente.guardar(ra,{...ai,revision:1,paso:"perfil"});
+ await asistente.guardar(ra,{...ai,revision:2,paso:"perfil",accion:"pausar"});
+ await assert.rejects(asistente.guardar(ra,{...ai,revision:3,paso:"modulos"}));
+ assert.equal((await asistente.consultar(ca,{empresa:a.empresa})).progreso.estado,"pausado");
+ const asistente2=await crearAsistenteImplementacion(x.env,{habilitado:true,reloj:x.reloj,autorizarComercial:nucleo.autorizar});
+ await asistente2.guardar(ra,{...ai,revision:3,paso:"perfil",accion:"reanudar"});
+ await asistente2.guardar(ra,{...ai,revision:4,paso:"revision"});
+ const av=await asistente2.consultar(ca,{empresa:a.empresa});
+ assert.equal(av.progreso.revision,5);assert.equal(av.preparado,false);
+ assert.equal(av.implementacion,"configuracion");
+ assert.ok(av.pasos.every(p=>p.estado_validacion==="pendiente"));
+ assert.equal((await asistente2.consultar(get(b.cookie),{empresa:b.empresa})).progreso.revision,0);
+ await assert.rejects(asistente2.historial(ca,{empresa:b.empresa}));
+ assert.deepEqual((await asistente2.historial(ca,{empresa:a.empresa,antes:3})).map(v=>v.revision),[2,1]);
+ assert.throws(()=>x.sql.exec("DELETE FROM comercio_asistente_progreso"));
  const previa=await perfil.vistaPrevia(ca,{empresa:a.empresa});
  assert.equal(previa.revision,6);assert.equal(previa.version_publicada,0);
  assert.equal(Object.hasOwn(previa.contenido.contacto,"correo"),false);
@@ -473,6 +497,8 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  assert.equal((await compat.consultar(ca,{empresa:a.empresa})).modulos.find(m=>m.id==="web").habilitado,false);
  await assert.rejects(perfil.publicar(ra,{...pub,revision:9,versionActual:4}));
  await acceso.cerrar(ra);
+ await assert.rejects(asistente.consultar(ca,{empresa:a.empresa}));
+ await assert.rejects(asistente.guardar(ra,{...ai,revision:5}));
  await assert.rejects(personal.listar(ca,{empresa:a.empresa}));
  await assert.rejects(personal.guardar(ra,{...de,id:emp.id,revision:4}));
  await assert.rejects(suc.listar(ca,{empresa:a.empresa}));
