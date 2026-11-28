@@ -205,13 +205,13 @@ const semillas = [
   },
   {
     "id": "auto-servicio-bahia",
-    "nombre": "Auto Servicio Bahía",
+    "nombre": "Torque Automotriz",
     "giro": "taller",
     "giroNombre": "Taller mecánico",
     "marca": {
       "icono": "🔧",
-      "color": "#204c76",
-      "fondo": "#e3edf6",
+      "color": "#30343b",
+      "fondo": "#f1ede7",
       "lema": "Servicio y confianza",
       "descripcion": "Mantenimiento preventivo y revisión automotriz."
     },

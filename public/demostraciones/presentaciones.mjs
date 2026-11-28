@@ -35,9 +35,9 @@ export const presentaciones={
     destacados:["Tacos","Combos","Especialidades"],iconos:{Tacos:"🌮",Combos:"🌮",Especialidades:"🧀",Bebidas:"🥤"}
   },
   "auto-servicio-bahia":{
-    estilo:"taller",sigla:"AB",distintivo:"DIAGNÓSTICO · MANTENIMIENTO · REFACCIONES",
+    estilo:"taller",sigla:"TA",distintivo:"DIAGNÓSTICO · MANTENIMIENTO · REFACCIONES",
     titulo:"Tu auto, en buenas manos.",
-    entrada:"Consulta servicios de mantenimiento, revisiones y refacciones de ejemplo.",
+    entrada:"Consulta servicios de mantenimiento, diagnóstico y refacciones para tu vehículo.",
     catalogo:"Servicios y refacciones",accion:"Consultar servicios",
     seccion:"Cuida cada kilómetro",texto:"Conoce las opciones de mantenimiento preventivo y revisión automotriz.",
     destacados:["Diagnóstico","Mantenimiento","Refacciones"],iconos:{Diagnóstico:"🔧",Mantenimiento:"⚙️",Refacciones:"🔩",Accesorios:"🚗"}
@@ -54,7 +54,7 @@ export function enlacesDemo(id,plan,practica=false){
 // Ejemplos representativos: no son restricciones comerciales del giro.
 export const planesRepresentativos=Object.freeze({
  "cafe-mirador":"p1","barberia-elite":"p2","mundo-mascotas":"p3",
- "taqueria-el-comal":"p4","auto-servicio-bahia":"p2","bahia-tours":"p4"
+ "taqueria-el-comal":"p4","auto-servicio-bahia":"p3","bahia-tours":"p4"
 });
 export function enlaceGaleria(){return "/demostraciones/ejemplos/";}
 export function enlaceConfigurador(id,plan){return "/demostraciones/configurar/?"+new URLSearchParams({negocio:id,plan});}
