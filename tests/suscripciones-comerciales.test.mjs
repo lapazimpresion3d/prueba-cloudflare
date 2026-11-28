@@ -72,6 +72,6 @@ test("contrato inicial autorizado, versión acordada, duplicados y separación o
  assert.equal(c.giro,"tienda");assert.equal(c.version,1);assert.equal(c.modulos.find(m=>m.id==="web").estado,"candidato_activacion");
  assert.ok(c.modulos.every(m=>!m.habilitado));
  await assert.rejects(compat.consultar(get,{empresa:"b"}));
- x.sql.exec("UPDATE membresias SET activa=0 WHERE empresa='a' AND usuario='u'");
+ x.sql.exec("INSERT INTO usuarios(id,emisor,sujeto) VALUES('u2','issuer','owner2'); INSERT INTO membresias VALUES('a','u2','propietario',1,'empresa'); UPDATE membresias SET activa=0 WHERE empresa='a' AND usuario='u'");
  await assert.rejects(compat.consultar(get,{empresa:"a"}));
 });
