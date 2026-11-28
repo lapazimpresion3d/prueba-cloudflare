@@ -61,7 +61,11 @@ test("aceptación OIDC vinculada, identidad exacta, rollback y consumo único",a
  const prueba="b".repeat(64),ph=Buffer.from(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(prueba))).toString("hex");
  x.sql.prepare("INSERT INTO comercio_prospectos_oidc VALUES(?,?,?,?,?)").run(ph,emisor,"u",n,n+600000);
  const p=await a.prepararProspecto(post,{nombre:"Tienda",sucursal:"Principal",giro:"tienda",plan:"p1",version:1},prueba);
- const j=await a.emitirInvitacion(post,p.id);
+ let j=await a.emitirInvitacion(post,p.id);
+ const anterior=j,viejo=await a.iniciarAceptacion(post,j.token);x.ponerAuth(viejo.url);
+ j=await a.renovarInvitacion(post,p.id,j.id);
+ await assert.rejects(a.completarAceptacion(x.req(viejo)));
+ await assert.rejects(a.iniciarAceptacion(post,anterior.token));
  await assert.rejects(a.iniciarAceptacion(post,"c".repeat(64)));
  async function iniciar(){const i=await a.iniciarAceptacion(post,j.token);x.ponerAuth(i.url);assert.ok(!i.url.includes(j.token));return i;}
  let i=await iniciar();await assert.rejects(x.f.completar(x.req(i)));

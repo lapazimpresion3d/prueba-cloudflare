@@ -23,7 +23,7 @@ export async function crearAltaAutorizada(env,{habilitado=false,autenticarCentra
   if(!pruebaProspectoValida(prueba)||!nombre(d?.nombre)||!nombre(d.sucursal)||!giros.includes(d.giro)||!["p1","p2","p3","p4"].includes(d.plan)||!Number.isSafeInteger(d.version)||d.version<1||Object.hasOwn(d,"emisor")||Object.hasOwn(d,"sujeto"))throw Error("Datos de alta inválidos.");
   const k=crypto.randomUUID(),h=await hashPruebaProspecto(prueba);
   const res=await db.batch([
-   q("INSERT INTO comercio_altas_pendientes(id,nombre,sucursal,giro,plan,version,emisor,sujeto,operador,creado,expira) SELECT ?,?,?,?,?,?,p.emisor,p.sujeto,("+guard+"),?,? FROM comercio_prospectos_oidc p WHERE p.hash=? AND p.expira>? AND EXISTS(SELECT 1 FROM comercial_planes WHERE id=? AND version=? AND usuarios>=1 AND sucursales>=1) AND NOT EXISTS(SELECT 1 FROM usuarios u WHERE u.emisor=p.emisor AND u.sujeto=p.sujeto AND u.activo=0) RETURNING id",k,d.nombre.trim(),d.sucursal.trim(),d.giro,d.plan,d.version,...a,n,n-600000,n-300000,n,n+86400000,h,n,d.plan,d.version),
+   q("INSERT INTO comercio_altas_pendientes(id,nombre,sucursal,giro,plan,version,emisor,sujeto,operador,creado,expira) SELECT ?,?,?,?,?,?,p.emisor,p.sujeto,("+guard+"),?,? FROM comercio_prospectos_oidc p WHERE p.hash=? AND p.expira>? AND EXISTS(SELECT 1 FROM comercial_planes WHERE id=? AND version=? AND usuarios>=1 AND sucursales>=1) AND NOT EXISTS(SELECT 1 FROM usuarios u WHERE u.emisor=p.emisor AND u.sujeto=p.sujeto AND u.activo=0) AND NOT EXISTS(SELECT 1 FROM comercio_altas_pendientes z JOIN comercio_altas_prospecto v ON v.alta=z.id WHERE z.emisor=p.emisor AND z.sujeto=p.sujeto AND lower(trim(z.nombre))=lower(trim(?)) AND z.giro=? AND (z.estado='aceptada' OR (z.estado='pendiente' AND z.expira>?))) RETURNING id",k,d.nombre.trim(),d.sucursal.trim(),d.giro,d.plan,d.version,...a,n,n-600000,n-300000,n,n+86400000,h,n,d.plan,d.version,d.nombre.trim(),d.giro,n),
    q("INSERT INTO comercio_altas_prospecto(alta) SELECT id FROM comercio_altas_pendientes WHERE id=?",k),
    q("DELETE FROM comercio_prospectos_oidc WHERE hash=? AND EXISTS(SELECT 1 FROM comercio_altas_pendientes WHERE id=?)",h,k),
    q("INSERT INTO central_auditoria(actor,empresa,accion,objetivo,fecha) SELECT operador,NULL,'alta.prospecto_verificado',id,? FROM comercio_altas_pendientes WHERE id=?",n,k)
@@ -31,7 +31,7 @@ export async function crearAltaAutorizada(env,{habilitado=false,autenticarCentra
   if(!res[0].results?.length)throw Error("Alta no autorizada.");
   return {id:k,expira:n+86400000};
  },
- // First issuance only. Renewal/cancellation will use a separate guarded operation.
+ // First issuance only; renewal is explicitly authorized and audited.
  async emitirInvitacion(r,k){
   const a=await central(r),n=reloj();
   if(!id(k)||!Number.isSafeInteger(n)||n<0||n>Number.MAX_SAFE_INTEGER-86400000)throw Error("Invitación no disponible.");
@@ -39,6 +39,26 @@ export async function crearAltaAutorizada(env,{habilitado=false,autenticarCentra
   const res=await db.batch([
    q("INSERT INTO comercio_invitaciones_propietario(id,alta,hash,operador,creado,expira) SELECT ?,p.id,?,p.operador,?,MIN(p.expira,?) FROM comercio_altas_pendientes p JOIN comercio_altas_prospecto v ON v.alta=p.id WHERE p.id=? AND p.estado='pendiente' AND p.expira>? AND p.operador=("+guard+") AND NOT EXISTS(SELECT 1 FROM usuarios u WHERE u.emisor=p.emisor AND u.sujeto=p.sujeto AND u.activo=0) AND NOT EXISTS(SELECT 1 FROM comercio_invitaciones_propietario j WHERE j.alta=p.id) RETURNING id,expira",i,h,n,n+86400000,k,n,...a,n,n-600000,n-300000),
    q("INSERT INTO central_auditoria(actor,empresa,accion,objetivo,fecha) SELECT operador,NULL,'alta.invitacion_emitida',id,? FROM comercio_invitaciones_propietario WHERE id=?",n,i)
+  ]);
+  const fila=res[0].results?.[0];if(!fila)throw Error("Invitación no disponible.");
+  return {id:i,alta:k,token,expira:fila.expira};
+ },
+ async cancelarAlta(r,k){
+  const a=await central(r),n=reloj();
+  if(!id(k)||!Number.isSafeInteger(n)||n<0)throw Error("Alta no disponible.");
+  const res=await db.batch([
+   q("UPDATE comercio_altas_pendientes SET estado='cancelada',cancelado_fecha=? WHERE id=? AND estado='pendiente' AND EXISTS(SELECT 1 FROM comercio_altas_prospecto WHERE alta=?) AND operador=("+guard+") RETURNING id",n,k,k,...a,n,n-600000,n-300000)
+  ]);
+  if(!res[0].results?.length)throw Error("Alta no disponible.");
+  return {alta:k,estado:"cancelada"};
+ },
+ async renovarInvitacion(r,k,anterior){
+  const a=await central(r),n=reloj();
+  if(!id(k)||!id(anterior)||!Number.isSafeInteger(n)||n<0||n>Number.MAX_SAFE_INTEGER-86400000)throw Error("Invitación no disponible.");
+  const token=Array.from(crypto.getRandomValues(new Uint8Array(32)),x=>x.toString(16).padStart(2,"0")).join(""),h=await hash(token),i=crypto.randomUUID();
+  // Compare-and-swap by previous invitation id: concurrent retries cannot rotate the new token.
+  const res=await db.batch([
+   q("UPDATE comercio_invitaciones_propietario SET id=?,hash=?,creado=?,expira=MIN(?,(SELECT expira FROM comercio_altas_pendientes WHERE id=?)) WHERE alta=? AND id=? AND consumido IS NULL AND cancelado IS NULL AND EXISTS(SELECT 1 FROM comercio_altas_pendientes p WHERE p.id=? AND p.estado='pendiente' AND p.expira>? AND p.operador=("+guard+") AND p.operador=comercio_invitaciones_propietario.operador AND NOT EXISTS(SELECT 1 FROM usuarios u WHERE u.emisor=p.emisor AND u.sujeto=p.sujeto AND u.activo=0)) RETURNING id,expira",i,h,n,n+86400000,k,k,anterior,k,n,...a,n,n-600000,n-300000)
   ]);
   const fila=res[0].results?.[0];if(!fila)throw Error("Invitación no disponible.");
   return {id:i,alta:k,token,expira:fila.expira};

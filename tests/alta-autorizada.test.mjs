@@ -42,3 +42,31 @@ test("invitación rechaza altas históricas, vencidas, canceladas y operador rev
  await assert.rejects(x.a.emitirInvitacion(x.req(),p2.id));
  assert.equal(x.sql.prepare("SELECT count(*) n FROM comercio_invitaciones_propietario").get().n,0);
 });
+
+test("renovación CAS, invalidación OIDC, cancelación y auditoría",async()=>{
+ const x=await fixture(),p=await altaProspecto(x),j=await x.a.emitirInvitacion(x.req(),p.id);
+ const old=x.sql.prepare("SELECT hash FROM comercio_invitaciones_propietario").get().hash;
+ x.sql.prepare("INSERT INTO comercio_oidc_solicitudes(estado_hash,navegador_hash,nonce,verificador,contexto,configuracion,expira,invitacion_hash) VALUES(?,?,?,?,?,?,?,?)").run("a".repeat(64),"b".repeat(64),"c".repeat(43),"d".repeat(43),"comercial","e".repeat(64),2000,old);
+ await assert.rejects(x.a.renovarInvitacion(x.req(false),p.id,j.id));
+ const rs=await Promise.allSettled([x.a.renovarInvitacion(x.req(),p.id,j.id),x.a.renovarInvitacion(x.req(),p.id,j.id)]);
+ assert.equal(rs.filter(v=>v.status==="fulfilled").length,1);
+ const r=rs.find(v=>v.status==="fulfilled").value;assert.notEqual(r.token,j.token);
+ assert.equal(x.sql.prepare("SELECT count(*) n FROM comercio_oidc_solicitudes").get().n,0);
+ assert.equal(x.sql.prepare("SELECT motivo FROM comercio_invitaciones_historial WHERE id=?").get(j.id).motivo,"renovada");
+ await assert.rejects(x.a.cancelarAlta(x.req(false),p.id));
+ await x.a.cancelarAlta(x.req(),p.id);
+ assert.equal(x.sql.prepare("SELECT cancelado FROM comercio_invitaciones_propietario").get().cancelado,1000);
+ await assert.rejects(x.a.renovarInvitacion(x.req(),p.id,r.id));
+ await assert.rejects(x.a.cancelarAlta(x.req(),p.id));
+ assert.equal(x.sql.prepare("SELECT count(*) n FROM central_auditoria WHERE accion='alta.cancelada'").get().n,1);
+});
+test("duplicado de alta verificada no consume prueba y cancelación permite reintentar",async()=>{
+ const x=await fixture(),p=await altaProspecto(x);
+ await assert.rejects(altaProspecto(x));
+ assert.equal(x.sql.prepare("SELECT count(*) n FROM comercio_altas_prospecto").get().n,1);
+ assert.equal(x.sql.prepare("SELECT count(*) n FROM comercio_prospectos_oidc").get().n,1);
+ await x.a.cancelarAlta(x.req(),p.id);
+ const {emisor,sujeto,...d}=datos;
+ await x.a.prepararProspecto(x.req(),d,"b".repeat(64));
+ assert.equal(x.sql.prepare("SELECT count(*) n FROM comercio_altas_prospecto").get().n,2);
+});
