@@ -16,7 +16,7 @@ export const modulos = [
   {id:"turismo_recursos",nombre:"Guías, embarcaciones y salidas editables",desde:3,estado:"disponible",giros:["turismo"],detalle:"Calendario y asignación de recursos de práctica con bloqueos y conflictos."},
   {id:"turismo_cobros",nombre:"Anticipos, saldos y caja turística",desde:3,estado:"disponible",giros:["turismo"],detalle:"Anticipos, liquidaciones, devoluciones y conciliación local de práctica."},
   {id:"turismo_reportes",nombre:"Reportes turísticos",desde:3,estado:"disponible",giros:["turismo"],detalle:"Pasajeros, ventas, saldos y movimientos por salida y método de práctica."},
-  {id:"turismo_costos",nombre:"Rentabilidad, comisiones y automatizaciones turísticas",desde:4,estado:"en_desarrollo",giros:["turismo"],detalle:"Gestión avanzada pendiente."},
+  {id:"turismo_costos",nombre:"Rentabilidad, comisiones y promociones turísticas",desde:4,estado:"disponible",giros:["turismo"],detalle:"Costos, intermediarios, promociones y alertas locales de práctica; automatización externa pendiente."},
   {id:"web", nombre:"Página e identidad visual", desde:1, estado:"disponible", detalle:"Identidad, horarios e información de ejemplo del negocio."},
   {id:"catalogo", nombre:"Catálogo de productos y servicios", desde:1, estado:"disponible", detalle:"Consulta, filtrado y editor de práctica local; no es administración SaaS."},
   {id:"qr_nfc", nombre:"QR y NFC", desde:1, estado:"en_desarrollo", detalle:"Acceso opcional por enlace, QR o NFC; generación y gestión pendientes."},
