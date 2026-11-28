@@ -1,7 +1,7 @@
 // Closed navigation manifest. No capability inferred from a menu entry.
 const secciones=[
  ["inicio","Inicio","Resumen general", "disponible"],
- ["comercios","Comercios","Directorio y expedientes","pendiente"],
+ ["comercios","Comercios","Directorio y expedientes","disponible"],
  ["prospectos","Prospectos y altas","Contratación autorizada","pendiente"],
  ["planes","Paquetes y versiones","Catálogo contractual","pendiente"],
  ["implementaciones","Implementación y entrega","Seguimiento comercial","pendiente"],
