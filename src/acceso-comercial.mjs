@@ -9,7 +9,7 @@ export async function crearAccesoComercial(env,{habilitado=false,config,reloj=Da
  const origen=new URL(config.retorno).origin;
  const exigir=(r,metodo)=>{if(habilitado!==true||r.method!==metodo||new URL(r.url).origin!==origen||metodo==="POST"&&r.headers.get("Origin")!==origen)throw Error("Acceso no permitido.");};
  const q=(s,...a)=>db.prepare(s).bind(...a);
- const guard="EXISTS(SELECT 1 FROM comercio_sesiones cs JOIN usuarios u ON u.id=cs.usuario WHERE cs.hash=? AND cs.usuario=m.usuario AND u.activo=1 AND cs.revocado IS NULL AND cs.expira>? AND cs.ultima>?)";
+ const guard="EXISTS(SELECT 1 FROM comercio_sesiones cs JOIN usuarios u ON u.id=cs.usuario WHERE cs.hash=? AND cs.usuario=m.usuario AND u.activo=1 AND cs.revocado IS NULL AND cs.expira>? AND cs.ultima>? AND NOT EXISTS(SELECT 1 FROM comercio_acceso_corte c WHERE c.empresa=m.empresa AND c.usuario=m.usuario AND cs.creado<=c.desde))";
  const alcance="(m.alcance='empresa' OR EXISTS(SELECT 1 FROM membresia_sucursales ms JOIN sucursales b ON b.empresa=ms.empresa AND b.id=ms.sucursal AND b.activa=1 WHERE ms.empresa=m.empresa AND ms.usuario=m.usuario))";
  return Object.freeze({
  async iniciar(r){exigir(r,"POST");return flujo.iniciar(r,{central:false});},

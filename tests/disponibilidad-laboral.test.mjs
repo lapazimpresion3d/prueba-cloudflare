@@ -19,3 +19,13 @@ test("disponibilidad exige intervalo completo, horario comercial, recurso y ause
  assert.equal(evaluarDisponibilidad({...d,turnos:config([s("a",a)],["2026-11-30"])}),false);
  assert.equal(evaluarDisponibilidad({...d,recurso:{...comercial,excepciones_horario:{"2026-11-30":[]}}}),false);
 });
+
+test("DST repetido, excepción de cierre y ausencia prevalecen en intervalo UTC",()=>{
+ const a=semana();a[6]=[[60,120]];
+ const turno={zona_horaria:"America/New_York",sucursales:[s("a",a)],ausencias:[]};
+ const comercial={zona_horaria:"America/New_York",horario_semanal:a,excepciones_horario:{}};
+ const d={turnos:turno,sucursal:"a",comercial,inicio:Date.parse("2026-11-01T05:00:00Z"),fin:Date.parse("2026-11-01T07:00:00Z")};
+ assert.equal(evaluarDisponibilidad(d),true);
+ assert.equal(evaluarDisponibilidad({...d,turnos:{...turno,ausencias:["2026-11-01"]}}),false);
+ assert.equal(evaluarDisponibilidad({...d,comercial:{...comercial,excepciones_horario:{"2026-11-01":[]}}}),false);
+});

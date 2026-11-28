@@ -23,7 +23,7 @@ const keys=await crypto.subtle.generateKey({name:"RSASSA-PKCS1-v1_5",modulusLeng
 const jwk={...await crypto.subtle.exportKey("jwk",keys.publicKey),kid:"test",alg:"RS256",use:"sig"};
 const config={emisor,retorno,audiencia,claves:[jwk],acrCentral:"mfa",autorizacion:emisor+"/authorize",intercambio:emisor+"/token",secreto:"test-secret"};
 const b64=x=>Buffer.from(x).toString("base64url");
-async function fixture(){const sql=new DatabaseSync(":memory:");for(const f of readdirSync(new URL("../migrations-comercios/",import.meta.url)).filter(x=>x.endsWith(".sql")).sort())sql.exec(readFileSync(new URL("../migrations-comercios/"+f,import.meta.url),"utf8"));const db={prepare(q){return {first:async()=>sql.prepare(q).get(),bind(...a){return {first:async()=>sql.prepare(q).get(...a),run:async()=>sql.prepare(q).run(...a),all:async()=>({results:sql.prepare(q).all(...a)})}}}}};let n=1000000000,auth,calls=0,fallo=false,sujeto="u";const transporte=async (url,opt)=>{calls++;assert.equal(url,config.intercambio);assert.equal(opt.redirect,"error");assert.equal(opt.body.get("redirect_uri"),retorno);assert.equal(b64(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(opt.body.get("code_verifier")))),auth.searchParams.get("code_challenge"));if(fallo)throw Error("private error");const c={iss:emisor,aud:audiencia,sub:sujeto,email:"u@example.invalid",email_verified:true,nonce:auth.searchParams.get("nonce"),iat:n/1000,auth_time:n/1000,exp:n/1000+300,acr:"mfa"};const t=b64(JSON.stringify({alg:"RS256",kid:"test"}))+"."+b64(JSON.stringify(c));return Response.json({id_token:t+"."+b64(await crypto.subtle.sign("RSASSA-PKCS1-v1_5",keys.privateKey,new TextEncoder().encode(t))),access_token:"not-returned"});};db.batch=async stm=>{sql.exec("BEGIN");try{const results=[];for(const st of stm){results.push(await st.all());}sql.exec("COMMIT");return results;}catch(e){sql.exec("ROLLBACK");throw e;}};const env={COMMERCE_DB:db},f=await crearFlujoOidc(env,{habilitado:true,config,reloj:()=>n,transporte});const iniciar=async()=>{const x=await f.iniciar(new Request("https://app.example.invalid/login",{method:"POST",headers:{Origin:"https://app.example.invalid"}}),{central:true});auth=new URL(x.url);return x};const req=(x,extra="")=>new Request(retorno+"?code=test&state="+auth.searchParams.get("state")+extra,{headers:{Cookie:x.cookie.split(";")[0]}});return {f,iniciar,req,sql,env,transporte,reloj:()=>n,ponerAuth:u=>auth=new URL(u),calls:()=>calls,expirar:()=>n+=300000,fallar:()=>fallo=true,cambiarSujeto:v=>sujeto=v};}
+async function fixture(){const sql=new DatabaseSync(":memory:");for(const f of readdirSync(new URL("../migrations-comercios/",import.meta.url)).filter(x=>x.endsWith(".sql")).sort())sql.exec(readFileSync(new URL("../migrations-comercios/"+f,import.meta.url),"utf8"));const db={prepare(q){return {first:async()=>sql.prepare(q).get(),bind(...a){return {first:async()=>sql.prepare(q).get(...a),run:async()=>sql.prepare(q).run(...a),all:async()=>({results:sql.prepare(q).all(...a)})}}}}};let n=1000000000,auth,calls=0,fallo=false,sujeto="u";const transporte=async (url,opt)=>{calls++;assert.equal(url,config.intercambio);assert.equal(opt.redirect,"error");assert.equal(opt.body.get("redirect_uri"),retorno);assert.equal(b64(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(opt.body.get("code_verifier")))),auth.searchParams.get("code_challenge"));if(fallo)throw Error("private error");const c={iss:emisor,aud:audiencia,sub:sujeto,email:"u@example.invalid",email_verified:true,nonce:auth.searchParams.get("nonce"),iat:n/1000,auth_time:n/1000,exp:n/1000+300,acr:"mfa"};const t=b64(JSON.stringify({alg:"RS256",kid:"test"}))+"."+b64(JSON.stringify(c));return Response.json({id_token:t+"."+b64(await crypto.subtle.sign("RSASSA-PKCS1-v1_5",keys.privateKey,new TextEncoder().encode(t))),access_token:"not-returned"});};db.batch=async stm=>{sql.exec("BEGIN");try{const results=[];for(const st of stm){results.push(await st.all());}sql.exec("COMMIT");return results;}catch(e){sql.exec("ROLLBACK");throw e;}};const env={COMMERCE_DB:db},f=await crearFlujoOidc(env,{habilitado:true,config,reloj:()=>n,transporte});const iniciar=async()=>{const x=await f.iniciar(new Request("https://app.example.invalid/login",{method:"POST",headers:{Origin:"https://app.example.invalid"}}),{central:true});auth=new URL(x.url);return x};const req=(x,extra="")=>new Request(retorno+"?code=test&state="+auth.searchParams.get("state")+extra,{headers:{Cookie:x.cookie.split(";")[0]}});return {f,iniciar,req,sql,env,transporte,reloj:()=>n,ponerAuth:u=>auth=new URL(u),calls:()=>calls,avanzar:ms=>n+=ms,expirar:()=>n+=300000,fallar:()=>fallo=true,cambiarSujeto:v=>sujeto=v};}
 test("PKCE, navegador, consumo único y verificación firmada",async()=>{const x=await fixture(),inicio=await x.iniciar();assert.match(inicio.cookie,/HttpOnly; SameSite=Lax/);await assert.rejects(x.f.completar(new Request(x.req(inicio).url)));await assert.rejects(x.f.completar(x.req(inicio,"&state=duplicado")));assert.equal(x.calls(),0);const resultados=await Promise.allSettled([x.f.completar(x.req(inicio)),x.f.completar(x.req(inicio))]);assert.equal(resultados.filter(r=>r.status==="fulfilled").length,1);const r=resultados.find(r=>r.status==="fulfilled").value;assert.equal(r.identidad.mfaCentral,true);assert.equal(r.contexto,"central");assert.ok(!JSON.stringify(r).includes("not-returned"));assert.equal(x.calls(),1);});
 test("caducidad y fallo de proveedor consumen solo solicitudes válidas",async()=>{const x=await fixture();let i=await x.iniciar();x.expirar();await assert.rejects(x.f.completar(x.req(i)));assert.equal(x.calls(),0);i=await x.iniciar();x.fallar();await assert.rejects(x.f.completar(x.req(i)),/Autenticación no completada/);await assert.rejects(x.f.completar(x.req(i)));assert.equal(x.calls(),1);});
 
@@ -330,6 +330,9 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  await asignaciones.guardarServicio(ra,{empresa:a.empresa,id:servicio.id,revision:1,codigo:"PREP",nombre:"Preparación",activo:0});
  assert.deepEqual((await asignaciones.consultar(ca,{empresa:a.empresa,empleado:otro.id})).servicios_efectivos,[]);
  await asignaciones.asignarLabor(ra,{...laboral,revision:1,principal:null,sucursales:[],servicios:[]});
+ assert.equal((await disponibilidad.disponibilidad(ca,{...consulta,recurso:null})).disponible,false);
+ await assert.rejects(disponibilidad.consultarTurnos(get(b.cookie),{empresa:a.empresa,empleado:otro.id}));
+ assert.throws(()=>x.sql.exec("DELETE FROM comercio_turnos_laborales"));
  assert.deepEqual((await asignaciones.consultar(ca,{empresa:a.empresa,empleado:otro.id})).sucursales_efectivas,[]);
  assert.throws(()=>x.sql.exec("DELETE FROM comercio_asignaciones_personal"));
  const invitaciones=await crearInvitacionesEmpleados(x.env,{...opts,autorizarComercial:nucleo.autorizar,limitarInicio:async()=>true});
@@ -351,10 +354,31 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  const inicioNuevo=await acceso.iniciar(post());x.ponerAuth(inicioNuevo.url);
  const cookieNuevo=(await acceso.completar(x.req(inicioNuevo))).cookies[1].split(";")[0];
  await roles.autorizarOperacion(get(cookieNuevo),{empresa:a.empresa,sucursal:a.sucursal,permiso:"cocina.consultar"});
+ // Same verified global identity in another company: suspend only the selected membership.
+ x.sql.prepare("INSERT INTO membresias(empresa,usuario,rol,alcance) VALUES(?,?,?,?)").run(b.empresa,fichaV.usuario,"cajero","sucursales");
+ x.sql.prepare("INSERT INTO membresia_sucursales(empresa,usuario,sucursal) VALUES(?,?,?)").run(b.empresa,fichaV.usuario,b.sucursal);
+ assert.equal((await acceso.empresas(get(cookieNuevo))).length,2);
+ await assert.rejects(invitaciones.estadoAcceso(ra,{empresa:a.empresa,usuario:titular,activa:0}));
  await invitaciones.estadoAcceso(ra,{empresa:a.empresa,usuario:fichaV.usuario,activa:0});
  await assert.rejects(roles.autorizarOperacion(get(cookieNuevo),{empresa:a.empresa,sucursal:a.sucursal,permiso:"cocina.consultar"}));
  assert.equal((await personal.listar(ca,{empresa:a.empresa})).empleados.find(v=>v.id===fichaInv.id).activo,1);
+ assert.deepEqual((await acceso.empresas(get(cookieNuevo))).map(v=>v.id),[b.empresa]);
+ await acceso.seleccionar(post(cookieNuevo),{empresa:b.empresa,sucursal:b.sucursal});
+ await invitaciones.estadoAcceso(ra,{empresa:a.empresa,usuario:fichaV.usuario,activa:1});
+ await assert.rejects(acceso.seleccionar(post(cookieNuevo),{empresa:a.empresa,sucursal:a.sucursal}));
+ await assert.rejects(roles.autorizarOperacion(get(cookieNuevo),{empresa:a.empresa,sucursal:a.sucursal,permiso:"cocina.consultar"}));
+ assert.deepEqual((await acceso.empresas(get(cookieNuevo))).map(v=>v.id),[b.empresa]);
+ x.avanzar(1);
+ const renovado=await acceso.iniciar(post());x.ponerAuth(renovado.url);
+ const cookieRenovado=(await acceso.completar(x.req(renovado))).cookies[1].split(";")[0];
+ await roles.autorizarOperacion(get(cookieRenovado),{empresa:a.empresa,sucursal:a.sucursal,permiso:"cocina.consultar"});
+ assert.equal((await acceso.empresas(get(cookieRenovado))).length,2);
+ await invitaciones.estadoAcceso(ra,{empresa:a.empresa,usuario:fichaV.usuario,activa:0});
+ await invitaciones.estadoAcceso(rb,{empresa:b.empresa,usuario:fichaV.usuario,activa:0});
+ await assert.rejects(acceso.empresas(get(cookieRenovado)));
+ await assert.rejects(acceso.empresas(get(cookieNuevo)));
  // Keep plan downgrade fixture within its original user limit by leaving this membership suspended.
+
 
 
  x.cambiarSujeto("staff");
