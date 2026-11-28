@@ -4,7 +4,7 @@ import { planes, modulos, capacidades } from "../public/demostraciones/config.mj
 import { establecimientos, obtenerEstablecimiento, filtrarCatalogo } from "../public/demostraciones/establecimientos.mjs";
 
 test("seis negocios y cuatro planes con importes exactos en centavos",()=>{
-  assert.deepEqual(establecimientos.map(e=>e.nombre),["Café Mirador","Barbería Elite","Mundo Mascotas","Taquería El Comal","Auto Servicio Bahía","Bahía Tours"]);
+  assert.deepEqual(establecimientos.map(e=>e.nombre),["Café Mirador","Barbería Elite","Mundo Mascotas","Taquería El Comal","Torque Automotriz","Bahía Tours"]);
   assert.deepEqual(planes.map(p=>[p.implementacion,p.mensualidad]),[[75000,14900],[150000,24900],[250000,34900],[350000,49900]]);
   assert.equal(new Set(establecimientos.map(e=>e.id)).size,6);
 });

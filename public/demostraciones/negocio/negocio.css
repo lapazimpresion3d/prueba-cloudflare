@@ -3,7 +3,7 @@ body[data-estilo=cafe]{--hero:#38251d;--acento:#f3d7a2;--papel:#f4e9dc;--radio:1
 body[data-estilo=barberia]{--hero:#17232b;--acento:#e2c28d;--papel:#edf0f2;--radio:4px}body[data-estilo=barberia] .arte-emblema{border-radius:4px;transform:rotate(-3deg)}body[data-estilo=barberia] h1{text-transform:uppercase;letter-spacing:-.055em}body[data-estilo=barberia] .productos{grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}body[data-estilo=barberia] .producto{display:grid;grid-template-columns:96px 1fr}body[data-estilo=barberia] .imagen-producto{height:100%;min-height:130px}
 body[data-estilo=mascotas]{--hero:#16584d;--acento:#f7dd8d;--papel:#e0f2e9;--radio:24px}body[data-estilo=mascotas] .arte-emblema{border-radius:50%;aspect-ratio:1;align-content:center}body[data-estilo=mascotas] .destacados a{justify-content:center}
 body[data-estilo=comal]{--hero:#882c1d;--acento:#ffe19a;--papel:#fae8d8;--radio:10px}body[data-estilo=comal] .hero-arte{background:linear-gradient(0deg,#0004,#0004),url("/imagenes/pastor.webp") center/cover}body[data-estilo=comal] .arte-emblema{background:#341a13cf;border-radius:12px}
-body[data-estilo=taller]{--hero:#193b5c;--acento:#ffcc76;--papel:#e3edf6;--radio:6px}body[data-estilo=taller] .hero-arte{background:repeating-linear-gradient(-45deg,#fff1 0 12px,transparent 12px 24px)}body[data-estilo=taller] .arte-emblema{border-radius:6px;border-width:4px}body[data-estilo=taller] .producto{display:grid;grid-template-columns:100px 1fr}body[data-estilo=taller] .productos{grid-template-columns:repeat(auto-fit,minmax(min(100%,310px),1fr))}body[data-estilo=taller] .imagen-producto{height:100%}
+body[data-estilo=taller]{--hero:#25292f;--acento:#ed8b36;--papel:#f1ede7;--radio:6px}body[data-estilo=taller] .hero-arte{background:repeating-linear-gradient(-45deg,#fff1 0 12px,transparent 12px 24px)}body[data-estilo=taller] .arte-emblema{border-radius:6px;border-width:4px}body[data-estilo=taller] .producto{display:grid;grid-template-columns:100px 1fr}body[data-estilo=taller] .productos{grid-template-columns:repeat(auto-fit,minmax(min(100%,310px),1fr))}body[data-estilo=taller] .imagen-producto{height:100%}
 @media(max-width:720px){.hero,.nosotros,.contacto{grid-template-columns:1fr}.hero{min-height:auto}.hero-arte{min-height:200px}.arte-emblema{max-width:210px;padding:15px}.arte-sigla{font-size:3.5rem}.destacados a{padding:10px;display:grid;gap:4px;font-size:.85rem}.cabecera nav{gap:12px}.bloque{padding:35px 18px}.detalle-marca{font-size:4rem}.demo-bar{font-size:.72rem}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 
 .hero{color:var(--hero-texto,#fff)}.hero-texto>p:not(.sobrelinea){color:var(--hero-texto,#fff)}.hero .sobrelinea{color:var(--hero-texto,#fff)}.arte-emblema{background:#17232b;color:var(--acento)}.logo{color:var(--hero-texto,#fff)}
@@ -81,9 +81,9 @@ body[data-estilo=comal] .hero{position:relative;grid-template-columns:.9fr 1.1fr
 body[data-estilo=comal] .hero-arte{border-radius:4px 80px 4px 80px}
 body[data-estilo=comal] .producto{border-color:#e7d1be}
 body[data-estilo=taller]{--ancho:1240px;--radio:4px}
-body[data-estilo=taller] .cabecera{background:#193b5c;color:white}
-body[data-estilo=taller] .hero{grid-template-columns:.9fr 1.1fr;border-bottom:8px solid #ffcc76}
-body[data-estilo=taller] .hero-arte{border-radius:0;border-left:5px solid #ffcc76}
+body[data-estilo=taller] .cabecera{background:#25292f;color:white}
+body[data-estilo=taller] .hero{grid-template-columns:.9fr 1.1fr;border-bottom:8px solid #ed8b36}
+body[data-estilo=taller] .hero-arte{border-radius:0;border-left:5px solid #ed8b36}
 body[data-estilo=taller] .producto{grid-template-columns:125px minmax(0,1fr)}
 body[data-estilo=barberia] .imagen-producto,body[data-estilo=taller] .imagen-producto{height:100%;aspect-ratio:auto}
 body[data-estilo=mascotas]:has(.portada-practica) .hero{background:var(--hero);color:var(--hero-texto,#fff)}
