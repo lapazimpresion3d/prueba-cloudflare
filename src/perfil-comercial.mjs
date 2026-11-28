@@ -37,12 +37,13 @@ export async function crearPerfilComercial(env,{habilitado=false,autorizarComerc
   if(!x)throw Error("Perfil no disponible.");
   let contenido,revision=d.revision;
   if(restaurar){
-   const previa=await q("SELECT contenido,revision_perfil FROM comercio_publicaciones_perfil WHERE empresa=? AND version=?",d.empresa,d.versionOrigen).first();
+   const previa=await q("SELECT p.contenido,p.revision_perfil FROM comercio_perfiles_privados JOIN comercio_publicaciones_perfil p ON p.empresa=comercio_perfiles_privados.empresa WHERE comercio_perfiles_privados.empresa=? AND comercio_perfiles_privados.revision=? AND p.version=? AND "+guard,d.empresa,d.revision,d.versionOrigen,...a.args).first();
    if(!previa)throw Error("Publicación no disponible.");
    // Never restore historical contact visibility: historical content may contain withdrawn personal details.
    const historica=JSON.parse(previa.contenido),actual=proyectarPresentacion(x);
    delete historica.contacto;
    if(historica.secciones.includes("contacto")&&actual.contacto)historica.contacto=actual.contacto;
+   else historica.secciones=historica.secciones.filter(k=>k!=="contacto");
    contenido=JSON.stringify(historica);revision=previa.revision_perfil;
   }else contenido=JSON.stringify(proyectarPresentacion(x));
   if(contenido.length>600000)throw Error("Publicación inválida.");

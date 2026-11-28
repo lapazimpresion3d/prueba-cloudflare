@@ -225,6 +225,7 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
   await contratos.contratar(post(cc),d);
  }
  await assert.rejects(gestor.autorizarModulo(ra,permiso));
+ await assert.rejects(perfil.publicar(ra,{empresa:a.empresa,revision:6,versionActual:0}));
  const act={empresa:a.empresa,revision:0,modulos:["web","pos","pedidos","cocina"],inicio:n,vence:n+1000};
  await assert.rejects(activacion.guardar(ra,act));
  await assert.rejects(activacion.guardar(post(cc),{...act,empresa:b.empresa}));
@@ -249,6 +250,40 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  assert.equal((await perfil.historialPublicaciones(ca,{empresa:a.empresa})).length,3);
  assert.throws(()=>x.sql.exec("DELETE FROM comercio_publicaciones_perfil"));
  await assert.rejects(perfil.historialPublicaciones(ca,{empresa:b.empresa}));
+ // Publication versions are scoped independently, including equal version numbers.
+ await perfil.publicar(rb,{empresa:b.empresa,revision:1,versionActual:0});
+ assert.equal((await perfil.consultarPublicacion(get(b.cookie),{empresa:b.empresa,version:1})).contenido.nombre,"Negocio owner-b");
+ assert.equal((await perfil.consultarPublicacion(ca,{empresa:a.empresa,version:1})).contenido.nombre,"Restaurante de prueba");
+ await assert.rejects(perfil.consultarPublicacion(ca,{empresa:b.empresa,version:1}));
+ assert.deepEqual((await perfil.historialPublicaciones(ca,{empresa:a.empresa,antes:3})).map(v=>v.version),[2,1]);
+ assert.throws(()=>x.sql.exec("UPDATE comercio_publicaciones_perfil SET contenido='{}'"));
+ assert.equal(restaurada.contenido.secciones.includes("contacto"),false);
+ // Re-enable contact section but withdraw previously visible WhatsApp.
+ await perfil.guardarContacto(ra,{empresa:a.empresa,revision:7,contacto:{...dc.contacto,visibilidad:{instagram:true}}});
+ await perfil.guardarPresentacion(ra,{empresa:a.empresa,revision:8,presentacion:{estilo:"clasico",secciones:["contacto","horario"]}});
+ const restaurada2=await perfil.restaurarPublicacion(ra,{empresa:a.empresa,revision:9,versionActual:3,versionOrigen:1});
+ assert.equal(restaurada2.version,4);
+ assert.equal(Object.hasOwn(restaurada2.contenido.contacto,"whatsapp"),false);
+ assert.equal(Object.hasOwn(restaurada2.contenido.contacto.enlaces,"whatsapp"),false);
+ assert.equal(Object.hasOwn(restaurada2.contenido.contacto,"coordenadas"),false);
+ assert.equal((await perfil.consultarPublicacion(ca,{empresa:a.empresa,version:1})).contenido.contacto.whatsapp,"+526120000001");
+ assert.equal((await perfil.vistaPrevia(ca,{empresa:a.empresa})).revision,9);
+ const deshabilitado=await crearPerfilComercial(x.env,{habilitado:true,reloj:x.reloj,autorizarComercial:nucleo.autorizar});
+ await assert.rejects(deshabilitado.publicar(ra,{empresa:a.empresa,revision:9,versionActual:4}));
+ // Permission revocation must affect every profile reader and writer.
+ const actor=x.sql.prepare("SELECT id FROM usuarios WHERE sujeto='owner-a'").get().id;
+ x.sql.prepare("INSERT INTO membresia_permisos_denegados(empresa,usuario,permiso) VALUES(?,?,?)").run(a.empresa,actor,"empresa.administrar");
+ for(const metodo of ["consultar","consultarVisual","consultarHorario","consultarContacto","vistaPrevia","consultarPublicacion","historialPublicaciones"])await assert.rejects(perfil[metodo](ca,{empresa:a.empresa}));
+ await assert.rejects(perfil.publicar(ra,{empresa:a.empresa,revision:9,versionActual:4}));
+ x.sql.prepare("DELETE FROM membresia_permisos_denegados WHERE empresa=? AND usuario=? AND permiso=?").run(a.empresa,actor,"empresa.administrar");
+ assert.equal((await perfil.vistaPrevia(ca,{empresa:a.empresa})).revision,9);
+ // Force audit failure: publication must roll back entirely.
+ x.sql.exec("CREATE TRIGGER prueba_publicacion_rollback BEFORE INSERT ON comercio_auditoria WHEN NEW.accion='perfil.publicado' BEGIN SELECT RAISE(ABORT,'rollback'); END");
+ await assert.rejects(perfil.publicar(ra,{empresa:a.empresa,revision:9,versionActual:4}));
+ x.sql.exec("DROP TRIGGER prueba_publicacion_rollback");
+ assert.equal((await perfil.consultarPublicacion(ca,{empresa:a.empresa})).version,4);
+ assert.equal(x.sql.prepare("SELECT count(*) n FROM comercio_auditoria WHERE empresa=? AND accion IN ('perfil.publicado','perfil.publicacion_restaurada')").get(a.empresa).n,4);
+
 
  await gestor.autorizarModulo(ra,permiso);
  await assert.rejects(gestor.autorizarModulo(rb,permiso));
@@ -268,12 +303,15 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  x.expirar();
  await assert.rejects(gestor.autorizarModulo(ra,web));
  assert.equal((await compat.consultar(ca,{empresa:a.empresa})).modulos.find(m=>m.id==="web").habilitado,false);
- await assert.rejects(perfil.publicar(ra,{...pub,revision:7,versionActual:3}));
+ await assert.rejects(perfil.publicar(ra,{...pub,revision:9,versionActual:4}));
  await acceso.cerrar(ra);
- await assert.rejects(perfil.guardar(ra,{...cambioPerfil,revision:4}));
- await assert.rejects(perfil.guardarVisual(ra,{...paleta,revision:5}));
- await assert.rejects(perfil.guardarHorario(ra,{...dh,revision:5}));
- await assert.rejects(perfil.guardarContacto(ra,{...dc,revision:6}));
+ await assert.rejects(perfil.guardar(ra,{...cambioPerfil,revision:9}));
+ await assert.rejects(perfil.guardarVisual(ra,{...paleta,revision:9}));
+ await assert.rejects(perfil.guardarHorario(ra,{...dh,revision:9}));
+ await assert.rejects(perfil.guardarContacto(ra,{...dc,revision:9}));
+ await assert.rejects(perfil.guardarPresentacion(ra,{empresa:a.empresa,revision:9,presentacion:{}}));
+ await assert.rejects(perfil.vistaPrevia(ca,{empresa:a.empresa}));
+ await assert.rejects(perfil.consultarPublicacion(ca,{empresa:a.empresa}));
  await assert.rejects(gestor.consultar(ra,a.empresa));
  await assert.rejects(compat.consultar(ca,{empresa:a.empresa}));
 });
