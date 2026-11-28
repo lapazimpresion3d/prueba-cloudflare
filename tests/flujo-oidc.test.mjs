@@ -1,3 +1,4 @@
+import {crearEmpleadosComerciales} from "../src/empleados-comerciales.mjs";
 import {crearSucursalesComerciales} from "../src/sucursales-comerciales.mjs";
 import {jpegPrueba} from "./fixtures/jpeg-prueba.mjs";
 import {crearPerfilComercial} from "../src/perfil-comercial.mjs";
@@ -250,6 +251,36 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  await assert.rejects(suc.guardar(ra,{...nueva,id:secundaria.id,revision:1,activa:1}));
  assert.equal((await suc.listar(ca,{empresa:a.empresa})).sucursales.find(v=>v.id===secundaria.id).activa,0);
  assert.throws(()=>x.sql.prepare("DELETE FROM sucursales WHERE empresa=? AND id=?").run(a.empresa,secundaria.id));
+ const personal=await crearEmpleadosComerciales(x.env,{habilitado:true,reloj:x.reloj,autorizarComercial:nucleo.autorizar});
+ const de={empresa:a.empresa,revision:0,codigo:"emp-01",nombre:"Empleado de prueba",puesto:"Cocinero",especialidad:"Parrilla",telefono:"+52 612 000 0000",correo:"empleado@example.com",incorporacion:"2026-11-28",activo:1};
+ await assert.rejects(personal.guardar(rb,de));
+ await assert.rejects(personal.guardar(ra,{...de,incorporacion:"2026-02-30"}));
+ await assert.rejects(personal.guardar(ra,{...de,usuario:"inyectado"}));
+ const pe=await Promise.allSettled([personal.guardar(ra,de),personal.guardar(ra,de)]);
+ assert.equal(pe.filter(v=>v.status==="fulfilled").length,1);
+ const emp=pe.find(v=>v.status==="fulfilled").value;
+ assert.equal(emp.usuario,null);assert.equal(emp.codigo,"EMP-01");assert.equal(emp.telefono,"+526120000000");
+ assert.equal((await personal.listar(get(b.cookie),{empresa:b.empresa})).empleados.length,0);
+ await assert.rejects(personal.listar(ca,{empresa:b.empresa}));
+ const otro=await personal.guardar(ra,{...de,codigo:"EMP-02",nombre:"Otro empleado"});
+ const titular=x.sql.prepare("SELECT id FROM usuarios WHERE sujeto='owner-a'").get().id;
+ const ajeno=x.sql.prepare("SELECT id FROM usuarios WHERE sujeto='owner-b'").get().id;
+ await assert.rejects(personal.vincular(ra,{empresa:a.empresa,id:emp.id,revision:1,usuario:titular}));
+ await assert.rejects(personal.vincular(ra,{empresa:a.empresa,id:emp.id,revision:1,usuario:ajeno}));
+ // Fixture-only existing membership, not a production invitation.
+ x.sql.prepare("INSERT INTO usuarios(id,emisor,sujeto) VALUES(?,?,?)").run("empleado-prueba","https://id.example.invalid","staff");
+ x.sql.prepare("INSERT INTO membresias(empresa,usuario,rol,alcance) VALUES(?,?,?,?)").run(a.empresa,"empleado-prueba","cajero","sucursales");
+ x.sql.prepare("INSERT INTO membresia_sucursales(empresa,usuario,sucursal) VALUES(?,?,?)").run(a.empresa,"empleado-prueba",a.sucursal);
+ const vinc=await personal.vincular(ra,{empresa:a.empresa,id:emp.id,revision:1,usuario:"empleado-prueba"});
+ assert.equal(vinc.revision,2);assert.equal(vinc.usuario,"empleado-prueba");
+ await assert.rejects(personal.vincular(ra,{empresa:a.empresa,id:otro.id,revision:1,usuario:"empleado-prueba"}));
+ await assert.rejects(personal.guardar(ra,{...de,id:emp.id,revision:2,activo:0}));
+ await personal.vincular(ra,{empresa:a.empresa,id:emp.id,revision:2,usuario:null});
+ await personal.guardar(ra,{...de,id:emp.id,revision:3,activo:0});
+ assert.equal(x.sql.prepare("SELECT activa FROM membresias WHERE empresa=? AND usuario=?").get(a.empresa,"empleado-prueba").activa,1);
+ assert.equal(x.sql.prepare("SELECT count(*) n FROM comercio_empleados_vinculos WHERE empresa=? AND empleado=?").get(a.empresa,emp.id).n,2);
+ assert.throws(()=>x.sql.prepare("DELETE FROM comercio_empleados WHERE empresa=? AND id=?").run(a.empresa,emp.id));
+
 
  const previa=await perfil.vistaPrevia(ca,{empresa:a.empresa});
  assert.equal(previa.revision,6);assert.equal(previa.version_publicada,0);
@@ -324,6 +355,8 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  assert.equal((await compat.consultar(ca,{empresa:a.empresa})).modulos.find(m=>m.id==="web").habilitado,false);
  await assert.rejects(perfil.publicar(ra,{...pub,revision:9,versionActual:4}));
  await acceso.cerrar(ra);
+ await assert.rejects(personal.listar(ca,{empresa:a.empresa}));
+ await assert.rejects(personal.guardar(ra,{...de,id:emp.id,revision:4}));
  await assert.rejects(suc.listar(ca,{empresa:a.empresa}));
  await assert.rejects(suc.guardar(ra,{...nueva,id:secundaria.id,revision:2}));
  await assert.rejects(perfil.guardar(ra,{...cambioPerfil,revision:9}));
