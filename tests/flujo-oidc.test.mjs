@@ -661,6 +661,12 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  await gestor.autorizarModulo(post(cookieNueva),web);
  assert.equal((await perfil.consultar(get(cookieNueva),{empresa:a.empresa})).revision,9);
  assert.equal((await ciclo.historial(get(cc),{empresa:a.empresa}))[0].accion,"reactivar");
+ // Simulate a request already authorized before suspension: SQL must still reject the cut session.
+ const actorPrevio=async()=>({empresa:a.empresa,actor,rol:"propietario"});
+ const perfilCarrera=await crearPerfilComercial(x.env,{habilitado:true,reloj:x.reloj,autorizarComercial:actorPrevio});
+ await assert.rejects(perfilCarrera.guardar(ra,{...cambioPerfil,revision:9}));
+ assert.equal(x.sql.prepare("SELECT revision FROM comercio_perfiles_privados WHERE empresa=?").get(a.empresa).revision,9);
+
  const baja={empresa:a.empresa,revision:4,motivo:"Terminación de prueba",confirmacion:"CANCELAR:"+a.empresa+":4"};
  assert.ok((await ciclo.consultar(get(cc),{empresa:a.empresa})).acciones_disponibles.includes("cancelar"));
  await assert.rejects(ciclo.cancelar(post(cookieNueva),baja));
