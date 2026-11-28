@@ -192,7 +192,7 @@ $("abrir-editor").addEventListener("click",()=>{perfilAbierto=false;editorAbiert
 $("cerrar-editor").addEventListener("click",()=>{editorAbierto=false;reiniciarFormulario();renderVista();$(vistaAdmin?"admin-catalogo":"abrir-editor").focus();});
 $("admin-empresa").addEventListener("click",()=>{editorAbierto=false;perfilAbierto=false;empresaAbierta=true;renderVista();});
 $("admin-resumen").addEventListener("click",()=>{empresaAbierta=false;if(editorAbierto){$("cerrar-editor").click();}if(perfilAbierto){$("cerrar-perfil").click();}renderVista();$("admin-resumen").focus();});
-$("admin-catalogo").addEventListener("click",()=>{empresaAbierta=false;perfilAbierto=false;editorAbierto=true;renderVista();campo("nombre").focus();});
+$("admin-catalogo").addEventListener("click",()=>{if(negocio.giro==="turismo"){location.assign("/demostraciones/experiencias/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id}));return;}empresaAbierta=false;perfilAbierto=false;editorAbierto=true;renderVista();campo("nombre").focus();});
 $("admin-perfil").addEventListener("click",()=>{empresaAbierta=false;editorAbierto=false;reiniciarFormulario();perfilAbierto=true;cargarPerfil();$("aviso-perfil").textContent="";renderVista();$("form-perfil").elements.namedItem("nombre").focus();});
 function cargarPerfil(){
   const p=perfilPlano(perfiles.leer(negocio.id));
