@@ -1,3 +1,4 @@
+import {gruposIconos} from "./iconos-perfil.mjs";
 import {admiteCotizaciones} from "./cotizaciones-practica.mjs";
 import {montarInicioAdmin} from "./panel-admin.mjs";
 import {admitePos} from "./pos-practica.mjs";
@@ -8,7 +9,7 @@ import {admiteMesas} from "./mesas-practica.mjs";
 import {planes,capacidades,importe} from "./config.mjs";
 import {establecimientos,obtenerEstablecimiento,filtrarCatalogo} from "./establecimientos.mjs";
 import {crearCatalogosLocales,centavosDesdeTexto,imagenOfertaSegura} from "./catalogo-local.mjs";
-import {crearPerfilesLocales,perfilPlano,validarImagenPerfil} from "./perfil-local.mjs";
+import {crearPerfilesLocales,perfilPlano,validarImagenPerfil} from "./perfil-local.mjs?v=iconos-2";
 import {optimizarImagenPerfil} from "./imagenes-perfil.mjs";
 import {enlacesDemo,enlaceCotizacion} from "./presentaciones.mjs";
 import {admitePedidos} from "./pedidos-practica.mjs";
@@ -16,6 +17,8 @@ import {admiteCitas} from "./citas-practica.mjs";
 let almacenamiento;
 try { almacenamiento=window.sessionStorage; } catch {}
 const catalogos=crearCatalogosLocales(almacenamiento);
+const selectorIcono=document.getElementById("icono-perfil");
+for(const grupo of gruposIconos){const g=document.createElement("optgroup");g.label=grupo.nombre;for(const i of grupo.items)g.append(new Option(i.icono+"  "+i.etiqueta,i.icono));selectorIcono.append(g);}
 const perfiles=crearPerfilesLocales(almacenamiento);
 
 const $ = id=>document.getElementById(id);

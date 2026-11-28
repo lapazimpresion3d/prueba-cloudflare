@@ -1,3 +1,4 @@
+import {iconosPerfil} from "../public/demostraciones/iconos-perfil.mjs";
 import {jpegPrueba} from "./fixtures/jpeg-prueba.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -47,3 +48,5 @@ test("imágenes limitadas, sin URL externa ni SVG, persistencia de campos opcion
   assert.equal(p.leer("barberia-elite").logo,"");
   p.restaurar(id);assert.equal(p.leer(id).portada,"");
 });
+
+test("iconos ampliados: lista única, compatibilidad histórica y persistencia",()=>{assert.ok(iconosPerfil.length>100);assert.equal(new Set(iconosPerfil).size,iconosPerfil.length);for(const x of ["☕","✂️","🐾","🌮","🔧","🏪","⭐","🌿","💼"])assert.ok(iconosPerfil.includes(x));const a=almacen(),p=crearPerfilesLocales(a),id="cafe-mirador";for(const icono of iconosPerfil){assert.equal(validarPerfil(id,{...perfilPlano(p.leer(id)),icono}).marca.icono,icono);}p.guardar(id,{...perfilPlano(p.leer(id)),icono:"🎂"});assert.equal(crearPerfilesLocales(a).leer(id).marca.icono,"🎂");assert.throws(()=>validarPerfil(id,{...perfilPlano(p.leer(id)),icono:"<svg>"}));});

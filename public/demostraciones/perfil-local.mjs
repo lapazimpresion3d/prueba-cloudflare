@@ -1,3 +1,4 @@
+import {iconosPerfil} from "./iconos-perfil.mjs";
 import {inspeccionarJpeg} from "./seguridad-imagen.mjs";
 // Personalización de práctica. No altera la identidad publicada ni permite URLs externas.
 import {obtenerEstablecimiento} from "./establecimientos.mjs";
@@ -18,8 +19,7 @@ export function validarImagenPerfil(valor,lado=1000){
 export function validarPerfil(id,datos){
   const e=obtenerEstablecimiento(id);
   if(!e||!datos||typeof datos!=="object")throw Error("Perfil inválido.");
-  const iconos=["☕","✂️","🐾","🌮","🔧","🏪","⭐","🌿","💼"];
-  if(!iconos.includes(datos.icono))throw Error("Elige un icono de la lista.");
+  if(!iconosPerfil.includes(datos.icono))throw Error("Elige un icono de la lista.");
   return {nombre:texto(datos.nombre,80),marca:{icono:datos.icono,color:color(datos.color),fondo:color(datos.fondo),lema:texto(datos.lema,100),descripcion:texto(datos.descripcion,280)},horario:texto(datos.horario,120),ubicacion:texto(datos.ubicacion,140),contacto:texto(datos.contacto??"",140,false),logo:validarImagenPerfil(datos.logo,320),portada:validarImagenPerfil(datos.portada)};
 }
 function inicial(id){
