@@ -1,3 +1,4 @@
+import {crearEmpleadosComerciales} from "./empleados-comerciales.mjs";
 import {crearAsistenteImplementacion} from "./asistente-implementacion.mjs";
 import {crearPerfilComercial} from "./perfil-comercial.mjs";
 import {crearSucursalesComerciales} from "./sucursales-comerciales.mjs";
@@ -9,8 +10,8 @@ const error=(status=403)=>json({error:"Solicitud no disponible."},status);
 // Explicit opt-in candidate. Never mounted by worker-comercial.
 export async function crearRutasAsistente(env,opciones={}){
  if(opciones.habilitado!==true)return async()=>error(404);
- const [asistente,perfil,suc]=await Promise.all([crearAsistenteImplementacion(env,opciones),crearPerfilComercial(env,opciones),crearSucursalesComerciales(env,opciones)]);
- const acciones=new Map([["progreso",asistente.guardar],["validar",asistente.validar],["perfil",perfil.guardar],["visual",perfil.guardarVisual],["presentacion",perfil.guardarPresentacion],["contacto",perfil.guardarContacto],["horario",perfil.guardarHorario],["sucursal",suc.guardar],["principal",suc.principal]]);
+ const [asistente,perfil,suc,emp]=await Promise.all([crearAsistenteImplementacion(env,opciones),crearPerfilComercial(env,opciones),crearSucursalesComerciales(env,opciones),crearEmpleadosComerciales(env,opciones)]);
+ const acciones=new Map([["progreso",asistente.guardar],["validar",asistente.validar],["perfil",perfil.guardar],["visual",perfil.guardarVisual],["presentacion",perfil.guardarPresentacion],["contacto",perfil.guardarContacto],["horario",perfil.guardarHorario],["sucursal",suc.guardar],["principal",suc.principal],["empleado",emp.guardar]]);
  return async r=>{
   const u=new URL(r.url),empresa=u.searchParams.get("empresa"),accion=u.searchParams.get("accion"),pagina=u.pathname==="/interno/asistente",datos=u.pathname==="/interno/asistente/datos";
   if(!pagina&&!datos)return error(404);
@@ -25,13 +26,13 @@ export async function crearRutasAsistente(env,opciones={}){
     return new Response(interfazAsistente(nonce),{headers:{...cabeceras,"Content-Type":"text/html; charset=utf-8","Content-Security-Policy":"default-src 'none'; script-src 'nonce-"+nonce+"'; style-src 'nonce-"+nonce+"'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"}});
    }
    if(r.headers.get("Origin")!==u.origin||!acciones.has(accion))return error();
-   const d=await leerJsonLimitado(r,131072);
+   const d=await leerJsonLimitado(r,500000);
    if(!d||typeof d!=="object"||Array.isArray(d)||Object.hasOwn(d,"empresa"))return error(400);
    // Strong assistant guard on every mutation, even when delegating to older services.
    const consulta=new Request(r.url,{method:"GET",headers:r.headers});
    const v=await asistente.consultar(consulta,{empresa});
-   if(!["progreso","validar"].includes(accion)&&v.progreso.estado!=="en_curso")return error();
-   const etapas={perfil:"perfil",visual:"perfil",presentacion:"presentacion",contacto:"presentacion",horario:"presentacion",sucursal:"sucursales",principal:"sucursales",validar:"revision"};
+   if(accion!=="progreso"&&v.progreso.estado!=="en_curso")return error();
+   const etapas={perfil:"perfil",visual:"perfil",presentacion:"presentacion",contacto:"presentacion",horario:"presentacion",sucursal:"sucursales",principal:"sucursales",empleado:"personal",validar:"revision"};
    if(etapas[accion]&&v.progreso.paso!==etapas[accion])return error();
    return json(await acciones.get(accion)(r,{...d,empresa}));
   }catch{return error();}

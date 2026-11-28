@@ -443,6 +443,28 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  assert.equal((await interfaz(enviarUI("validar",{revision:1,empresa:b.empresa}))).status,400);
  assert.equal((await interfaz(enviarUI("progreso",{revision:4,paso:"perfil",accion:"navegar"}))).status,403);
  assert.equal((await interfaz(leerUI(rutaDatos+"&accion=historial"))).status,200);
+ // Full HTTP navigation and recovery without changing fixture revision expectations:
+ // use the second company, independent from the first company's review.
+ const datosB=rutaUI+"/datos?empresa="+encodeURIComponent(b.empresa);
+ const postB=(accion,d)=>new Request(datosB+"&accion="+accion,{method:"POST",headers:{Cookie:b.cookie,Origin:origen,"Content-Type":"application/json"},body:JSON.stringify(d)});
+ const getB=()=>interfaz(leerUI(datosB,b.cookie));
+ assert.equal((await interfaz(postB("progreso",{revision:0,paso:"inicio",accion:"navegar"}))).status,200);
+ assert.equal((await interfaz(postB("progreso",{revision:1,paso:"revision",accion:"navegar"}))).status,200);
+ assert.equal((await interfaz(postB("progreso",{revision:2,paso:"revision",accion:"pausar"}))).status,200);
+ assert.equal((await interfaz(postB("validar",{revision:0}))).status,403);
+ assert.equal((await (await getB()).json()).progreso.estado,"pausado");
+ assert.equal((await interfaz(postB("progreso",{revision:3,paso:"revision",accion:"reanudar"}))).status,200);
+ assert.equal((await interfaz(postB("validar",{revision:0}))).status,200);
+ assert.equal((await (await getB()).json()).preparado,false);
+ assert.equal((await interfaz(postB("progreso",{revision:4,paso:"revision",accion:"reanudar"}))).status,403);
+ assert.equal((await interfaz(postB("progreso",{revision:4,paso:"personal",accion:"navegar"}))).status,200);
+ const fichaHTTP={revision:0,codigo:"HTTP-01",nombre:"Ficha HTTP",puesto:"",especialidad:"",telefono:"",correo:"",incorporacion:"2026-11-28",activo:1};
+ assert.equal((await interfaz(postB("empleado",fichaHTTP))).status,200);
+ const recuperadoB=await (await getB()).json();
+ assert.equal(recuperadoB.organizacion.personal.fichas[0].usuario,null);
+ assert.equal(recuperadoB.validacion,"obsoleta");
+ assert.equal((await interfaz(postB("empleado",{...fichaHTTP,codigo:"HTTP-02",usuario:"intruso"}))).status,403);
+
 
  await assert.rejects(asistente2.historialValidaciones(ca,{empresa:b.empresa}));
  assert.throws(()=>x.sql.exec("DELETE FROM comercio_asistente_validaciones"));
@@ -478,11 +500,11 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  const inicialB=await asistente2.consultar(get(b.cookie),{empresa:b.empresa});
  assert.equal(inicialB.perfil.pasos.presentacion.estado_validacion,"pendiente");
  assert.equal(inicialB.perfil.identidad.logotipo,null);
- assert.equal(inicialB.organizacion.personal.fichas.length,0);
+ assert.equal(inicialB.organizacion.personal.fichas.length,1);
  assert.equal(inicialB.organizacion.sucursales.datos[0].id,b.sucursal);
  await assert.rejects(asistente2.consultar(rs,{empresa:a.empresa}));
  await assert.rejects(asistente2.consultar(ca,{empresa:b.empresa}));
- assert.equal((await asistente2.consultar(get(b.cookie),{empresa:b.empresa})).progreso.revision,0);
+ assert.equal((await asistente2.consultar(get(b.cookie),{empresa:b.empresa})).progreso.revision,5);
  await assert.rejects(asistente2.historial(ca,{empresa:b.empresa}));
  assert.deepEqual((await asistente2.historial(ca,{empresa:a.empresa,antes:3})).map(v=>v.revision),[2,1]);
  assert.throws(()=>x.sql.exec("DELETE FROM comercio_asistente_progreso"));
