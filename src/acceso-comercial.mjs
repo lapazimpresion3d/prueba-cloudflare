@@ -29,6 +29,13 @@ export async function crearAccesoComercial(env,{habilitado=false,config,reloj=Da
   if(filas.results.length>100)throw Error("Límite de empresas excedido.");
   return filas.results.map(({inicio,vence,...x})=>({...x,vigente:["prueba","activa"].includes(x.estado)&&inicio<=n&&vence>n}));
  },
+ async configuracionInicial(r,{empresa}={}){
+  exigir(r,"GET");
+  const a=await nucleo.autorizar(r,{empresa,permiso:"empresa.ver"}),h=await hashSesionComercial(r),n=reloj();
+  const x=await q("SELECT e.id AS empresa,e.nombre,p.giro,p.nombre_publico,p.color,p.revision,c.estado AS implementacion FROM empresas e JOIN membresias m ON m.empresa=e.id JOIN comercio_perfiles_privados p ON p.empresa=e.id JOIN central_implementaciones c ON c.empresa=e.id JOIN comercio_altas_pendientes z ON z.empresa=e.id JOIN comercio_altas_prospecto v ON v.alta=z.id JOIN comercio_invitaciones_propietario j ON j.alta=z.id WHERE e.id=? AND m.usuario=? AND m.rol='propietario' AND m.alcance='empresa' AND m.activa=1 AND e.activa=1 AND z.estado='aceptada' AND j.consumido IS NOT NULL AND c.estado IN ('pendiente','configuracion','revision') AND NOT EXISTS(SELECT 1 FROM membresia_permisos_denegados d WHERE d.empresa=m.empresa AND d.usuario=m.usuario AND d.permiso IN ('empresa.ver','empresa.administrar')) AND EXISTS(SELECT 1 FROM rol_permisos rp WHERE rp.empresa=m.empresa AND rp.rol=m.rol AND rp.permiso='empresa.administrar') AND "+guard+" AND NOT EXISTS(SELECT 1 FROM comercial_suscripciones s WHERE s.empresa=e.id AND s.estado IN ('suspendida','cancelada'))",empresa,a.actor,h,n,n-1800000).first();
+  if(!x)throw Error("Configuración inicial no disponible.");
+  return {...x,modo:"configuracion_inicial",modulos:[]};
+ },
  async seleccionar(r,{empresa,sucursal=null}={}){
   exigir(r,"POST");const a=await nucleo.autorizar(r,{empresa,sucursal,permiso:"empresa.ver"});const h=await hashSesionComercial(r),n=reloj();
   const x=await q("SELECT s.plan,s.estado,s.inicio,s.vence FROM comercial_suscripciones s JOIN membresias m ON m.empresa=s.empresa JOIN empresas e ON e.id=m.empresa WHERE s.empresa=? AND m.usuario=? AND m.activa=1 AND e.activa=1 AND "+guard+" AND ((? IS NULL AND m.alcance='empresa') OR (? IS NOT NULL AND EXISTS(SELECT 1 FROM sucursales b WHERE b.empresa=m.empresa AND b.id=? AND b.activa=1) AND (m.alcance='empresa' OR EXISTS(SELECT 1 FROM membresia_sucursales ms WHERE ms.empresa=m.empresa AND ms.usuario=m.usuario AND ms.sucursal=?))))",empresa,a.actor,h,n,n-1800000,sucursal,sucursal,sucursal,sucursal).first();
