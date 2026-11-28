@@ -56,6 +56,7 @@ function guardarURL(){
   $("admin-ver-negocio").href=enlacesDemo(negocio.id,plan.id,true).negocio;$("admin-salir").href=enlacesDemo(negocio.id,plan.id,true).negocio;
   $("ver-catalogo-editado").href=enlacesDemo(negocio.id,plan.id,true).negocio;
   $("ver-original").href=enlaces.negocio;
+  $("admin-soporte").href="/demostraciones/soporte/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
   $("admin-auditoria").href="/demostraciones/auditoria/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
   $("admin-comprobantes").hidden=!admitePos(negocio.id,plan.id);$("admin-comprobantes").href="/demostraciones/comprobantes/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
   $("admin-recetas").hidden=plan.id!=="p4";$("admin-recetas").href="/demostraciones/recetas/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
