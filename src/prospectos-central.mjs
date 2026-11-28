@@ -7,12 +7,12 @@ export async function crearProspectosCentral(env,{habilitado=false,autenticarCen
  if(!db||[env.DB,env.DEMO_DB,env.PROVIDER_DB].includes(db)||typeof autenticarCentral!=="function"||!altas||!contratos)throw Error("Prospectos no configurados.");
  if(!(await db.prepare("SELECT clave FROM comercio_identidad WHERE clave='lapaz-comercios-v1'").first()))throw Error("Esquema incorrecto.");
  const q=(s,...a)=>db.prepare(s).bind(...a);
- const guard="EXISTS(SELECT 1 FROM central_operadores o JOIN central_sesiones cs ON cs.operador=o.id WHERE o.emisor=? AND o.sujeto=? AND cs.hash=? AND o.activo=1 AND cs.revocado IS NULL AND cs.expira>? AND cs.ultima>?)";
+ const guard="EXISTS(SELECT 1 FROM central_operadores o JOIN central_sesiones cs ON cs.operador=o.id WHERE o.emisor=? AND o.sujeto=? AND cs.hash=? AND o.activo=1 AND o.rol IN ('administrador','comercial') AND cs.revocado IS NULL AND cs.expira>? AND cs.ultima>? AND (?=0 OR cs.creado>?))";
  async function contexto(r,metodo){
   if(habilitado!==true||r.method!==metodo||new URL(r.url).protocol!=="https:"||metodo==="POST"&&r.headers.get("Origin")!==new URL(r.url).origin)throw Error("Consulta no autorizada.");
   const a=await autenticarCentral(r),c=(r.headers.get("Cookie")||"").split(";").map(x=>x.trim()).filter(x=>x.startsWith("__Host-lapaz-central=")),t=c.length===1?c[0].slice("__Host-lapaz-central=".length):"",n=reloj();
   if(!id(a?.emisor)||!id(a?.sujeto)||!/^[a-f0-9]{64}$/.test(t)||!Number.isSafeInteger(n)||n<0)throw Error("Consulta no autorizada.");
-  return {n,args:[a.emisor,a.sujeto,await hash(t),n,n-600000]};
+  return {n,args:[a.emisor,a.sujeto,await hash(t),n,n-600000,metodo==="POST"?1:0,n-300000]};
  }
  // Confirmed commercial reference. Legacy v1 remains immutable; only matching published versions can be used for new onboarding here.
  const opciones="SELECT p.id,p.version,p.nombre,p.implementacion,p.mensualidad,p.moneda,p.usuarios,p.sucursales FROM comercial_planes p WHERE (p.version=1 OR EXISTS(SELECT 1 FROM comercial_plan_publicaciones b WHERE b.plan=p.id AND b.version=p.version)) AND "+guard+" ORDER BY p.id,p.version DESC";
@@ -32,7 +32,7 @@ export async function crearProspectosCentral(env,{habilitado=false,autenticarCen
   return {fecha:a.n,offset,total:rs[1].results[0].total,items:rs[2].results,planes:vigentes(rs[3].results)};
  },
  async ejecutar(r,accion,d){
-  const a=await contexto(r,"POST");
+  const a=await contexto(r,"POST");if(!await q("SELECT 1 AS autorizado WHERE "+guard,...a.args).first())throw Error("Operación no autorizada.");
   if(accion==="preparar"){
    campos(d,["nombre","sucursal","giro","plan","version","prueba"]);
    const rows=(await q(opciones,...a.args).all()).results;

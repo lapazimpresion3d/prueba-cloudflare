@@ -10,7 +10,7 @@ export async function crearDirectorioCentral(env,{habilitado=false,autenticarCen
  const db=env.COMMERCE_DB;
  if(!db||[env.DB,env.DEMO_DB,env.PROVIDER_DB].includes(db)||typeof autenticarCentral!=="function")throw Error("Directorio no configurado.");
  if(!(await db.prepare("SELECT clave FROM comercio_identidad WHERE clave='lapaz-comercios-v1'").first()))throw Error("Esquema incorrecto.");
- const guard="EXISTS(SELECT 1 FROM central_operadores o JOIN central_sesiones cs ON cs.operador=o.id WHERE o.emisor=? AND o.sujeto=? AND cs.hash=? AND o.activo=1 AND cs.revocado IS NULL AND cs.expira>? AND cs.ultima>?)";
+ const guard="EXISTS(SELECT 1 FROM central_operadores o JOIN central_sesiones cs ON cs.operador=o.id WHERE o.emisor=? AND o.sujeto=? AND cs.hash=? AND o.activo=1 AND o.rol IN ('administrador','comercial','implementacion','consulta') AND cs.revocado IS NULL AND cs.expira>? AND cs.ultima>?)";
  const q=(sql,...args)=>db.prepare(sql).bind(...args);
  async function contexto(r){
   if(habilitado!==true||r.method!=="GET"||new URL(r.url).protocol!=="https:")throw Error("Consulta no autorizada.");

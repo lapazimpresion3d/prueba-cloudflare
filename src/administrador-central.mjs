@@ -5,13 +5,13 @@ export async function crearAdministradorCentral(env,{autenticarCentral,habilitad
  if(!db||[env.DB,env.DEMO_DB,env.PROVIDER_DB].includes(db)||typeof autenticarCentral!=="function")throw Error("Administrador central no configurado.");
  if(!(await db.prepare("SELECT clave FROM comercio_identidad WHERE clave='lapaz-comercios-v1'").first()))throw Error("Esquema comercial incorrecto.");
  const q=(s,...a)=>db.prepare(s).bind(...a);
- const guard="EXISTS(SELECT 1 FROM central_operadores WHERE id=? AND activo=1)";
+ const guard="EXISTS(SELECT 1 FROM central_operadores WHERE id=? AND activo=1 AND rol='administrador')";
  const id=x=>typeof x==="string"&&x.length>0&&x.length<=128;
  async function actor(r,escritura=false){
   if(habilitado!==true||new URL(r.url).protocol!=="https:"||escritura&&(r.method!=="POST"||r.headers.get("Origin")!==new URL(r.url).origin))throw Error("Operación no autorizada.");
   const i=await autenticarCentral(r);
   if(!id(i?.emisor)||!id(i?.sujeto))throw Error("Identidad central requerida.");
-  const a=await q("SELECT id FROM central_operadores WHERE emisor=? AND sujeto=? AND activo=1",i.emisor,i.sujeto).first();
+  const a=await q("SELECT id FROM central_operadores WHERE emisor=? AND sujeto=? AND activo=1 AND rol='administrador'",i.emisor,i.sujeto).first();
   if(!a)throw Error("Acceso central denegado.");return a.id;
  }
  const log=(a,e,accion,o,anterior,posterior)=>q("INSERT INTO central_auditoria(actor,empresa,accion,objetivo,fecha,anterior,posterior) SELECT ?,?,?,?,?,("+anterior.sql+"),("+posterior.sql+") WHERE changes()=1",a,e,accion,o,reloj(),...anterior.args,...posterior.args);

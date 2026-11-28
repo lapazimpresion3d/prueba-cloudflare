@@ -7,7 +7,7 @@ export async function crearEntregaComercial(env,{habilitado=false,autenticarCent
  if(!db||[env.DB,env.DEMO_DB,env.PROVIDER_DB].includes(db)||typeof autenticarCentral!=="function"||!validarOperativosAsistente(operativos))throw Error("Entrega no configurada.");
  if(!(await db.prepare("SELECT clave FROM comercio_identidad WHERE clave='lapaz-comercios-v1'").first()))throw Error("Esquema incorrecto.");
  const disponibles=Object.freeze([...operativos]),q=(s,...a)=>db.prepare(s).bind(...a);
- const guard="SELECT o.id FROM central_operadores o JOIN central_sesiones s ON s.operador=o.id WHERE o.emisor=? AND o.sujeto=? AND s.hash=? AND o.activo=1 AND o.rol IN ('administrador','implementacion') AND s.revocado IS NULL AND s.expira>? AND s.ultima>? AND (?=0 OR s.creado>?)";
+ const guard="SELECT o.id FROM central_operadores o JOIN central_sesiones s ON s.operador=o.id WHERE o.emisor=? AND o.sujeto=? AND s.hash=? AND o.activo=1 AND o.rol IN ('administrador','implementacion','consulta') AND s.revocado IS NULL AND s.expira>? AND s.ultima>? AND (?=0 OR (s.creado>? AND o.rol IN ('administrador','implementacion')))";
  async function contexto(r,metodo){
   if(habilitado!==true||r.method!==metodo||new URL(r.url).protocol!=="https:"||metodo==="POST"&&r.headers.get("Origin")!==new URL(r.url).origin)throw Error("Entrega no autorizada.");
   const a=await autenticarCentral(r),c=(r.headers.get("Cookie")||"").split(";").map(x=>x.trim()).filter(x=>x.startsWith("__Host-lapaz-central=")),t=c.length===1?c[0].split("=")[1]:"",n=reloj();

@@ -10,7 +10,7 @@ export async function crearCicloComercial(env,{habilitado=false,autenticarCentra
  if(!(await db.prepare("SELECT clave FROM comercio_identidad WHERE clave='lapaz-comercios-v1'").first()))throw Error("Esquema incorrecto.");
  const disponibles=Object.freeze([...operativos]);
  const q=(s,...a)=>db.prepare(s).bind(...a);
- const guard="EXISTS(SELECT 1 FROM central_operadores o JOIN central_sesiones s ON s.operador=o.id WHERE o.emisor=? AND o.sujeto=? AND s.hash=? AND o.activo=1 AND s.revocado IS NULL AND s.expira>? AND s.ultima>?)";
+ const guard="EXISTS(SELECT 1 FROM central_operadores o JOIN central_sesiones s ON s.operador=o.id WHERE o.emisor=? AND o.sujeto=? AND s.hash=? AND o.activo=1 AND o.rol IN (\'administrador\',\'comercial\',\'consulta\') AND s.revocado IS NULL AND s.expira>? AND s.ultima>?)";
  async function contexto(r,empresa,metodo="GET"){
   if(habilitado!==true||r.method!==metodo||metodo==="POST"&&r.headers.get("Origin")!==new URL(r.url).origin||new URL(r.url).protocol!=="https:"||!id(empresa))throw Error("Consulta no autorizada.");
   const a=await autenticarCentral(r),c=(r.headers.get("Cookie")||"").split(";").map(x=>x.trim()).filter(x=>x.startsWith("__Host-lapaz-central=")),t=c.length===1?c[0].slice("__Host-lapaz-central=".length):"",n=reloj();

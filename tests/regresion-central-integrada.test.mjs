@@ -1,3 +1,8 @@
+import {crearDashboardCentral} from "../src/dashboard-central.mjs";
+import {crearProspectosCentral} from "../src/prospectos-central.mjs";
+import {crearPlanesCentral} from "../src/planes-central.mjs";
+import {crearCicloCentral} from "../src/ciclo-central.mjs";
+import {crearImplementacionesCentral} from "../src/implementaciones-central.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import {DatabaseSync} from "node:sqlite";
@@ -20,7 +25,7 @@ async function fixture(){
  return {sql,env,opts,seguridad,auditoria,req,autenticarCentral};
 }
 test("roles reales en SQLite restringen navegación, operaciones y sesiones revocadas",async()=>{const x=await fixture();try{
- const h=crearRutasCentral({habilitado:true,origen,acceso:{autenticarCentral:x.autenticarCentral,cerrar:async()=>({cookie:""})},seguridad:x.seguridad,auditoria});
+ const h=crearRutasCentral({habilitado:true,origen,acceso:{autenticarCentral:x.autenticarCentral,cerrar:async()=>({cookie:""})},seguridad:x.seguridad,auditoria:x.auditoria});
  for(const [rol,permisos] of Object.entries(rolesCentral)){const r=await h(x.req(rol,"/navegacion"));assert.equal(r.status,200);assert.deepEqual((await r.json()).secciones.map(s=>s.id).sort(),permisos.filter(p=>!p.includes(".")).sort());}
  assert.equal((await h(x.req("consulta","/operadores"))).status,403);
  assert.equal((await h(x.req("comercial","/auditoria-datos"))).status,403);
@@ -40,3 +45,5 @@ test("auditoría real pagina sin duplicados y omite campos privados",async()=>{c
  await assert.rejects(x.auditoria.listar(x.req("consulta","/auditoria-datos")));
  }finally{x.sql.close();}});
 test("servicios centrales rechazan binding compartido con demo",async()=>{const x=await fixture();try{await assert.rejects(crearSeguridadCentral({...x.env,DEMO_DB:x.env.COMMERCE_DB},x.opts));await assert.rejects(crearAuditoriaCentral({...x.env,DB:x.env.COMMERCE_DB},{...x.opts,exportaciones:{}}));}finally{x.sql.close();}});
+
+test("adaptadores internos deniegan roles sin depender de rutas HTTP",async()=>{const x=await fixture();try{const dash=await crearDashboardCentral(x.env,x.opts),pros=await crearProspectosCentral(x.env,{...x.opts,altas:{},contratos:{}}),planes=await crearPlanesCentral(x.env,{...x.opts,versiones:{publicar:async()=>{throw Error("No debe invocarse");}}}),ciclo=await crearCicloCentral(x.env,{...x.opts,ciclo:Object.fromEntries(["consultar","historial","suspender","reactivar","cancelar"].map(k=>[k,async()=>{throw Error("No debe invocarse");}]))}),imp=await crearImplementacionesCentral(x.env,{...x.opts,entrega:Object.fromEntries(["consultar","historial","decidir"].map(k=>[k,async()=>{throw Error("No debe invocarse");}]))});await assert.rejects(dash.consultar(x.req("implementacion","/dashboard")),/no autorizada/i);await assert.rejects(pros.listar(x.req("consulta","/altas")),/no autorizada/i);await assert.rejects(planes.listar(x.req("implementacion","/planes-datos")),/no autorizada/i);await assert.rejects(ciclo.listar(x.req("implementacion","/ciclo-datos")),/no autorizada/i);await assert.rejects(imp.listar(x.req("comercial","/implementaciones-datos")),/no autorizada/i);}finally{x.sql.close();}});

@@ -9,7 +9,7 @@ export async function crearPlanesCentral(env,{habilitado=false,autenticarCentral
  if(!db||[env.DB,env.DEMO_DB,env.PROVIDER_DB].includes(db)||typeof autenticarCentral!=="function"||typeof versiones?.publicar!=="function")throw Error("Catálogo no configurado.");
  if(!(await db.prepare("SELECT clave FROM comercio_identidad WHERE clave='lapaz-comercios-v1'").first()))throw Error("Esquema incorrecto.");
  const q=(s,...a)=>db.prepare(s).bind(...a);
- const guard="EXISTS(SELECT 1 FROM central_operadores o JOIN central_sesiones cs ON cs.operador=o.id WHERE o.emisor=? AND o.sujeto=? AND cs.hash=? AND o.activo=1 AND cs.revocado IS NULL AND cs.expira>? AND cs.ultima>? AND (?=0 OR cs.creado>?))";
+ const guard="EXISTS(SELECT 1 FROM central_operadores o JOIN central_sesiones cs ON cs.operador=o.id WHERE o.emisor=? AND o.sujeto=? AND cs.hash=? AND o.activo=1 AND o.rol IN ('administrador','comercial','consulta') AND cs.revocado IS NULL AND cs.expira>? AND cs.ultima>? AND (?=0 OR (cs.creado>? AND o.rol IN ('administrador'))))";
  async function contexto(r,m){
   if(habilitado!==true||r.method!==m||new URL(r.url).protocol!=="https:"||m==="POST"&&r.headers.get("Origin")!==new URL(r.url).origin)throw Error("Operación no autorizada.");
   const a=await autenticarCentral(r),c=(r.headers.get("Cookie")||"").split(";").map(x=>x.trim()).filter(x=>x.startsWith("__Host-lapaz-central=")),t=c.length===1?c[0].slice("__Host-lapaz-central=".length):"",n=reloj();

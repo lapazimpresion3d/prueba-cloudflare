@@ -6,7 +6,7 @@ export async function crearDashboardCentral(env,{habilitado=false,autenticarCent
  const db=env.COMMERCE_DB;
  if(!db||[env.DB,env.DEMO_DB,env.PROVIDER_DB].includes(db)||typeof autenticarCentral!=="function")throw Error("Dashboard no configurado.");
  if(!(await db.prepare("SELECT clave FROM comercio_identidad WHERE clave='lapaz-comercios-v1'").first()))throw Error("Esquema incorrecto.");
- const guard="EXISTS(SELECT 1 FROM central_operadores o JOIN central_sesiones cs ON cs.operador=o.id WHERE o.emisor=? AND o.sujeto=? AND cs.hash=? AND o.activo=1 AND cs.revocado IS NULL AND cs.expira>? AND cs.ultima>?)";
+ const guard="EXISTS(SELECT 1 FROM central_operadores o JOIN central_sesiones cs ON cs.operador=o.id WHERE o.emisor=? AND o.sujeto=? AND cs.hash=? AND o.activo=1 AND o.rol IN ('administrador','comercial','consulta') AND cs.revocado IS NULL AND cs.expira>? AND cs.ultima>?)";
  const q=(sql,...args)=>db.prepare(sql).bind(...args);
  return Object.freeze({async consultar(r){
   if(habilitado!==true||r.method!=="GET"||new URL(r.url).protocol!=="https:")throw Error("Consulta no autorizada.");
