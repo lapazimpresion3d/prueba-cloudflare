@@ -6,7 +6,7 @@ const secciones=[
  ["planes","Paquetes y versiones","Catálogo contractual","disponible"],
  ["implementaciones","Implementación y entrega","Seguimiento comercial","disponible"],
  ["ciclo","Ciclo de vida","Suspensión, recuperación y baja","disponible"],
- ["operadores","Operadores y seguridad","Accesos administrativos","pendiente"],
+ ["operadores","Operadores y seguridad","Accesos administrativos","disponible"],
  ["auditoria","Auditoría y exportaciones","Historial y conservación","pendiente"]
 ];
 export const navegacionCentral=Object.freeze(secciones.map(([id,nombre,descripcion,estado])=>Object.freeze({id,nombre,descripcion,estado})));
