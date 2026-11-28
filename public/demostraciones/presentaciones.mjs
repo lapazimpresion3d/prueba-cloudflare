@@ -79,3 +79,8 @@ export function destacadosDisponibles(t,catalogo){
 const slugsCotizacion=Object.freeze({p1:"presencia-digital",p2:"negocio-interactivo",p3:"gestion-comercial",p4:"gestion-profesional"});
 const girosCotizacion=Object.freeze({"cafe-mirador":"cafeteria","barberia-elite":"barberia","mundo-mascotas":"mascotas","auto-servicio-bahia":"taller","taqueria-el-comal":"restaurante","bahia-tours":"turismo"});
 export function enlaceCotizacion(id,plan){if(!Object.hasOwn(girosCotizacion,id)||!Object.hasOwn(slugsCotizacion,plan))return null;return "https://lapazimpresion3d.com/cotizacion-web.html?paquete="+encodeURIComponent(slugsCotizacion[plan])+"&giro="+encodeURIComponent(girosCotizacion[id])+"#precios-paquetes";}
+
+// Identificadores comerciales; no usar el alias como clave de almacenamiento.
+export function idPublicoDemo(id){return Object.hasOwn(planesRepresentativos,id)?(id==="auto-servicio-bahia"?"torque-automotriz":id):null;}
+export function idInternoDemo(id){const k=id==="torque-automotriz"?"auto-servicio-bahia":id;return Object.hasOwn(planesRepresentativos,k)?k:null;}
+export function enlacesPublicosDemo(id,plan){const k=idInternoDemo(id);if(!k||!Object.hasOwn(slugsCotizacion,plan))return null;const ruta="/"+idPublicoDemo(k),q="?plan="+plan;return {negocio:ruta+q,administracion:ruta+"/panel"+q};}

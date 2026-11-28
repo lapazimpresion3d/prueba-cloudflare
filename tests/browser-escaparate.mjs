@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {mkdir,writeFile} from "node:fs/promises";
 import {establecimientos} from "../public/demostraciones/establecimientos.mjs";
 import {planes} from "../public/demostraciones/config.mjs";
-import {planesRepresentativos,enlaceCotizacion,enlacesDemo} from "../public/demostraciones/presentaciones.mjs";
+import {planesRepresentativos,enlaceCotizacion,enlacesDemo,enlacesPublicosDemo} from "../public/demostraciones/presentaciones.mjs";
 const base=process.env.DEMO_URL||"http://127.0.0.1:8787",dir="evidencia-visual";
 await mkdir(dir,{recursive:true});
 const browser=await chromium.launch({headless:true}),resultados=[],errores=[];
@@ -23,16 +23,16 @@ try{
    await navegar(page,"/torque-automotriz/panel");await page.locator("html[data-demo-lista=si]").waitFor();assert.equal(await page.locator("#nombre-admin").textContent(),"Torque Automotriz");assert.equal(new URL(page.url()).searchParams.get("plan"),"p3");
    await navegar(page,"/auto-servicio-bahia?plan=p2");await page.locator("#pagina").waitFor();assert.equal(await page.locator("#nombre").textContent(),"Torque Automotriz");assert.equal(new URL(page.url()).searchParams.get("plan"),"p2");
    await navegar(page,"/demostraciones/configurar/?negocio=bahia-tours");await page.locator("#plan option").last().waitFor({state:"attached"});assert.equal(await page.locator("#plan").inputValue(),"p4");
-   for(const e of establecimientos){await page.locator("#negocio").selectOption(e.id);for(const p of planes){await page.locator("#plan").selectOption(p.id);const l=enlacesDemo(e.id,p.id,true);await link(page.locator("#abrir"),l.negocio);await link(page.locator("#editar"),l.administracion);await link(page.locator("#cotizar-paquete"),enlaceCotizacion(e.id,p.id));}}
+   for(const e of establecimientos){await page.locator("#negocio").selectOption(e.id);for(const p of planes){await page.locator("#plan").selectOption(p.id);const l=enlacesDemo(e.id,p.id,true);await link(page.locator("#abrir"),l.negocio);await link(page.locator("#editar"),l.administracion);await link(page.locator("#cotizar-paquete"),enlaceCotizacion(e.id,p.id));const card=page.locator(".comparacion-plan[data-plan="+p.id+"]");assert.equal(await card.locator("button").getAttribute("aria-pressed"),"true");const pub=enlacesPublicosDemo(e.id,p.id);await link(card.getByRole("link",{name:"Ver página web"}),pub.negocio);await link(card.getByRole("link",{name:"Ver panel administrativo"}),pub.administracion);}}await ancho(page);
   });
   for(const e of establecimientos)for(const p of planes)await caso(e.id+"-"+p.id+"-"+viewport.width,viewport,async page=>{
    await navegar(page,"/"+(e.id==="auto-servicio-bahia"?"torque-automotriz":e.id)+"?plan="+p.id);
    const turismo=e.id==="bahia-tours";
    if(turismo){await page.locator("#catalogo .tour").first().waitFor();assert.equal(await page.locator("#plan").inputValue(),p.id);assert.equal(await page.locator("#gestion,#panel-comun,#agenda-tours,#pasajeros-tours,#editor-tours,#funciones,#pendientes").count(),0);assert.equal(await page.locator("#mis-reservas").isVisible(),p.id!=="p1");assert.equal(await page.locator("#reservar").isVisible(),p.id!=="p1");assert.equal(await page.locator("#promo-campo").isVisible(),p.id==="p4");await page.locator("#idioma").click();assert.equal(await page.locator("html").getAttribute("lang"),"en");assert.equal(await page.locator("h1").textContent(),"The sea, at your own pace.");await page.locator("#idioma").click();}
-   else{await page.locator("#pagina").waitFor();assert.equal(await page.locator("#nombre").textContent(),e.nombre);assert.ok(await page.locator("#productos").isVisible());}
+   else{await page.locator("#pagina").waitFor();assert.equal(await page.locator("#nombre").textContent(),e.nombre);assert.ok(await page.locator("#productos").isVisible());assert.equal(await page.locator(".acceso-empresa").isVisible(),false);}
    const admin=page.locator(turismo?"#panel-arriba":"#administracion-arriba");await link(admin,enlacesDemo(e.id,p.id).administracion);await link(page.locator("#cotizar-paquete"),enlaceCotizacion(e.id,p.id));await ancho(page);
    if(p.id===planesRepresentativos[e.id])await foto(page,e.id+"-publica-"+viewport.width);
-   await admin.click();await page.locator("html[data-demo-lista=si]").waitFor();assert.equal(await page.locator("#nombre-admin").textContent(),e.nombre);assert.equal(await page.locator("#admin-plan").textContent(),p.nombre);assert.ok(await page.locator("#admin-inicio").isVisible());
+   await admin.click();await page.locator("html[data-demo-lista=si]").waitFor();assert.equal(new URL(page.url()).searchParams.get("plan"),p.id);await navegar(page,enlacesPublicosDemo(e.id,p.id).administracion);await page.locator("html[data-demo-lista=si]").waitFor();assert.equal(await page.locator("#nombre-admin").textContent(),e.nombre);assert.equal(await page.locator("#admin-plan").textContent(),p.nombre);assert.ok(await page.locator("#admin-inicio").isVisible());
    if(await page.locator("#admin-menu").isVisible()&&await page.locator("#admin-menu").getAttribute("aria-expanded")==="false")await page.locator("#admin-menu").click();
    if(turismo){assert.equal(await page.locator("#admin-turismo").isVisible(),p.id!=="p1");assert.equal(await page.locator("#admin-economia-turismo").isVisible(),["p3","p4"].includes(p.id));assert.equal(await page.locator("#admin-rentabilidad-turismo").isVisible(),p.id==="p4");}
    await ancho(page);if(p.id===planesRepresentativos[e.id])await foto(page,e.id+"-panel-"+viewport.width);

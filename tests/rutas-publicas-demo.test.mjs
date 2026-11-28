@@ -12,3 +12,5 @@ test("permite exclusivamente la dependencia pura compartida, no el administrador
 test("Bahía Tours representa P4 y conserva acceso explícito a P1–P4",()=>{for(const path of ["/bahia-tours","/bahia-tours/panel"]){const u=new URL("https://example.test"+path);assert.match(destinoDemo(u),/plan=p4/);for(const p of planes){u.searchParams.set("plan",p.id);assert.match(destinoDemo(u),new RegExp("plan="+p.id));}}});
 
 test("Torque Automotriz P3 conserva alias anterior y los cuatro paquetes",()=>{for(const sufijo of ["","/panel"]){const a="https://demo.invalid/auto-servicio-bahia"+sufijo,b="https://demo.invalid/torque-automotriz"+sufijo;assert.match(destinoDemo(new URL(b)),/negocio=auto-servicio-bahia&plan=p3/);for(const p of planes)assert.equal(destinoDemo(new URL(b+"?plan="+p.id)),destinoDemo(new URL(a+"?plan="+p.id)));assert.equal(destinoDemo(new URL(b+"?plan=p9")),null);}});
+
+test("rutas públicas rechazan parámetros de paquete ambiguos y desconocidos",()=>{for(const p of ["/torque-automotriz","/bahia-tours/panel"]){for(const q of ["?plan=p1&plan=p4","?plan=","?plan=p9"])assert.equal(destinoDemo(new URL("https://demo.invalid"+p+q)),null);}});

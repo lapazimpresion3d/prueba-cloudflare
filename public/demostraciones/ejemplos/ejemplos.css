@@ -7,3 +7,5 @@
 
 /* Fichas breves, acciones alineadas al pie. */
 .info{display:flex;flex-direction:column;align-items:stretch}.info .funciones-principales{line-height:1.45;display:grid;gap:4px}.modulos-pendientes{border-top:1px solid #e3e8eb;padding-top:9px;margin-top:3px}.modulos-pendientes>strong{display:block;margin-top:10px}.modulos-pendientes>ul{margin-top:5px}.accesos-demo{margin-top:auto}.accesos-demo .accion:last-child{font-size:.85rem;border-color:transparent;color:#344951;padding:8px}.accesos-demo .accion:last-child:hover{text-decoration:underline}
+
+.comparacion-paquetes{margin-top:32px;display:grid;gap:12px}.comparacion-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px}.comparacion-plan{min-width:0;border:1px solid #d9e0e5;border-radius:12px;background:white;padding:16px;display:flex;flex-direction:column;gap:10px}.comparacion-plan h3{margin:0;font-size:1rem}.comparacion-plan p{font-size:.85rem}.comparacion-plan .plan{margin-top:auto;min-height:44px}.comparacion-plan a{font-size:.85rem;overflow-wrap:anywhere}
