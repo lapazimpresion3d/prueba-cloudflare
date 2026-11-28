@@ -12,7 +12,7 @@ function extraer(request){
 }
 // Internal proof for SQL revalidation; never expose the hash in HTTP responses.
 export async function hashSesionComercial(request){const t=extraer(request);return t?hash(t):null;}
-export async function crearSesionesComerciales(env,{verificarIdentidad,habilitado=false,reloj=Date.now}={}){
+export async function crearSesionesComerciales(env,{verificarIdentidad,habilitado=false,reloj=Date.now,exigirMembresia=false}={}){
  const db=env.COMMERCE_DB;
  if(!db||[env.DB,env.DEMO_DB,env.PROVIDER_DB].includes(db)||typeof verificarIdentidad!=="function")throw Error("Sesiones comerciales no configuradas.");
  if(!(await db.prepare("SELECT clave FROM comercio_identidad WHERE clave='lapaz-comercios-v1'").first()))throw Error("Esquema comercial incorrecto.");
@@ -36,7 +36,7 @@ export async function crearSesionesComerciales(env,{verificarIdentidad,habilitad
   if(!i||i.emailVerified!==true||typeof i.emisor!=="string"||!i.emisor||i.emisor.length>128||typeof i.sujeto!=="string"||!i.sujeto||i.sujeto.length>128)throw Error("Identidad comercial no verificada.");
   const token=hex(crypto.getRandomValues(new Uint8Array(32))),h=await hash(token),n=reloj();
   // Single SQL statement: the cap is checked against active sessions in the same write.
-  const r=await q("INSERT INTO comercio_sesiones(hash,usuario,creado,expira,ultima,identificador) SELECT ?,id,?,?,?,? FROM usuarios WHERE emisor=? AND sujeto=? AND activo=1 AND (SELECT count(*) FROM comercio_sesiones WHERE usuario=usuarios.id AND "+vigencia+")<? RETURNING usuario",h,n,n+DURACION,n,crypto.randomUUID(),i.emisor,i.sujeto,n,n-INACTIVIDAD,MAX_SESIONES_COMERCIALES);
+  const r=await q("INSERT INTO comercio_sesiones(hash,usuario,creado,expira,ultima,identificador) SELECT ?,id,?,?,?,? FROM usuarios WHERE emisor=? AND sujeto=? AND activo=1 AND (?=0 OR EXISTS(SELECT 1 FROM membresias m JOIN empresas e ON e.id=m.empresa WHERE m.usuario=usuarios.id AND m.activa=1 AND e.activa=1 AND (m.alcance='empresa' OR EXISTS(SELECT 1 FROM membresia_sucursales ms JOIN sucursales b ON b.empresa=ms.empresa AND b.id=ms.sucursal AND b.activa=1 WHERE ms.empresa=m.empresa AND ms.usuario=m.usuario)))) AND (SELECT count(*) FROM comercio_sesiones WHERE usuario=usuarios.id AND "+vigencia+")<? RETURNING usuario",h,n,n+DURACION,n,crypto.randomUUID(),i.emisor,i.sujeto,exigirMembresia===true?1:0,n,n-INACTIVIDAD,MAX_SESIONES_COMERCIALES);
   if(!r)throw Error("No se pudo iniciar sesión comercial.");
   return {cookie:cookie(token,DURACION/1000),expira:n+DURACION};
  },
