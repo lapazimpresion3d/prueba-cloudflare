@@ -11,6 +11,6 @@ export default {async fetch(request,env){
   const destino=destinoDemo(url);if(destino)return Response.redirect(new URL(destino,url),302);
  }
  if(p.startsWith("/api/demo/")){try{return await atenderDemo(request,{},url,json)??json({error:"Ruta no disponible"},404);}catch(e){if(e instanceof ErrorSolicitud)return json({error:e.message},e.status);const incidente=incidenteSeguro("api_demo");console.error(JSON.stringify(incidente));return json({error:"Error interno de API.",incidente:incidente.id},500);}}
- if((request.method==="GET"||request.method==="HEAD")&&(p.startsWith("/demostraciones/")&&!p.startsWith("/demostraciones/administrador-central")||/^\/imagenes\/[a-z0-9_-]+\.webp$/i.test(p)))return env.ASSETS.fetch(request);
+ if((request.method==="GET"||request.method==="HEAD")&&((p==="/demostraciones/administrador-central/gestion.mjs"||p.startsWith("/demostraciones/")&&!p.startsWith("/demostraciones/administrador-central"))||/^\/imagenes\/[a-z0-9_-]+\.webp$/i.test(p)))return env.ASSETS.fetch(request);
  return json({error:"Ruta no disponible"},404);
 }};
