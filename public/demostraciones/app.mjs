@@ -56,6 +56,7 @@ function guardarURL(){
   $("admin-ver-negocio").href=enlacesDemo(negocio.id,plan.id,true).negocio;$("admin-salir").href=enlacesDemo(negocio.id,plan.id,true).negocio;
   $("ver-catalogo-editado").href=enlacesDemo(negocio.id,plan.id,true).negocio;
   $("ver-original").href=enlaces.negocio;
+  $("admin-salidas").hidden=negocio.giro!=="turismo"||!["p3","p4"].includes(plan.id);$("admin-salidas").href="/demostraciones/salidas/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
   $("admin-turismo").hidden=negocio.giro!=="turismo"||plan.id==="p1";$("admin-turismo").href="/demostraciones/turismo/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id})+"#gestion";
   $("admin-suscripcion").href="/demostraciones/suscripcion/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
   $("admin-soporte").href="/demostraciones/soporte/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});

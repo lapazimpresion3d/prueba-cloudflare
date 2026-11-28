@@ -13,7 +13,7 @@ export const planes = [
 export const modulos = [
   {id:"turismo_bilingue",nombre:"Página turística bilingüe",desde:1,estado:"disponible",giros:["turismo"],detalle:"Español e inglés; editor especializado de experiencias, fotos y temporadas de práctica."},
   {id:"turismo_reservas",nombre:"Reservaciones turísticas y cupos",desde:2,estado:"disponible",giros:["turismo"],detalle:"Salidas, pasajeros, tarifas y cancelaciones locales de práctica."},
-  {id:"turismo_recursos",nombre:"Guías, embarcaciones y salidas editables",desde:3,estado:"en_desarrollo",giros:["turismo"],detalle:"Gestión de recursos y calendario administrativo pendiente."},
+  {id:"turismo_recursos",nombre:"Guías, embarcaciones y salidas editables",desde:3,estado:"disponible",giros:["turismo"],detalle:"Calendario y asignación de recursos de práctica con bloqueos y conflictos."},
   {id:"turismo_cobros",nombre:"Anticipos, saldos y caja turística",desde:3,estado:"en_desarrollo",giros:["turismo"],detalle:"Conciliación turística pendiente."},
   {id:"turismo_reportes",nombre:"Reportes turísticos",desde:3,estado:"en_desarrollo",giros:["turismo"],detalle:"Ocupación e ingresos por salida pendientes."},
   {id:"turismo_costos",nombre:"Rentabilidad, comisiones y automatizaciones turísticas",desde:4,estado:"en_desarrollo",giros:["turismo"],detalle:"Gestión avanzada pendiente."},
