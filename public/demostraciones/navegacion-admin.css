@@ -3,8 +3,17 @@
 /* Barrera de primer render: el HTML ya nace en estado cargando. No usa temporizadores. */
 html[data-modulo-estado]:not([data-modulo-estado=listo]){background:#f2f5f8;color:#263849}
 html[data-modulo-estado]:not([data-modulo-estado=listo]) body{margin:0;background:#f2f5f8}
-html[data-modulo-estado]:not([data-modulo-estado=listo]) body>:not(#arranque-modulo){display:none!important}
+html[data-modulo-estado=cargando] body>:not(#arranque-modulo),html[data-modulo-estado=error] body>:not(#arranque-modulo){display:none!important}
 #arranque-modulo{box-sizing:border-box;max-width:560px;width:calc(100% - 32px);margin:clamp(28px,8vh,80px) auto 0;padding:20px;background:#fff;border:1px solid #d8dee5;border-radius:12px;font:16px system-ui;color:#263849}
 #arranque-modulo p{margin:0 0 12px;line-height:1.5}#arranque-modulo a{color:#175779}#arranque-modulo button{margin:12px 0 0;display:block;min-height:44px;cursor:pointer}
 html[data-modulo-estado=listo] #arranque-modulo,#arranque-modulo[hidden]{display:none!important}
 body.modo-modulo-admin>.barra{padding:12px 24px;justify-content:space-between}
+
+/* Navegación temprana: el contenido permanece protegido hasta terminar el módulo. */
+html[data-modulo-estado=cargando] #arranque-modulo,html[data-modulo-estado=navegando] #arranque-modulo{display:none!important}
+html[data-modulo-estado=navegando] .admin-shell>main{visibility:hidden;min-height:180px}
+html[data-modulo-estado=navegando] .admin-shell{position:relative}
+html[data-modulo-estado=navegando] .admin-shell::after{content:"";position:absolute;left:296px;right:24px;top:24px;height:3px;border-radius:4px;background:linear-gradient(90deg,#dbe5ed,#729bb4,#dbe5ed);background-size:200% 100%;animation:avance-admin 1.2s linear infinite;pointer-events:none}
+@keyframes avance-admin{to{background-position:-200% 0}}
+@media(max-width:780px){html[data-modulo-estado=navegando] .admin-shell::after{left:14px;right:14px;top:auto;bottom:120px}}
+@media(prefers-reduced-motion:reduce){html[data-modulo-estado=navegando] .admin-shell::after{animation:none}}

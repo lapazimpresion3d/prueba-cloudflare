@@ -21,10 +21,8 @@ try{
   ]){
    let liberar;const espera=new Promise(r=>{liberar=r;});
    await page.route(patron,async route=>{await espera;await route.continue();});
-   try{await abrir(page,url);await page.locator(loader).waitFor({state:"visible"});
-    assert.ok(!(await page.locator("body>header").isVisible()));
-    if(loader==="#arranque-modulo"){assert.ok(!(await page.locator("main").isVisible()));assert.ok(!(await page.locator(".admin-shell").isVisible()));}
-    else assert.ok(!(await page.locator("#introduccion").isVisible()));
+   try{await abrir(page,url);if(loader==="#arranque-modulo"){await page.locator("html[data-modulo-estado=navegando]").waitFor();assert.ok(await page.locator(".admin-sidebar").isVisible());assert.ok(await page.locator("body>header").isVisible());assert.ok(!(await page.locator("main").isVisible()));assert.ok(!(await page.locator(loader).isVisible()));}
+    else{await page.locator(loader).waitFor({state:"attached"});assert.ok(!(await page.locator(loader).isVisible()));assert.ok(!(await page.locator("#introduccion").isVisible()));}
    }finally{liberar();}
    await ready(page);await page.unroute(patron);
   }

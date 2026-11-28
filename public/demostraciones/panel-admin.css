@@ -7,3 +7,10 @@ html:not([data-demo-lista=si]) main:has(>#arranque-panel)>section:not(#arranque-
 /* El arranque del panel principal no debe afectar los módulos independientes. */
 html:has(#arranque-panel):not([data-demo-lista=si]) body>.barra{display:none!important}
 #arranque-panel{max-width:560px;margin:clamp(28px,8vh,80px) auto 0;width:100%;border-color:#d8dee5;font:16px system-ui;color:#263849}
+
+/* Transición nativa entre documentos cuando el navegador la admite. */
+@view-transition{navigation:auto}
+::view-transition-old(root){animation:120ms ease-out both admin-salida}::view-transition-new(root){animation:160ms ease-in both admin-entrada}
+@keyframes admin-salida{to{opacity:0}}@keyframes admin-entrada{from{opacity:0}}
+@media(prefers-reduced-motion:reduce){::view-transition-old(root),::view-transition-new(root){animation:none}}
+html:has(#arranque-panel):not([data-demo-lista=si]) #arranque-panel:not([data-error]){visibility:hidden}
