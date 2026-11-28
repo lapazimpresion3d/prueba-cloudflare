@@ -4,13 +4,14 @@ import { planes, modulos, capacidades } from "../public/demostraciones/config.mj
 import { establecimientos, obtenerEstablecimiento, filtrarCatalogo } from "../public/demostraciones/establecimientos.mjs";
 
 test("cinco negocios y cuatro planes con importes exactos en centavos",()=>{
-  assert.deepEqual(establecimientos.map(e=>e.nombre),["Café Mirador","Barbería Elite","Mundo Mascotas","Taquería El Comal","Auto Servicio Bahía"]);
+  assert.deepEqual(establecimientos.map(e=>e.nombre),["Café Mirador","Barbería Elite","Mundo Mascotas","Taquería El Comal","Auto Servicio Bahía","Bahía Tours"]);
   assert.deepEqual(planes.map(p=>[p.implementacion,p.mensualidad]),[[75000,14900],[150000,24900],[250000,34900],[350000,49900]]);
-  assert.equal(new Set(establecimientos.map(e=>e.id)).size,5);
+  assert.equal(new Set(establecimientos.map(e=>e.id)).size,6);
 });
 test("20 combinaciones independientes; pedidos de práctica solo en giros y planes compatibles",()=>{
   for(const e of establecimientos)for(const p of planes){
     const lista=capacidades(e,p.id);
+    if(e.giro==="turismo"){assert.deepEqual(lista.filter(m=>m.estadoEfectivo==="disponible").map(m=>m.id),["turismo_bilingue",...(p.id==="p1"?[]:["turismo_reservas"]),"web","catalogo"]);continue;}
     const interactivo=p.id!=="p1"&&["cafeteria","tienda","restaurante"].includes(e.giro);
     const citas=p.id!=="p1"&&["barberia","taller"].includes(e.giro);
     assert.deepEqual(lista.filter(m=>m.estadoEfectivo==="disponible").map(m=>m.id),interactivo?["web","catalogo","pedidos","seguimiento",...(e.giro==="restaurante"?["reservaciones","qr_mesa"]:[]),"clientes",...(["restaurante","cafeteria"].includes(e.giro)?["cocina"]:[]),"pagos",...(["p3","p4"].includes(p.id)?["pos","caja","comprobantes","inventario","almacen","compras","reportes"]:[]),...(e.giro==="restaurante"&&["p3","p4"].includes(p.id)?["mesas"]:[]),...(e.giro==="tienda"&&["p3","p4"].includes(p.id)?["cotizaciones","ordenes_servicio"]:[]),...(p.id==="p4"?["fidelizacion","recetas","automatizaciones"]:[])]:citas?["web","catalogo","citas","agendas","clientes",...(["p3","p4"].includes(p.id)?["pos","caja","comprobantes","inventario","almacen","compras","reportes"]:[]),...(["p3","p4"].includes(p.id)?["cotizaciones","ordenes_servicio"]:[]),...(p.id==="p4"?["fidelizacion","recetas","automatizaciones"]:[])]:["web","catalogo"]);
@@ -56,6 +57,7 @@ test("catálogos separados, IDs locales, datos tipados y filtros",()=>{
 test("la configuración central propaga disponibilidad a todos los giros compatibles",()=>{
   const nuevo=modulos.map(m=>m.id==="clientes"?{...m,estado:"disponible"}:m);
   for(const e of establecimientos){
+    if(e.giro==="turismo")continue;
     assert.equal(capacidades(e,"p2",nuevo).find(m=>m.id==="clientes").estadoEfectivo,"disponible");
     assert.equal(capacidades(e,"p1",nuevo).find(m=>m.id==="clientes").estadoEfectivo,"otro_plan");
   }

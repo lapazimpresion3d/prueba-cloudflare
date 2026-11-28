@@ -21,8 +21,9 @@ export function enlacesAdmin(id,plan,contexto={}){
  ruta("admin-auditoria","auditoria");ruta("admin-soporte","soporte");ruta("admin-suscripcion","suscripcion");
  if(admitePos(id,plan))for(const k of ["pos","caja","comprobantes","inventario","almacen","compras","reportes"])ruta("admin-"+k,k);
  if(admiteCotizaciones(id,plan))ruta("admin-cotizaciones","cotizaciones");
- if(plan!=="p1")ruta("admin-clientes","clientes");
- if(plan==="p4"){ruta("admin-alertas","alertas");ruta("admin-recetas","recetas");ruta("admin-fidelizacion","fidelizacion");}
+ if(plan!=="p1"&&id!=="bahia-tours")ruta("admin-clientes","clientes");
+ if(id==="bahia-tours"&&plan!=="p1")links["admin-turismo"]="/demostraciones/turismo/?"+new URLSearchParams({negocio:id,plan})+"#gestion";
+ if(plan==="p4"&&id!=="bahia-tours"){ruta("admin-alertas","alertas");ruta("admin-recetas","recetas");ruta("admin-fidelizacion","fidelizacion");}
  if(admitePedidos(id,plan))ruta("admin-pedidos","pedidos");
  if(admiteCitas(id,plan))ruta("admin-citas","citas",{vista:"agenda"});
  if(admiteCocina(id,plan))ruta("admin-cocina","cocina");

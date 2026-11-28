@@ -1,4 +1,5 @@
 import {menuComalPractica} from "./menu-comal-practica.mjs";
+import {experiencias} from "./turismo-practica.mjs";
 import {fotoDemo} from "./identidad.mjs";
 // Semillas ficticias independientes; no consultar /menu.json ni API operativas.
 // Los alimentos de El Comal reutilizan referencias del menú estático, no sus datos vivos.
@@ -261,7 +262,8 @@ const semillas = [
         "Referencia ilustrativa."
       ]
     ]
-  }
+  },
+  {id:"bahia-tours",nombre:"Bahía Tours",giro:"turismo",giroNombre:"Turismo y experiencias",marca:{icono:"🚤",color:"#146d73",fondo:"#dcefeb",lema:"El mar, a tu ritmo",descripcion:"Paseos turísticos y experiencias de ejemplo en La Paz."},horario:"Salidas de ejemplo · 09:00 a 19:00",ubicacion:"Ubicación de ejemplo · La Paz, BCS",catalogo:experiencias.map(e=>[e.id,e.es,({espiritu:"Islas",bahia:"Bahía",atardecer:"Atardeceres"})[e.id],"servicio",e.adulto,e.descEs,e.duracion*60])}
 ];
 export const establecimientos = semillas.map(({catalogo,...perfil}) => ({
   ...perfil,

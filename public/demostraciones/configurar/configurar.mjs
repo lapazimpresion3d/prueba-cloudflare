@@ -16,7 +16,7 @@ function actualizar(){
  $("lista-pendientes").replaceChildren(...resto.map(m=>item(m.nombre+" · "+(m.estadoEfectivo==="ejemplo"?"Vista previa":"En desarrollo"))));
  $("pendientes").hidden=!resto.length;
  const links=enlacesDemo(e.id,p.id,true);
- $("abrir").href=links.negocio;$("editar").href=links.administracion;$("cotizar-paquete").href=enlaceCotizacion(e.id,p.id);
+ $("abrir").href=links.negocio;$("editar").href=links.administracion;$("cotizar-paquete").href=e.giro==="turismo"?"https://lapazimpresion3d.com/#paginas-web":enlaceCotizacion(e.id,p.id);
  try{history.replaceState(null,"",enlaceConfigurador(e.id,p.id));}catch{}
 }
 $("negocio").addEventListener("change",()=>{$("plan").value=planesRepresentativos[$("negocio").value];actualizar();});

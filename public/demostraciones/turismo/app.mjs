@@ -1,7 +1,9 @@
 import {planes} from "../config.mjs";
+import {enlacesDemo} from "../presentaciones.mjs";
 import {experiencias,clientes,crearTurismo,cotizarTurismo,enlaceTurismo,planesTurismo} from "../turismo-practica.mjs";
 const $=id=>document.getElementById(id),q=new URLSearchParams(location.search),plan=q.get("plan")??"p3";
 let en=q.get("lang")==="en",s;const tr=(es,eng)=>en?eng:es,el=(tag,t,cls)=>{const x=document.createElement(tag);if(t!==undefined)x.textContent=t;if(cls)x.className=cls;return x;},money=n=>new Intl.NumberFormat(en?"en-US":"es-MX",{style:"currency",currency:"MXN",currencyDisplay:"code"}).format(n/100);
+$("panel-comun").href=enlacesDemo("bahia-tours",plan).administracion;
 const f=$("form"),nombre=x=>en?x.en:x.es;
 const featsEn={"Página bilingüe":"Bilingual website","Catálogo de experiencias":"Experience catalog","Salidas y disponibilidad":"Departures and availability","Reservaciones por pasajeros":"Passenger bookings","Consulta de reservaciones y cancelación de práctica":"View and cancel sample bookings","Anticipos, saldos y caja":"Deposits, balances and cash register","Guías y embarcaciones editables":"Editable guides and boats","Reportes de ocupación y ventas":"Occupancy and sales reports","Costos y rentabilidad":"Costs and profitability","Comisiones y automatizaciones":"Commissions and automation"};
 function error(e){$("aviso").textContent=e.message;}

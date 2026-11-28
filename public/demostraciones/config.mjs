@@ -11,6 +11,12 @@ export const planes = [
 // en_desarrollo = requiere implementación/adaptación; ejemplo = vista previa sin operación.
 // No elevar un estado hasta contar con pruebas y un adaptador aislado.
 export const modulos = [
+  {id:"turismo_bilingue",nombre:"Página turística bilingüe",desde:1,estado:"disponible",giros:["turismo"],detalle:"Español e inglés; catálogo de experiencias de ejemplo."},
+  {id:"turismo_reservas",nombre:"Reservaciones turísticas y cupos",desde:2,estado:"disponible",giros:["turismo"],detalle:"Salidas, pasajeros, tarifas y cancelaciones locales de práctica."},
+  {id:"turismo_recursos",nombre:"Guías, embarcaciones y salidas editables",desde:3,estado:"en_desarrollo",giros:["turismo"],detalle:"Gestión de recursos y calendario administrativo pendiente."},
+  {id:"turismo_cobros",nombre:"Anticipos, saldos y caja turística",desde:3,estado:"en_desarrollo",giros:["turismo"],detalle:"Conciliación turística pendiente."},
+  {id:"turismo_reportes",nombre:"Reportes turísticos",desde:3,estado:"en_desarrollo",giros:["turismo"],detalle:"Ocupación e ingresos por salida pendientes."},
+  {id:"turismo_costos",nombre:"Rentabilidad, comisiones y automatizaciones turísticas",desde:4,estado:"en_desarrollo",giros:["turismo"],detalle:"Gestión avanzada pendiente."},
   {id:"web", nombre:"Página e identidad visual", desde:1, estado:"disponible", detalle:"Identidad, horarios e información de ejemplo del negocio."},
   {id:"catalogo", nombre:"Catálogo de productos y servicios", desde:1, estado:"disponible", detalle:"Consulta, filtrado y editor de práctica local; no es administración SaaS."},
   {id:"qr_nfc", nombre:"QR y NFC", desde:1, estado:"en_desarrollo", detalle:"Acceso opcional por enlace, QR o NFC; generación y gestión pendientes."},
@@ -43,7 +49,7 @@ export const modulos = [
 export function capacidades(establecimiento, planId, registro = modulos) {
   const nivel = planes.findIndex(p => p.id === planId) + 1;
   if (!establecimiento || !nivel) return [];
-  const aplicables = registro.filter(m => !m.giros || m.giros.includes(establecimiento.giro));
+  const aplicables = registro.filter(m => (!m.giros || m.giros.includes(establecimiento.giro)) && (establecimiento.giro!=="turismo" || m.id.startsWith("turismo_") || ["web","catalogo","qr_nfc","administracion"].includes(m.id)));
   const porId = new Map(aplicables.map(m => [m.id,m]));
   function disponible(m, visitados = new Set()) {
     if (!m || m.desde > nivel || m.estado !== "disponible" || visitados.has(m.id)) return false;

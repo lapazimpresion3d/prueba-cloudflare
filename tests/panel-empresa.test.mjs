@@ -7,7 +7,7 @@ import {crearPanelPrivado} from "../src/panel-empresa-privado.mjs";
 test("20 contextos y capacidades sin duplicar matriz",()=>{
  const claves=new Set();
  for(const e of establecimientos)for(const p of planes){const c=contextoEmpresa(e.id,p.id);claves.add(c.clave);assert.deepEqual(c.modulos,capacidades(e,p.id));}
- assert.equal(claves.size,20);assert.throws(()=>contextoEmpresa("otro","p1"));assert.throws(()=>contextoEmpresa(establecimientos[0].id,"p9"));
+ assert.equal(claves.size,24);assert.throws(()=>contextoEmpresa("otro","p1"));assert.throws(()=>contextoEmpresa(establecimientos[0].id,"p9"));
 });
 test("aislamiento, límites y restauración",()=>{
  const m=new Map(),s={getItem:k=>m.get(k),setItem:(k,v)=>m.set(k,v),removeItem:k=>m.delete(k)};

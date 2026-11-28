@@ -1,6 +1,7 @@
 // Presentaciones públicas independientes de los controles de desarrollo.
 // Las cinco plantillas comparten los datos, no duplican los módulos.
 export const presentaciones={
+  "bahia-tours":{estilo:"turismo",sigla:"BT",distintivo:"ISLAS · MAR · EXPERIENCIAS",titulo:"El mar, a tu ritmo.",entrada:"Paseos y reservaciones bilingües de práctica.",catalogo:"Experiencias",accion:"Explorar experiencias",seccion:"Descubre la bahía",texto:"Recorridos de ejemplo.",destacados:["Islas","Bahía","Atardeceres"],iconos:{Islas:"🏝️",Bahía:"🚤",Atardeceres:"🌅"}},
   "cafe-mirador":{
     estilo:"cafe",sigla:"CM",distintivo:"CAFÉ · REPOSTERÍA · DESAYUNOS",
     titulo:"Una buena pausa empieza con un buen café.",
@@ -46,20 +47,21 @@ export function presentacionDe(id){return Object.hasOwn(presentaciones,id)?prese
 export function enlacesDemo(id,plan,practica=false){
   const q=new URLSearchParams({negocio:id,plan});
   const administracion="/demostraciones/?"+q+"&vista=administracion";
-  const negocio="/demostraciones/negocio/?"+q+(practica?"&practica=1":"");
+  const negocio=(id==="bahia-tours"?"/demostraciones/turismo/?":"/demostraciones/negocio/?")+q+(practica?"&practica=1":"");
   return {administracion,negocio,comparador:"/demostraciones/?"+q};
 }
 
 // Ejemplos representativos: no son restricciones comerciales del giro.
 export const planesRepresentativos=Object.freeze({
  "cafe-mirador":"p1","barberia-elite":"p2","mundo-mascotas":"p3",
- "taqueria-el-comal":"p4","auto-servicio-bahia":"p2"
+ "taqueria-el-comal":"p4","auto-servicio-bahia":"p2","bahia-tours":"p3"
 });
 export function enlaceGaleria(){return "/demostraciones/ejemplos/";}
 export function enlaceConfigurador(id,plan){return "/demostraciones/configurar/?"+new URLSearchParams({negocio:id,plan});}
 
 // Símbolos vectoriales originales, decorativos y sin recursos externos.
 export const simbolos={
+ turismo:'<path d="M12 60h72L70 78H25ZM35 60V24l30 30H35M12 86q12-8 24 0t24 0t24 0"/>',
  cafe:'<path d="M18 42h50v10a25 25 0 0 1-50 0z"/><path d="M68 45h9a9 9 0 0 1 0 18h-14M13 79h61M30 32c-9-8 9-12 0-20M45 32c-9-8 9-12 0-20M60 32c-9-8 9-12 0-20"/>',
  barberia:'<circle cx="25" cy="72" r="13"/><circle cx="65" cy="72" r="13"/><path d="M34 62 74 15 77 29 46 65M56 62 16 15 13 29 44 65"/><circle cx="45" cy="48" r="3"/>',
  mascotas:'<ellipse cx="22" cy="35" rx="9" ry="12" transform="rotate(-24 22 35)"/><ellipse cx="39" cy="22" rx="9" ry="12" transform="rotate(-10 39 22)"/><ellipse cx="59" cy="22" rx="9" ry="12" transform="rotate(10 59 22)"/><ellipse cx="76" cy="35" rx="9" ry="12" transform="rotate(24 76 35)"/><path d="M49 44c-12 0-15 12-26 22-14 14 4 29 18 20 5-3 11-3 16 0 14 9 32-6 18-20C64 56 61 44 49 44Z"/>',
@@ -75,5 +77,5 @@ export function destacadosDisponibles(t,catalogo){
 
 // Solo parámetros comerciales conocidos; no compartir identidad, sesión ni datos de práctica.
 const slugsCotizacion=Object.freeze({p1:"presencia-digital",p2:"negocio-interactivo",p3:"gestion-comercial",p4:"gestion-profesional"});
-const girosCotizacion=Object.freeze({"cafe-mirador":"cafeteria","barberia-elite":"barberia","mundo-mascotas":"mascotas","auto-servicio-bahia":"taller","taqueria-el-comal":"restaurante"});
+const girosCotizacion=Object.freeze({"cafe-mirador":"cafeteria","barberia-elite":"barberia","mundo-mascotas":"mascotas","auto-servicio-bahia":"taller","taqueria-el-comal":"restaurante","bahia-tours":"turismo"});
 export function enlaceCotizacion(id,plan){if(!Object.hasOwn(girosCotizacion,id)||!Object.hasOwn(slugsCotizacion,plan))return null;return "https://lapazimpresion3d.com/cotizacion-web.html?paquete="+encodeURIComponent(slugsCotizacion[plan])+"&giro="+encodeURIComponent(girosCotizacion[id])+"#precios-paquetes";}
