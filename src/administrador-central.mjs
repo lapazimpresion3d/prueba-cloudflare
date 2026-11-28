@@ -8,7 +8,7 @@ export async function crearAdministradorCentral(env,{autenticarCentral,habilitad
  const guard="EXISTS(SELECT 1 FROM central_operadores WHERE id=? AND activo=1)";
  const id=x=>typeof x==="string"&&x.length>0&&x.length<=128;
  async function actor(r,escritura=false){
-  if(habilitado!==true||escritura&&(r.method!=="POST"||r.headers.get("Origin")!==new URL(r.url).origin))throw Error("Operación no autorizada.");
+  if(habilitado!==true||new URL(r.url).protocol!=="https:"||escritura&&(r.method!=="POST"||r.headers.get("Origin")!==new URL(r.url).origin))throw Error("Operación no autorizada.");
   const i=await autenticarCentral(r);
   if(!id(i?.emisor)||!id(i?.sujeto))throw Error("Identidad central requerida.");
   const a=await q("SELECT id FROM central_operadores WHERE emisor=? AND sujeto=? AND activo=1",i.emisor,i.sujeto).first();

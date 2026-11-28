@@ -9,7 +9,7 @@ export async function crearAdministracionComercial(env,{autenticar,habilitado=fa
  if(!db||[env.DB,env.DEMO_DB,env.PROVIDER_DB].includes(db)||typeof autenticar!=="function")throw Error("Administración no configurada.");
  if(!(await db.prepare("SELECT clave FROM comercio_identidad WHERE clave='lapaz-comercios-v1'").first()))throw Error("Esquema incorrecto.");
  const q=(s,...a)=>db.prepare(s).bind(...a);
- async function contexto(r,e){if(!habilitado||!id(e)||r.method!=="POST"||r.headers.get("Origin")!==new URL(r.url).origin)throw Error("Operación no permitida.");const a=await autenticar(r);if(!id(a?.actor))throw Error("Autenticación requerida.");return a.actor;}
+ async function contexto(r,e){if(habilitado!==true||new URL(r.url).protocol!=="https:"||!id(e)||r.method!=="POST"||r.headers.get("Origin")!==new URL(r.url).origin)throw Error("Operación no permitida.");const a=await autenticar(r);if(!id(a?.actor))throw Error("Autenticación requerida.");return a.actor;}
  const log=(e,a,accion,obj)=>q("INSERT INTO comercio_auditoria(empresa,actor,accion,objetivo,fecha) SELECT ?,?,?,?,? WHERE changes()=1",e,a,accion,obj,reloj());
 
  const detalle=(e,a,accion,obj,sucursal,consulta,params,permiso,condicion="",valores=[])=>{

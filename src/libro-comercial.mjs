@@ -1,4 +1,4 @@
-import {crearNucleoComercial,permisosGranulares} from "./nucleo-comercial.mjs";
+import {crearNucleoComercial,permisosGranulares,permisoAdicional} from "./nucleo-comercial.mjs";
 import {hashSesionComercial} from "./sesiones-comerciales.mjs";
 // Internal service only. Amounts must come from an authoritative pricing layer, never raw HTTP bodies.
 const id=x=>typeof x==="string"&&x.length>0&&x.length<=128;
@@ -9,6 +9,7 @@ const guard=`EXISTS(SELECT 1 FROM membresias m JOIN usuarios u ON u.id=m.usuario
  WHERE m.empresa=? AND b.id=? AND u.id=? AND cs.hash=? AND cs.revocado IS NULL AND cs.expira>? AND cs.ultima>?
  AND m.activa=1 AND u.activo=1 AND e.activa=1 AND b.activa=1 AND p.permiso=?
  AND NOT EXISTS(SELECT 1 FROM membresia_permisos_denegados d WHERE d.empresa=m.empresa AND d.usuario=m.usuario AND d.permiso IN(p.permiso,?))
+ AND (? IS NULL OR EXISTS(SELECT 1 FROM rol_permisos extra WHERE extra.empresa=m.empresa AND extra.rol=m.rol AND extra.permiso=? AND NOT EXISTS(SELECT 1 FROM membresia_permisos_denegados d WHERE d.empresa=m.empresa AND d.usuario=m.usuario AND d.permiso=extra.permiso)))
  AND (m.alcance='empresa' OR EXISTS(SELECT 1 FROM membresia_sucursales ms WHERE ms.empresa=m.empresa AND ms.usuario=m.usuario AND ms.sucursal=b.id))
  AND sc.estado IN('prueba','activa') AND sc.inicio<=? AND sc.vence>? AND EXISTS(SELECT 1 FROM json_each(cp.modulos) WHERE value='pos')
  AND (SELECT count(*) FROM membresias WHERE empresa=m.empresa AND activa=1)<=cp.usuarios
@@ -20,7 +21,7 @@ export async function crearLibroComercial(env,{autenticar,habilitado=false,reloj
   if(habilitado!==true||r.method!==metodo||new URL(r.url).protocol!=="https:"||metodo==="POST"&&r.headers.get("Origin")!==new URL(r.url).origin||!id(d?.empresa)||!id(d?.sucursal))throw Error("Operación no permitida.");
   const hash=await hashSesionComercial(r);if(!hash)throw Error("Sesión requerida.");
   const a=await nucleo.autorizar(r,{empresa:d.empresa,sucursal:d.sucursal,permiso});
-  const n=reloj();return {a,n,args:[d.empresa,d.sucursal,a.actor,hash,n,n-1800000,permisosGranulares[permiso],permiso,n,n]};
+  const n=reloj();return {a,n,args:[d.empresa,d.sucursal,a.actor,hash,n,n-1800000,permisosGranulares[permiso],permiso,permisoAdicional(permiso),permisoAdicional(permiso),n,n]};
  }
  async function guardar(r,d,tipo){
   if(!op(d?.id)||tipo==="venta"&&(!Number.isSafeInteger(d.importe)||d.importe<1||d.importe>100000000||!metodos.includes(d.metodo))||tipo==="reversion"&&!op(d.original))throw Error("Movimiento inválido.");
