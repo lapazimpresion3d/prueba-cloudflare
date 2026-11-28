@@ -1,6 +1,6 @@
 // Presentación por giro: no habilita capacidades ni modifica datos.
 const perfiles={
- turismo:{catalogo:"Experiencias turísticas",intro:"Edita experiencias bilingües y consulta las reservaciones turísticas de práctica.",prioridad:["admin-salidas","admin-turismo","admin-catalogo","admin-perfil","admin-empresa"]},
+ turismo:{catalogo:"Experiencias turísticas",intro:"Administra experiencias bilingües, reservaciones, salidas y las herramientas turísticas disponibles en tu paquete.",prioridad:["admin-turismo","admin-salidas","admin-abordaje","admin-economia-turismo","admin-rentabilidad-turismo","admin-catalogo","admin-perfil","admin-empresa"]},
  cafeteria:{catalogo:"Menú y productos",intro:"Actualiza tu menú y atiende los pedidos de tu cafetería.",prioridad:["admin-catalogo","admin-pedidos","admin-pos","admin-cocina","admin-inventario","admin-perfil"]},
  barberia:{catalogo:"Servicios y productos",intro:"Organiza las citas, los servicios y la atención de tu barbería.",prioridad:["admin-citas","admin-catalogo","admin-pos","admin-inventario","admin-empresa","admin-perfil"]},
  tienda:{catalogo:"Productos",intro:"Controla tus productos, ventas y reposición de mercancía.",prioridad:["admin-pos","admin-inventario","admin-catalogo","admin-pedidos","admin-compras","admin-perfil"]},

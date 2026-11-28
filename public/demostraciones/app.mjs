@@ -58,6 +58,7 @@ function guardarURL(){
   $("ver-original").href=enlaces.negocio;
   $("admin-calendario").hidden=plan.id==="p1"||!["turismo","barberia","taller","restaurante"].includes(negocio.giro);$("admin-calendario").href="/demostraciones/calendario/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
   $("admin-salidas").hidden=negocio.giro!=="turismo"||!["p3","p4"].includes(plan.id);$("admin-salidas").href="/demostraciones/salidas/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
+  for(const [id,ruta,min] of [["admin-abordaje","abordaje",3],["admin-economia-turismo","economia-turismo",3],["admin-rentabilidad-turismo","rentabilidad-turismo",4]]){const a=$(id);a.hidden=negocio.giro!=="turismo"||Number(plan.id.slice(1))<min;a.href="/demostraciones/"+ruta+"/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});}
   $("admin-turismo").hidden=negocio.giro!=="turismo"||plan.id==="p1";$("admin-turismo").href="/demostraciones/pasajeros/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
   $("admin-suscripcion").href="/demostraciones/suscripcion/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
   $("admin-soporte").href="/demostraciones/soporte/?"+new URLSearchParams({negocio:negocio.id,plan:plan.id});
