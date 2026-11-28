@@ -9,7 +9,7 @@ export function eventosFuente(storage,id,plan,hoy){
  const evento=(id,titulo,f,inicio,duracion,recursos)=>eventoCalendario({id,titulo,...intervaloCalendario(f,inicio,duracion),recursos});
  if(id==="bahia-tours"){
  const r=crearTurismo(storage,plan,hoy),a=crearSalidasTurismo(storage,plan,hoy),d=a.leer(),cat=r.catalogo.leer(),reservas=r.leer().filter(x=>x.estado==="confirmada"),items=new Map();
- for(const s of d.salidas.filter(x=>x.abierta)){items.set(s.id,evento("salida:"+s.id,"Salida turística de práctica",s.fecha,minutos(s.hora),s.duracion*60,[s.transporte,s.guia]));}
+ for(const s of d.salidas.filter(x=>x.abierta&&!a.cerrada(x.experiencia,x.fecha))){items.set(s.id,evento("salida:"+s.id,"Salida turística de práctica",s.fecha,minutos(s.hora),s.duracion*60,[s.transporte,s.guia]));}
  for(const x of reservas){const k=x.experiencia+":"+x.fecha;if(!items.has(k)){const e=cat.find(t=>t.id===x.experiencia);items.set(k,evento("salida:"+k,"Salida turística de práctica",x.fecha,minutos(x.tarifa.hora),(x.tarifa.duracion??e?.duracion??1)*60,[]));}}
  for(const x of d.bloqueos)items.set("bloqueo:"+x.id,evento("bloqueo:"+x.id,"Mantenimiento de práctica",x.fecha,minutos(x.hora),x.duracion*60,[x.recurso]));
  return [...items.values()];}
