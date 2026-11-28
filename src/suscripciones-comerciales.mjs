@@ -34,23 +34,19 @@ export async function crearGestorSuscripciones(env,{identificarOperador,autoriza
   // El permiso y módulo deben ser constantes de la ruta, nunca elegidos por el cliente.
   const acceso=await autorizarComercial(r,{empresa,sucursal,permiso});
   const n=reloj();
-  const s=await q("SELECT 1 AS ok,p.modulos AS contratados FROM comercial_suscripciones s JOIN comercial_planes p ON p.id=s.plan AND p.version=s.version JOIN json_each(p.modulos) m WHERE s.empresa=? AND s.estado IN ('prueba','activa') AND s.inicio<=? AND s.vence>? AND m.value=? AND (SELECT count(*) FROM membresias WHERE empresa=s.empresa AND activa=1)<=p.usuarios AND (SELECT count(*) FROM sucursales WHERE empresa=s.empresa AND activa=1)<=p.sucursales",empresa,n,n,modulo).first();
-  if(!s||!modulosOperativos.includes(modulo))throw Error("Módulo no disponible.");
-  // New verified companies require explicit activation, including all dependencies.
-  // Legacy environments may have older schemas: inspect presence before querying.
+  if(habilitado!==true||!modulosOperativos.includes(modulo))throw Error("Módulo no disponible.");
   const esquema=await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='comercial_activaciones'").first();
-  if(esquema){
-   const v=await q("SELECT z.giro,a.modulos FROM comercio_altas_pendientes z JOIN comercio_altas_prospecto p ON p.alta=z.id LEFT JOIN comercial_activaciones a ON a.empresa=z.empresa WHERE z.empresa=?",empresa).first();
-   if(v){
-    if(!v.modulos)throw Error("Módulo no habilitado.");
-    const seleccion=JSON.parse(v.modulos);
-    // Validate requested module and its transitive dependencies, not unrelated modules.
-    const necesarias=new Set();
-    const agregar=m=>{if(necesarias.has(m))return;necesarias.add(m);for(const d of reglasModulosV1[m]?.depende??[])agregar(d);};
-    agregar(modulo);
-    if([...necesarias].some(m=>!seleccion.includes(m)))throw Error("Módulo no habilitado.");
-    validarSeleccion({giro:v.giro,contratados:JSON.parse(s.contratados),operativos:modulosOperativos,seleccion:[...necesarias]});
-   }
+  const extra=esquema?",z.id AS alta,z.giro,a.modulos AS seleccion":"";
+  const joins=esquema?" LEFT JOIN comercio_altas_pendientes z ON z.empresa=s.empresa AND EXISTS(SELECT 1 FROM comercio_altas_prospecto v WHERE v.alta=z.id) LEFT JOIN comercial_activaciones a ON a.empresa=s.empresa":"";
+  const s=await q("SELECT p.modulos AS contratados"+extra+" FROM comercial_suscripciones s JOIN comercial_planes p ON p.id=s.plan AND p.version=s.version JOIN empresas e ON e.id=s.empresa JOIN json_each(p.modulos) m"+joins+" WHERE s.empresa=? AND e.activa=1 AND s.estado IN ('prueba','activa') AND s.inicio<=? AND s.vence>? AND m.value=? AND (SELECT count(*) FROM membresias WHERE empresa=s.empresa AND activa=1)<=p.usuarios AND (SELECT count(*) FROM sucursales WHERE empresa=s.empresa AND activa=1)<=p.sucursales",empresa,n,n,modulo).first();
+  if(!s)throw Error("Módulo no disponible.");
+  if(s.alta){
+   if(!s.seleccion)throw Error("Módulo no habilitado.");
+   const seleccion=JSON.parse(s.seleccion),necesarias=new Set();
+   const agregar=m=>{if(necesarias.has(m))return;necesarias.add(m);for(const d of reglasModulosV1[m]?.depende??[])agregar(d);};
+   agregar(modulo);
+   if([...necesarias].some(m=>!seleccion.includes(m)))throw Error("Módulo no habilitado.");
+   validarSeleccion({giro:s.giro,contratados:JSON.parse(s.contratados),operativos:modulosOperativos,seleccion:[...necesarias]});
   }
   return acceso;
  }

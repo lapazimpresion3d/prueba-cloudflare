@@ -30,7 +30,7 @@ export function resolverCompatibilidad({giro,contratados,operativos=[]}={}){
  return Object.freeze({giro,versionReglas:1,modulos:Object.freeze(idsModulos.map(resolver))});
 }
 // Read-only internal service. Source of giro and contracted version is the database, never request input.
-export async function crearConsultaCompatibilidad(env,{habilitado=false,autorizarComercial,operativos=[]}={}){
+export async function crearConsultaCompatibilidad(env,{habilitado=false,autorizarComercial,operativos=[],reloj=Date.now}={}){
  const db=env.COMMERCE_DB;
  if(!db||[env.DB,env.DEMO_DB,env.PROVIDER_DB].includes(db)||typeof autorizarComercial!=="function"||!listaValida(operativos))throw Error("Compatibilidad no configurada.");
  if(!(await db.prepare("SELECT clave FROM comercio_identidad WHERE clave='lapaz-comercios-v1'").first()))throw Error("Esquema incorrecto.");
@@ -39,8 +39,12 @@ export async function crearConsultaCompatibilidad(env,{habilitado=false,autoriza
   if(habilitado!==true||r.method!=="GET"||new URL(r.url).protocol!=="https:"||typeof empresa!=="string"||!empresa||empresa.length>128)throw Error("Consulta no permitida.");
   const a=await autorizarComercial(r,{empresa,permiso:"empresa.ver"});
   if(a?.empresa!==empresa||typeof a.actor!=="string"||!a.actor)throw Error("Consulta no permitida.");
-  const x=await db.prepare("SELECT p.id AS plan,p.version,p.modulos,z.giro FROM comercial_contratos_iniciales k LEFT JOIN comercial_suscripciones s ON s.empresa=k.empresa JOIN comercial_planes p ON p.id=COALESCE(s.plan,k.plan) AND p.version=COALESCE(s.version,k.version) JOIN comercio_altas_pendientes z ON z.id=k.alta AND z.empresa=k.empresa JOIN empresas e ON e.id=k.empresa JOIN membresias m ON m.empresa=e.id JOIN usuarios u ON u.id=m.usuario WHERE k.empresa=? AND m.usuario=? AND e.activa=1 AND u.activo=1 AND m.activa=1 AND m.alcance='empresa' AND EXISTS(SELECT 1 FROM rol_permisos rp WHERE rp.empresa=m.empresa AND rp.rol=m.rol AND rp.permiso='empresa.ver') AND NOT EXISTS(SELECT 1 FROM membresia_permisos_denegados d WHERE d.empresa=m.empresa AND d.usuario=m.usuario AND d.permiso='empresa.ver') AND z.estado='aceptada'").bind(empresa,a.actor).first();
+  const x=await db.prepare("SELECT p.id AS plan,p.version,p.modulos,z.giro,s.estado AS suscripcion,s.inicio,s.vence,a.modulos AS seleccion,(SELECT count(*) FROM membresias WHERE empresa=k.empresa AND activa=1)<=p.usuarios AND (SELECT count(*) FROM sucursales WHERE empresa=k.empresa AND activa=1)<=p.sucursales AS limites FROM comercial_contratos_iniciales k LEFT JOIN comercial_suscripciones s ON s.empresa=k.empresa LEFT JOIN comercial_activaciones a ON a.empresa=k.empresa JOIN comercial_planes p ON p.id=COALESCE(s.plan,k.plan) AND p.version=COALESCE(s.version,k.version) JOIN comercio_altas_pendientes z ON z.id=k.alta AND z.empresa=k.empresa JOIN empresas e ON e.id=k.empresa JOIN membresias m ON m.empresa=e.id JOIN usuarios u ON u.id=m.usuario WHERE k.empresa=? AND m.usuario=? AND e.activa=1 AND u.activo=1 AND m.activa=1 AND m.alcance='empresa' AND EXISTS(SELECT 1 FROM rol_permisos rp WHERE rp.empresa=m.empresa AND rp.rol=m.rol AND rp.permiso='empresa.ver') AND NOT EXISTS(SELECT 1 FROM membresia_permisos_denegados d WHERE d.empresa=m.empresa AND d.usuario=m.usuario AND d.permiso='empresa.ver') AND z.estado='aceptada'").bind(empresa,a.actor).first();
   if(!x)throw Error("Contrato no disponible.");
-  return {empresa,plan:x.plan,version:x.version,...resolverCompatibilidad({giro:x.giro,contratados:JSON.parse(x.modulos),operativos:disponibilidad})};
+  const base=resolverCompatibilidad({giro:x.giro,contratados:JSON.parse(x.modulos),operativos:disponibilidad});
+  const n=reloj(),seleccion=x.seleccion?JSON.parse(x.seleccion):[],vigente=["activa","prueba"].includes(x.suscripcion)&&x.inicio<=n&&x.vence>n&&x.limites===1;
+  const activos=new Set(seleccion),mapa=new Map(base.modulos.map(m=>[m.id,m]));
+  const efectivo=m=>vigente&&activos.has(m)&&mapa.get(m)?.disponibleTecnico===true&&reglasModulosV1[m].depende.every(efectivo);
+  return {empresa,plan:x.plan,version:x.version,...base,modulos:base.modulos.map(m=>({...m,habilitado:efectivo(m.id),estado:efectivo(m.id)?"habilitado":m.estado}))};
  }});
 }
