@@ -182,6 +182,18 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  const v2=await perfil.guardarVisual(ra,{...paleta,revision:3,color:"#ABCDEF",logotipo:null});
  assert.equal(v2.logotipo,null);assert.equal(v2.portada,portada);assert.equal(v2.color,"#abcdef");
  assert.equal(x.sql.prepare("SELECT count(*) n FROM comercio_auditoria WHERE empresa=? AND accion='perfil.visual_guardado'").get(a.empresa).n,2);
+ const horario=await perfil.consultarHorario(ca,{empresa:a.empresa});
+ assert.equal(horario.estado.abierto,false);assert.equal(horario.estado.proxima_apertura,null);
+ const dh={empresa:a.empresa,revision:4,zona_horaria:"America/Mazatlan",horario_semanal:Array.from({length:7},()=>[[540,780],[900,1260]]),excepciones_horario:{"2026-12-25":[]}};
+ await assert.rejects(perfil.guardarHorario(rb,dh));
+ await assert.rejects(perfil.guardarHorario(ra,{...dh,zona_horaria:"invalida"}));
+ const hr=await Promise.allSettled([perfil.guardarHorario(ra,dh),perfil.guardarHorario(ra,dh)]);
+ assert.equal(hr.filter(v=>v.status==="fulfilled").length,1);
+ assert.equal((await perfil.consultarHorario(ca,{empresa:a.empresa})).revision,5);
+ assert.deepEqual((await perfil.consultarHorario(get(b.cookie),{empresa:b.empresa})).horario_semanal,[[],[],[],[],[],[],[]]);
+ await assert.rejects(perfil.consultarHorario(ca,{empresa:b.empresa}));
+ assert.equal(x.sql.prepare("SELECT count(*) n FROM comercio_auditoria WHERE empresa=? AND accion='perfil.horario_guardado'").get(a.empresa).n,1);
+
 
 
  const permiso={empresa:a.empresa,sucursal:a.sucursal,permiso:"pos.operar",modulo:"pos"};
@@ -219,7 +231,8 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  assert.equal((await compat.consultar(ca,{empresa:a.empresa})).modulos.find(m=>m.id==="web").habilitado,false);
  await acceso.cerrar(ra);
  await assert.rejects(perfil.guardar(ra,{...cambioPerfil,revision:4}));
- await assert.rejects(perfil.guardarVisual(ra,{...paleta,revision:4}));
+ await assert.rejects(perfil.guardarVisual(ra,{...paleta,revision:5}));
+ await assert.rejects(perfil.guardarHorario(ra,{...dh,revision:5}));
  await assert.rejects(gestor.consultar(ra,a.empresa));
  await assert.rejects(compat.consultar(ca,{empresa:a.empresa}));
 });

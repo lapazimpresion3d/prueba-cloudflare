@@ -1,8 +1,11 @@
+import {validarHorario,estadoHorario} from "./horarios-comerciales.mjs";
 import {inspeccionarJpeg} from "./seguridad-imagen-comercial.mjs";
 import {hashSesionComercial} from "./sesiones-comerciales.mjs";
 const id=x=>typeof x==="string"&&x.length>0&&x.length<=128;
 const texto=(x,min,max)=>typeof x==="string"&&x.trim().length>=min&&x.trim().length<=max&&!/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/u.test(x);
 const campos="empresa,giro,nombre_publico,descripcion,lema,color,revision,actualizado";
+const horario="empresa,zona_horaria,horario_semanal,excepciones_horario,revision,actualizado";
+const decodificarHorario=x=>({...x,horario_semanal:JSON.parse(x.horario_semanal),excepciones_horario:JSON.parse(x.excepciones_horario)});
 const visual="empresa,color,color_secundario,color_acento,color_fondo,color_texto,logotipo,portada,revision,actualizado";
 const colores=["color","color_secundario","color_acento","color_fondo","color_texto"];
 const hex=x=>typeof x==="string"&&/^#[0-9a-fA-F]{6}$/.test(x);
@@ -24,6 +27,23 @@ export async function crearPerfilComercial(env,{habilitado=false,autorizarComerc
   const a=await contexto(r,empresa,"GET");
   const x=await q("SELECT "+campos+" FROM comercio_perfiles_privados WHERE empresa=? AND "+guard,empresa,...a.args).first();
   if(!x)throw Error("Perfil no disponible.");return x;
+ },
+ async consultarHorario(r,{empresa}={}){
+  const a=await contexto(r,empresa,"GET");
+  const x=await q("SELECT "+horario+" FROM comercio_perfiles_privados WHERE empresa=? AND "+guard,empresa,...a.args).first();
+  if(!x)throw Error("Perfil no disponible.");
+  const h=decodificarHorario(x);return {...h,estado:estadoHorario(h,a.n)};
+ },
+ async guardarHorario(r,d){
+  const a=await contexto(r,d?.empresa,"POST");
+  if(!Number.isSafeInteger(d.revision)||d.revision<1||d.revision>=Number.MAX_SAFE_INTEGER||Object.keys(d).some(k=>!["empresa","revision","zona_horaria","horario_semanal","excepciones_horario"].includes(k)))throw Error("Horario inválido.");
+  const h=validarHorario(d);
+  const res=await db.batch([
+   q("UPDATE comercio_perfiles_privados SET zona_horaria=?,horario_semanal=?,excepciones_horario=?,actualizado=?,revision=revision+1 WHERE empresa=? AND revision=? AND "+guard+" RETURNING "+horario,h.zona_horaria,JSON.stringify(h.horario_semanal),JSON.stringify(h.excepciones_horario),a.n,d.empresa,d.revision,...a.args),
+   q("INSERT INTO comercio_auditoria(empresa,actor,accion,objetivo,fecha) SELECT ?,?,'perfil.horario_guardado',?,? WHERE changes()=1",d.empresa,a.actor,d.empresa,a.n)
+  ]);
+  if(!res[0].results?.length)throw Error("Conflicto de revisión o autorización.");
+  return decodificarHorario(res[0].results[0]);
  },
  async consultarVisual(r,{empresa}={}){
   const a=await contexto(r,empresa,"GET");
