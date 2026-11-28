@@ -1,3 +1,4 @@
+import {crearActivacionComercial,validarSeleccion} from "../src/activacion-comercial.mjs";
 import {crearConsultaCompatibilidad} from "../src/compatibilidad-modulos.mjs";
 import {crearContratacionAutorizada} from "../src/contratacion-autorizada.mjs";
 import test from "node:test";
@@ -72,6 +73,21 @@ test("contrato inicial autorizado, versión acordada, duplicados y separación o
  assert.equal(c.giro,"tienda");assert.equal(c.version,1);assert.equal(c.modulos.find(m=>m.id==="web").estado,"candidato_activacion");
  assert.ok(c.modulos.every(m=>!m.habilitado));
  await assert.rejects(compat.consultar(get,{empresa:"b"}));
+ const activacion=await crearActivacionComercial({COMMERCE_DB:x.db},{habilitado:true,reloj:()=>1000,operativos:["web"],autenticarCentral:async()=>({emisor:"issuer",sujeto:"operador"})});
+ const act={empresa:"a",revision:0,modulos:["web"],inicio:1000,vence:2000};
+ await assert.rejects(activacion.guardar(x.cliente,act));
+ await assert.rejects(activacion.guardar(r,{...act,modulos:["catalogo"]}));
+ await assert.rejects(activacion.guardar(r,{...act,empresa:"b"}));
+ const ar=await Promise.allSettled([activacion.guardar(r,act),activacion.guardar(r,act)]);
+ assert.equal(ar.filter(v=>v.status==="fulfilled").length,1);
+ await x.g.autorizarModulo(x.cliente,{empresa:"a",permiso:"empresa.ver",modulo:"web"});
+ await assert.rejects(x.g.contratar(x.op,{...x.d,revision:1}));
+ await activacion.guardar(r,{empresa:"a",revision:1,modulos:[]});
+ await assert.rejects(x.g.autorizarModulo(x.cliente,{empresa:"a",permiso:"empresa.ver",modulo:"web"}));
+ await assert.rejects(activacion.guardar(r,{empresa:"a",revision:1,modulos:["web"]}));
+ assert.equal(x.sql.prepare("SELECT count(*) n FROM central_auditoria WHERE accion='modulos.activacion'").get().n,2);
  x.sql.exec("INSERT INTO usuarios(id,emisor,sujeto) VALUES('u2','issuer','owner2'); INSERT INTO membresias VALUES('a','u2','propietario',1,'empresa'); UPDATE membresias SET activa=0 WHERE empresa='a' AND usuario='u'");
  await assert.rejects(compat.consultar(get,{empresa:"a"}));
 });
+
+test("selección cerrada de dependencias",()=>{const d={giro:"restaurante",contratados:["pedidos","cocina","qr_mesa","mesas"],operativos:["pedidos","cocina","qr_mesa","mesas"]};assert.throws(()=>validarSeleccion({...d,seleccion:["mesas"]}));assert.equal(validarSeleccion({...d,seleccion:d.contratados}).length,4);});

@@ -1,3 +1,5 @@
+import {reglasModulosV1} from "./compatibilidad-modulos.mjs";
+import {validarSeleccion} from "./activacion-comercial.mjs";
 import {catalogoInicial,idsPlanes} from "./catalogo-contractual.mjs";
 export {catalogoInicial};
 const id=x=>typeof x==="string"&&x.length>0&&x.length<=128;
@@ -13,6 +15,8 @@ export async function crearGestorSuscripciones(env,{identificarOperador,autoriza
  async contratar(r,d){
   const actor=await operador(r);
   if(!id(d.empresa)||!idsPlanes.includes(d.plan)||!Number.isSafeInteger(d.version)||!Number.isSafeInteger(d.revision)||d.revision<0||!["prueba","activa","suspendida","cancelada"].includes(d.estado)||!Number.isSafeInteger(d.inicio)||!Number.isSafeInteger(d.vence)||d.vence<=d.inicio)throw Error("Suscripción inválida.");
+  const esquema=await db.prepare("SELECT name FROM sqlite_master WHERE type=\x27table\x27 AND name=\x27comercial_activaciones\x27").first();
+  if(esquema&&await q("SELECT z.id FROM comercio_altas_pendientes z JOIN comercio_altas_prospecto p ON p.alta=z.id WHERE z.empresa=?",d.empresa).first())throw Error("Utiliza contratación autorizada.");
   const filtro=guard+" AND EXISTS(SELECT 1 FROM empresas WHERE id=? AND activa=1) AND EXISTS(SELECT 1 FROM comercial_planes p WHERE p.id=? AND p.version=? AND (SELECT count(*) FROM membresias WHERE empresa=? AND activa=1)<=p.usuarios AND (SELECT count(*) FROM sucursales WHERE empresa=? AND activa=1)<=p.sucursales)";
   const a=[actor,d.empresa,d.plan,d.version,d.empresa,d.empresa];
   const stmt=d.revision===0?q("INSERT INTO comercial_suscripciones SELECT ?,?,?,?,?,?,1 WHERE "+filtro+" ON CONFLICT(empresa) DO NOTHING RETURNING revision",d.empresa,d.plan,d.version,d.estado,d.inicio,d.vence,...a):q("UPDATE comercial_suscripciones SET plan=?,version=?,estado=?,inicio=?,vence=?,revision=revision+1 WHERE empresa=? AND revision=? AND "+filtro+" RETURNING revision",d.plan,d.version,d.estado,d.inicio,d.vence,d.empresa,d.revision,...a);
@@ -30,8 +34,25 @@ export async function crearGestorSuscripciones(env,{identificarOperador,autoriza
   // El permiso y módulo deben ser constantes de la ruta, nunca elegidos por el cliente.
   const acceso=await autorizarComercial(r,{empresa,sucursal,permiso});
   const n=reloj();
-  const s=await q("SELECT 1 AS ok FROM comercial_suscripciones s JOIN comercial_planes p ON p.id=s.plan AND p.version=s.version JOIN json_each(p.modulos) m WHERE s.empresa=? AND s.estado IN ('prueba','activa') AND s.inicio<=? AND s.vence>? AND m.value=? AND (SELECT count(*) FROM membresias WHERE empresa=s.empresa AND activa=1)<=p.usuarios AND (SELECT count(*) FROM sucursales WHERE empresa=s.empresa AND activa=1)<=p.sucursales",empresa,n,n,modulo).first();
-  if(!s||!modulosOperativos.includes(modulo))throw Error("Módulo no disponible.");return acceso;
+  const s=await q("SELECT 1 AS ok,p.modulos AS contratados FROM comercial_suscripciones s JOIN comercial_planes p ON p.id=s.plan AND p.version=s.version JOIN json_each(p.modulos) m WHERE s.empresa=? AND s.estado IN ('prueba','activa') AND s.inicio<=? AND s.vence>? AND m.value=? AND (SELECT count(*) FROM membresias WHERE empresa=s.empresa AND activa=1)<=p.usuarios AND (SELECT count(*) FROM sucursales WHERE empresa=s.empresa AND activa=1)<=p.sucursales",empresa,n,n,modulo).first();
+  if(!s||!modulosOperativos.includes(modulo))throw Error("Módulo no disponible.");
+  // New verified companies require explicit activation, including all dependencies.
+  // Legacy environments may have older schemas: inspect presence before querying.
+  const esquema=await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='comercial_activaciones'").first();
+  if(esquema){
+   const v=await q("SELECT z.giro,a.modulos FROM comercio_altas_pendientes z JOIN comercio_altas_prospecto p ON p.alta=z.id LEFT JOIN comercial_activaciones a ON a.empresa=z.empresa WHERE z.empresa=?",empresa).first();
+   if(v){
+    if(!v.modulos)throw Error("Módulo no habilitado.");
+    const seleccion=JSON.parse(v.modulos);
+    // Validate requested module and its transitive dependencies, not unrelated modules.
+    const necesarias=new Set();
+    const agregar=m=>{if(necesarias.has(m))return;necesarias.add(m);for(const d of reglasModulosV1[m]?.depende??[])agregar(d);};
+    agregar(modulo);
+    if([...necesarias].some(m=>!seleccion.includes(m)))throw Error("Módulo no habilitado.");
+    validarSeleccion({giro:v.giro,contratados:JSON.parse(s.contratados),operativos:modulosOperativos,seleccion:[...necesarias]});
+   }
+  }
+  return acceso;
  }
  });
 }
