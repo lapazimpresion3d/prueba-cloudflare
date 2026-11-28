@@ -1,3 +1,4 @@
+import {crearAsignacionesPersonal} from "../src/asignaciones-personal.mjs";
 import {crearRolesOperativos} from "../src/roles-operativos.mjs";
 import {crearEmpleadosComerciales} from "../src/empleados-comerciales.mjs";
 import {crearSucursalesComerciales} from "../src/sucursales-comerciales.mjs";
@@ -288,8 +289,32 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  await assert.rejects(roles.guardar(ra,{...dr,permisos:["agendas.modificar"],empresa:b.empresa}));
  const rol=await roles.guardar(ra,dr);
  assert.equal((await roles.listar(ca,{empresa:a.empresa}))[0].rol,rol.rol);
- // Direct fixture assignment, real assignment service follows in 52.3.4.4.
- x.sql.prepare("UPDATE membresias SET rol=? WHERE empresa=? AND usuario=?").run(rol.rol,a.empresa,"empleado-prueba");
+ const asignaciones=await crearAsignacionesPersonal(x.env,{habilitado:true,reloj:x.reloj,autorizarComercial:nucleo.autorizar});
+ const servicio=await asignaciones.guardarServicio(ra,{empresa:a.empresa,revision:0,codigo:"PREP",nombre:"Preparación",activo:1});
+ const laboral={empresa:a.empresa,empleado:otro.id,revision:0,principal:a.sucursal,sucursales:[a.sucursal],servicios:[servicio.id]};
+ await assert.rejects(asignaciones.asignarLabor(rb,laboral));
+ await assert.rejects(asignaciones.asignarLabor(ra,{...laboral,principal:b.sucursal,sucursales:[b.sucursal]}));
+ await assert.rejects(asignaciones.asignarLabor(ra,{...laboral,servicios:["ajeno"]}));
+ await assert.rejects(asignaciones.asignarLabor(ra,{...laboral,principal:secundaria.id,sucursales:[secundaria.id]}));
+ const lab=await Promise.allSettled([asignaciones.asignarLabor(ra,laboral),asignaciones.asignarLabor(ra,laboral)]);
+ assert.equal(lab.filter(v=>v.status==="fulfilled").length,1);
+ assert.equal((await asignaciones.consultar(ca,{empresa:a.empresa,empleado:otro.id})).acceso,null);
+ assert.deepEqual((await asignaciones.consultar(ca,{empresa:a.empresa,empleado:otro.id})).servicios_efectivos,[servicio.id]);
+ await assert.rejects(asignaciones.consultar(get(b.cookie),{empresa:a.empresa,empleado:otro.id}));
+ await personal.vincular(ra,{empresa:a.empresa,id:otro.id,revision:1,usuario:"empleado-prueba"});
+ const da={empresa:a.empresa,empleado:otro.id,usuario:"empleado-prueba",rol:rol.rol,revision:0,sucursales:[a.sucursal]};
+ await assert.rejects(asignaciones.asignarAcceso(rb,da));
+ await assert.rejects(asignaciones.asignarAcceso(ra,{...da,rol:"propietario"}));
+ await assert.rejects(asignaciones.asignarAcceso(ra,{...da,sucursales:[b.sucursal]}));
+ await asignaciones.asignarAcceso(ra,da);
+ await assert.rejects(asignaciones.asignarAcceso(ra,da));
+ assert.equal((await asignaciones.consultar(ca,{empresa:a.empresa,empleado:otro.id})).acceso.rol,rol.rol);
+ await asignaciones.guardarServicio(ra,{empresa:a.empresa,id:servicio.id,revision:1,codigo:"PREP",nombre:"Preparación",activo:0});
+ assert.deepEqual((await asignaciones.consultar(ca,{empresa:a.empresa,empleado:otro.id})).servicios_efectivos,[]);
+ await asignaciones.asignarLabor(ra,{...laboral,revision:1,principal:null,sucursales:[],servicios:[]});
+ assert.deepEqual((await asignaciones.consultar(ca,{empresa:a.empresa,empleado:otro.id})).sucursales_efectivas,[]);
+ assert.throws(()=>x.sql.exec("DELETE FROM comercio_asignaciones_personal"));
+
  x.cambiarSujeto("staff");
  let accesoStaff=await acceso.iniciar(post());x.ponerAuth(accesoStaff.url);
  const staff=(await acceso.completar(x.req(accesoStaff))).cookies[1].split(";")[0];

@@ -41,7 +41,7 @@ export async function crearAdministracionComercial(env,{autenticar,habilitado=fa
   return ejecutar([h.previo,...stm,h.final],1);
  },
  async asignar(r,d){
-  const a=await contexto(r,d.empresa);if(!id(d.usuario)||!id(d.rol)||!Array.isArray(d.sucursales)||d.sucursales.length<1||d.sucursales.length>20||d.sucursales.some(s=>!id(s))||!["encargado","cajero"].includes(d.rol)&&!/^custom-[a-f0-9-]{36}$/.test(d.rol))throw Error("Asignación inválida.");
+  const a=await contexto(r,d.empresa);if(await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='comercio_altas_prospecto'").first()&&await q("SELECT z.id FROM comercio_altas_pendientes z JOIN comercio_altas_prospecto v ON v.alta=z.id WHERE z.empresa=?",d.empresa).first())throw Error("Usar asignación verificada de personal.");if(!id(d.usuario)||!id(d.rol)||!Array.isArray(d.sucursales)||d.sucursales.length<1||d.sucursales.length>20||d.sucursales.some(s=>!id(s))||!["encargado","cajero"].includes(d.rol)&&!/^custom-[a-f0-9-]{36}$/.test(d.rol))throw Error("Asignación inválida.");
   const suc=[...new Set(d.sucursales)],args=[d.empresa,a,"usuarios.administrar"];
   const filtro=" AND EXISTS(SELECT 1 FROM usuarios WHERE id=membresias.usuario AND activo=1) AND EXISTS(SELECT 1 FROM roles WHERE empresa=membresias.empresa AND id=?) AND NOT EXISTS(SELECT 1 FROM json_each(?) j WHERE NOT EXISTS(SELECT 1 FROM sucursales s WHERE s.empresa=membresias.empresa AND s.id=j.value AND s.activa=1))";
   // Guardar la marca mediante una fila de auditoría única en el mismo batch.
