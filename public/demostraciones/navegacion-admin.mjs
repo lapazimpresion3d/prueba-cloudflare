@@ -13,12 +13,12 @@ import {admiteCuentas} from "./cuentas-practica.mjs";
 import {enlacesDemo} from "./presentaciones.mjs";
 import {crearPerfilesLocales} from "./perfil-local.mjs";
 import {logoDemo} from "./identidad.mjs";
-export function rutaAdmin(ruta,vista){if(ruta==="citas")return vista==="agenda"?"admin-citas":null;if(ruta==="reservaciones")return vista==="empresa"?"admin-mesas":null;if(ruta==="cocina")return vista==="mesas"?"admin-comandas":"admin-cocina";return ({soporte:"admin-soporte",auditoria:"admin-auditoria",pos:"admin-pos",caja:"admin-caja",comprobantes:"admin-comprobantes",inventario:"admin-inventario",almacen:"admin-almacen",compras:"admin-compras",recetas:"admin-recetas",pedidos:"admin-pedidos",cuentas:"admin-cuentas",terminales:"admin-terminales",cotizaciones:"admin-cotizaciones",fidelizacion:"admin-fidelizacion",clientes:"admin-clientes",reportes:"admin-reportes",alertas:"admin-alertas"})[ruta]??null;}
+export function rutaAdmin(ruta,vista){if(ruta==="citas")return vista==="agenda"?"admin-citas":null;if(ruta==="reservaciones")return vista==="empresa"?"admin-mesas":null;if(ruta==="cocina")return vista==="mesas"?"admin-comandas":"admin-cocina";return ({suscripcion:"admin-suscripcion",soporte:"admin-soporte",auditoria:"admin-auditoria",pos:"admin-pos",caja:"admin-caja",comprobantes:"admin-comprobantes",inventario:"admin-inventario",almacen:"admin-almacen",compras:"admin-compras",recetas:"admin-recetas",pedidos:"admin-pedidos",cuentas:"admin-cuentas",terminales:"admin-terminales",cotizaciones:"admin-cotizaciones",fidelizacion:"admin-fidelizacion",clientes:"admin-clientes",reportes:"admin-reportes",alertas:"admin-alertas"})[ruta]??null;}
 export function enlacesAdmin(id,plan,contexto={}){
  if(!obtenerEstablecimiento(id)||!planes.some(p=>p.id===plan))return {};
  const inicio=enlacesDemo(id,plan).administracion,links={"admin-resumen":inicio,"admin-catalogo":inicio+"&seccion=productos","admin-empresa":inicio+"&seccion=personal","admin-perfil":inicio+"&seccion=perfil"};
  const ruta=(key,path,extra={})=>{const q=new URLSearchParams({negocio:id,plan,...extra});for(const k of ["sucursal","empleado"])if(/^\d{1,2}$/.test(String(contexto[k]??"")))q.set(k,contexto[k]);links[key]="/demostraciones/"+path+"/?"+q;};
- ruta("admin-auditoria","auditoria");ruta("admin-soporte","soporte");
+ ruta("admin-auditoria","auditoria");ruta("admin-soporte","soporte");ruta("admin-suscripcion","suscripcion");
  if(admitePos(id,plan))for(const k of ["pos","caja","comprobantes","inventario","almacen","compras","reportes"])ruta("admin-"+k,k);
  if(admiteCotizaciones(id,plan))ruta("admin-cotizaciones","cotizaciones");
  if(plan!=="p1")ruta("admin-clientes","clientes");
