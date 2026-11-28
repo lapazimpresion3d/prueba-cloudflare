@@ -1,0 +1,11 @@
+{
+  "name": "lapaz-comercios-desarrollo",
+  "main": "./src/worker-comercial.mjs",
+  "compatibility_date": "2026-11-03",
+  "workers_dev": false,
+  "preview_urls": false,
+  "vars": {
+    "COMERCIAL_ENTORNO": "desarrollo",
+    "COMERCIAL_HABILITADO": "no"
+  }
+}
