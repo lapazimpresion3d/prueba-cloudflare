@@ -39,7 +39,7 @@ export async function crearFlujoOidc(env,{habilitado=false,config,reloj=Date.now
   }else if(proposito==="empleado"){
    const tx=await q("INSERT INTO comercio_oidc_solicitudes(estado_hash,navegador_hash,nonce,verificador,contexto,configuracion,expira,invitacion_hash) SELECT ?,?,?,?,?,?,MIN(?,expira),hash FROM comercio_invitaciones_empleado WHERE hash=? AND consumido IS NULL AND cancelado IS NULL AND expira>? RETURNING estado_hash",eh,bh,nonce,verificador,"comercial",marca,n+TTL,invitacionHash,n).first();if(!tx)throw Error("Invitación no disponible.");
   }else await q("INSERT INTO comercio_oidc_solicitudes(estado_hash,navegador_hash,nonce,verificador,contexto,configuracion,expira) VALUES(?,?,?,?,?,?,?)",eh,bh,nonce,verificador,central?"central":"comercial",marca,n+TTL).run();
-  const url=new URL(auth);url.search=new URLSearchParams({response_type:"code",response_mode:"query",client_id:audiencia,redirect_uri:callback.href,scope:"openid email",state:estado,nonce,code_challenge:b64(await digest(verificador)),code_challenge_method:"S256",max_age:proposito!=="acceso"?"0":"300",...(proposito!=="acceso"?{prompt:"login"}:{}),...(central?{acr_values:acrCentral}:{})}).toString();
+  const url=new URL(auth);url.search=new URLSearchParams({response_type:"code",response_mode:"query",client_id:audiencia,redirect_uri:callback.href,scope:"openid email",state:estado,nonce,code_challenge:b64(await digest(verificador)),code_challenge_method:"S256",max_age:central||proposito!=="acceso"?"0":"300",...(central||proposito!=="acceso"?{prompt:"login"}:{}),...(central?{acr_values:acrCentral}:{})}).toString();
   return {url:url.href,cookie:cookie(browser,TTL/1000)};
  },
  async completar(r){

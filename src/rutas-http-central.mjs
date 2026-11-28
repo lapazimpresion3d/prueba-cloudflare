@@ -1,29 +1,43 @@
 import {leerJsonLimitado} from "./seguridad.mjs";
 // Candidate only: not mounted in worker-comercial.
-import {interfazCentral} from "./interfaz-central.mjs";
+import {interfazCentral,interfazAccesoCentral} from "./interfaz-central.mjs";
 import {navegacionCentral} from "./navegacion-central.mjs";
 const headers={"Cache-Control":"no-store","X-Content-Type-Options":"nosniff","Referrer-Policy":"no-referrer","X-Frame-Options":"DENY"};
 const json=(v,status=200,extra={})=>Response.json(v,{status,headers:{...headers,"Content-Security-Policy":"default-src 'none'; frame-ancestors 'none'",...extra}});
 const error=s=>json({error:"Solicitud no disponible."},s);
-export function crearRutasCentral({habilitado=false,acceso,origen,dashboard,directorio,prospectos,planes,implementaciones,ciclo,seguridad,auditoria}={}){
+export function crearRutasCentral({habilitado=false,acceso,origen,dashboard,directorio,prospectos,planes,implementaciones,ciclo,seguridad,auditoria,limitarAcceso,retornoCentral}={}){
  if(habilitado!==true)return async()=>error(404);
  if(!acceso||typeof acceso.autenticarCentral!=="function"||typeof acceso.cerrar!=="function"||typeof origen!=="string"||new URL(origen).protocol!=="https:"||new URL(origen).origin!==origen)throw Error("Administrador central no configurado.");
  return async r=>{
-  const u=new URL(r.url),pagina=u.pathname==="/interno/central",datos=u.pathname==="/interno/central/navegacion",salir=u.pathname==="/interno/central/salir",resumen=u.pathname==="/interno/central/dashboard",comercios=u.pathname==="/interno/central/comercios",lista=u.pathname==="/interno/central/directorio",expediente=u.pathname==="/interno/central/expediente",altas=u.pathname==="/interno/central/prospectos",altasDatos=u.pathname==="/interno/central/altas",altaAccion=u.pathname==="/interno/central/alta-accion",catalogo=u.pathname==="/interno/central/planes",catalogoDatos=u.pathname==="/interno/central/planes-datos",historialPlanes=u.pathname==="/interno/central/planes-historial",publicarPlan=u.pathname==="/interno/central/planes-publicar",implementacion=u.pathname==="/interno/central/implementaciones",impDatos=u.pathname==="/interno/central/implementaciones-datos",impDetalle=u.pathname==="/interno/central/implementaciones-detalle",impDecision=u.pathname==="/interno/central/implementaciones-decidir",cicloPagina=u.pathname==="/interno/central/ciclo",cicloDatos=u.pathname==="/interno/central/ciclo-datos",cicloDetalle=u.pathname==="/interno/central/ciclo-detalle",cicloDecision=u.pathname==="/interno/central/ciclo-decidir",operadores=u.pathname==="/interno/central/operadores",opDatos=u.pathname==="/interno/central/operadores-datos",opCambio=u.pathname==="/interno/central/operadores-cambiar",opRevocar=u.pathname==="/interno/central/operadores-revocar",audPagina=u.pathname==="/interno/central/auditoria",audDatos=u.pathname==="/interno/central/auditoria-datos",audHist=u.pathname==="/interno/central/exportaciones-historial",audExport=u.pathname==="/interno/central/exportar";
+  const u=new URL(r.url);
+  // The authentication routes are opt-in and require an explicit rate limiter and exact registered callback.
+  const login=u.pathname==="/interno/central/acceso",iniciar=u.pathname==="/interno/central/acceso-iniciar",retorno=typeof retornoCentral==="string"&&u.pathname===retornoCentral;
+  if(login||iniciar||retorno){
+   if(u.origin!==origen)return error(403);
+   if(typeof limitarAcceso!=="function"||typeof acceso.iniciar!=="function"||typeof acceso.completar!=="function"||typeof retornoCentral!=="string")return error(503);
+   if((login||iniciar)&&u.search||r.method!==(iniciar?"POST":"GET"))return error(405);
+   try{
+    if(login){const nonce=crypto.randomUUID().replaceAll("-","");return new Response(interfazAccesoCentral(nonce),{headers:{...headers,"Content-Type":"text/html; charset=utf-8","Content-Security-Policy":"default-src 'none'; style-src 'nonce-"+nonce+"'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"}});}
+    if(iniciar){if(r.headers.get("Origin")!==origen)return error(403);if(!await limitarAcceso(r))return error(429);const v=await acceso.iniciar(r),destino=new URL(v.url);if(destino.protocol!=="https:")return error(403);return new Response(null,{status:303,headers:{...headers,Location:destino.href,"Set-Cookie":v.cookie}});}
+    const v=await acceso.completar(r),h=new Headers({...headers,Location:"/interno/central"});for(const c of v.cookies)h.append("Set-Cookie",c);return new Response(null,{status:303,headers:h});
+   }catch{return error(403);}
+  }
+  const pagina=u.pathname==="/interno/central",datos=u.pathname==="/interno/central/navegacion",salir=u.pathname==="/interno/central/salir",resumen=u.pathname==="/interno/central/dashboard",comercios=u.pathname==="/interno/central/comercios",lista=u.pathname==="/interno/central/directorio",expediente=u.pathname==="/interno/central/expediente",altas=u.pathname==="/interno/central/prospectos",altasDatos=u.pathname==="/interno/central/altas",altaAccion=u.pathname==="/interno/central/alta-accion",catalogo=u.pathname==="/interno/central/planes",catalogoDatos=u.pathname==="/interno/central/planes-datos",historialPlanes=u.pathname==="/interno/central/planes-historial",publicarPlan=u.pathname==="/interno/central/planes-publicar",implementacion=u.pathname==="/interno/central/implementaciones",impDatos=u.pathname==="/interno/central/implementaciones-datos",impDetalle=u.pathname==="/interno/central/implementaciones-detalle",impDecision=u.pathname==="/interno/central/implementaciones-decidir",cicloPagina=u.pathname==="/interno/central/ciclo",cicloDatos=u.pathname==="/interno/central/ciclo-datos",cicloDetalle=u.pathname==="/interno/central/ciclo-detalle",cicloDecision=u.pathname==="/interno/central/ciclo-decidir",operadores=u.pathname==="/interno/central/operadores",opDatos=u.pathname==="/interno/central/operadores-datos",opCambio=u.pathname==="/interno/central/operadores-cambiar",opRevocar=u.pathname==="/interno/central/operadores-revocar",audPagina=u.pathname==="/interno/central/auditoria",audDatos=u.pathname==="/interno/central/auditoria-datos",audHist=u.pathname==="/interno/central/exportaciones-historial",audExport=u.pathname==="/interno/central/exportar";
   if(!pagina&&!datos&&!salir&&!resumen&&!comercios&&!lista&&!expediente&&!altas&&!altasDatos&&!altaAccion&&!catalogo&&!catalogoDatos&&!historialPlanes&&!publicarPlan&&!implementacion&&!impDatos&&!impDetalle&&!impDecision&&!cicloPagina&&!cicloDatos&&!cicloDetalle&&!cicloDecision&&!operadores&&!opDatos&&!opCambio&&!opRevocar&&!audPagina&&!audDatos&&!audHist&&!audExport)return error(404);
   if(u.origin!==origen||(!lista&&!expediente&&!altasDatos&&!altaAccion&&!historialPlanes&&!impDatos&&!impDetalle&&!cicloDatos&&!cicloDetalle&&!audDatos&&!audHist&&u.search)||r.method==="POST"&&r.headers.get("Origin")!==origen)return error(403);
   if(r.method!==(salir||altaAccion||publicarPlan||impDecision||cicloDecision||opCambio||opRevocar||audExport?"POST":"GET"))return error(405);
   try{
    if(salir){const v=await acceso.cerrar(r);return json({cerrada:true},200,{"Set-Cookie":v.cookie});}
-   if(!await acceso.autenticarCentral(r))return error(403);
+   if(!await acceso.autenticarCentral(r))return error(r.method==="GET"?401:403);
    if(typeof seguridad?.permisos!=="function")return error(503);
    const permisos=await seguridad.permisos(r);
    const permiso=pagina||resumen?"inicio":comercios||lista||expediente?"comercios":altas||altasDatos?"prospectos":altaAccion?"prospectos.escribir":catalogo||catalogoDatos||historialPlanes?"planes":publicarPlan?"planes.escribir":implementacion||impDatos||impDetalle?"implementaciones":impDecision?"implementaciones.escribir":cicloPagina||cicloDatos||cicloDetalle?"ciclo":cicloDecision?"ciclo.escribir":operadores||opDatos?"operadores":opCambio||opRevocar?"operadores.escribir":audPagina||audDatos||audHist?"auditoria":audExport?"auditoria.exportar":null;
+   if(pagina&&!permisos.includes("inicio")){const s=navegacionCentral.find(x=>x.estado==="disponible"&&permisos.includes(x.id));return s?new Response(null,{status:303,headers:{...headers,Location:"/interno/central/"+s.id}}):error(403);}
    if(permiso&&!permisos.includes(permiso))return error(403);
    if(datos)return json({secciones:navegacionCentral.filter(s=>permisos.includes(s.id))});
    if(audDatos||audHist||audExport){
     if(!auditoria)return error(503);
-    if(audExport){const v=await auditoria.exportar(r,await leerJsonLimitado(r,8192));return new Response(v.payload,{headers:{...headers,"Content-Security-Policy":"default-src 'none'; frame-ancestors 'none'","Content-Type":v.formato==="csv"?"text/csv; charset=utf-8":"application/json; charset=utf-8","Content-Disposition":'attachment; filename="exportacion.'+v.formato+'"'}});}
+    if(audExport){const v=await auditoria.exportar(r,await leerJsonLimitado(r,8192));if(!["csv","json"].includes(v.formato)||typeof v.payload!=="string"||!v.payload.length||new TextEncoder().encode(v.payload).length>2000000)return error(403);return new Response(v.payload,{headers:{...headers,"Content-Security-Policy":"default-src 'none'; frame-ancestors 'none'","Content-Type":v.formato==="csv"?"text/csv; charset=utf-8":"application/json; charset=utf-8","Content-Disposition":'attachment; filename="exportacion.'+v.formato+'"'}});}
     const keys=audHist?["empresa"]:["actor","empresa","accion","desde","hasta","antes"];
     if([...u.searchParams.keys()].some(k=>!keys.includes(k)||u.searchParams.getAll(k).length!==1))return error(400);
     const d=Object.fromEntries(u.searchParams);for(const k of ["desde","hasta","antes"])if(Object.hasOwn(d,k)){if(!/^\d+$/.test(d[k]))return error(400);d[k]=Number(d[k]);}
