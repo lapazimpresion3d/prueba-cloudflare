@@ -1,3 +1,4 @@
+import {crearEntregaComercial} from "../src/entrega-comercial.mjs";
 import {crearRutasAsistente} from "../src/rutas-http-asistente.mjs";
 import {crearAsistenteImplementacion} from "../src/asistente-implementacion.mjs";
 import {crearDisponibilidadLaboral} from "../src/disponibilidad-laboral.mjs";
@@ -427,6 +428,21 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  assert.equal(validaciones.filter(v=>v.status==="fulfilled").length,1);
  assert.equal((await asistente2.historialValidaciones(ca,{empresa:a.empresa}))[0].resultado.preparado,false);
  assert.equal((await asistente2.consultar(ca,{empresa:a.empresa})).revision_validacion.vigente,true);
+ const entrega=await crearEntregaComercial(x.env,{...seg,operativos:["web","pos","pedidos","cocina"]});
+ const solicitud={empresa:a.empresa,revision:0,validacion:1};
+ await assert.rejects(asistente2.solicitarRevision(rb,solicitud));
+ await asistente2.solicitarRevision(ra,solicitud);
+ await assert.rejects(asistente2.solicitarRevision(ra,solicitud));
+ const revisionEntrega=await entrega.consultar(get(cc),{empresa:a.empresa});
+ assert.equal(revisionEntrega.estado,"solicitada");assert.equal(revisionEntrega.aprobable,false);
+ await assert.rejects(entrega.consultar(ca,{empresa:a.empresa}));
+ await assert.rejects(entrega.decidir(post(cc),{empresa:a.empresa,revision:1,estado:"aprobada",motivo:"Prueba"}));
+ await assert.rejects(entrega.decidir(post(cc),{empresa:a.empresa,revision:1,estado:"entregada",motivo:"Prueba"}));
+ await entrega.decidir(post(cc),{empresa:a.empresa,revision:1,estado:"correccion",motivo:"Completar módulos"});
+ assert.equal((await entrega.historial(get(cc),{empresa:a.empresa}))[0].estado,"correccion");
+ assert.throws(()=>x.sql.prepare("UPDATE central_implementaciones SET estado='entregada',revision=revision+1 WHERE empresa=?").run(a.empresa));
+ assert.throws(()=>x.sql.exec("DELETE FROM central_entrega_revisiones"));
+
  const interfaz=await crearRutasAsistente(x.env,{habilitado:true,reloj:x.reloj,autorizarComercial:nucleo.autorizar});
  const rutaUI=origen+"/interno/asistente",rutaDatos=rutaUI+"/datos?empresa="+encodeURIComponent(a.empresa);
  const leerUI=(url,cookie=a.cookie)=>new Request(url,{headers:{Cookie:cookie}});

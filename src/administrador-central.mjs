@@ -36,7 +36,7 @@ export async function crearAdministradorCentral(env,{autenticarCentral,habilitad
   return escribir(q("INSERT INTO comercial_planes SELECT ?,?,?,?,?,'MXN',?,?,? WHERE "+guard+" AND ?=(SELECT COALESCE(MAX(version),0)+1 FROM comercial_planes WHERE id=?) RETURNING version",d.id,d.version,d.nombre,d.implementacion,d.mensualidad,d.usuarios,d.sucursales,JSON.stringify([...new Set(d.modulos)]),a,d.version,d.id),a,null,"plan.version",d.id+":"+d.version,plan(d.id,d.version-1),plan(d.id,d.version));
  },
  async implementacion(r,d){
-  const a=await actor(r,true);if(!id(d.empresa)||!["pendiente","configuracion","revision","entregada"].includes(d.estado)||!Number.isSafeInteger(d.revision)||d.revision<0)throw Error("Implementación inválida.");
+  const a=await actor(r,true);if(!id(d.empresa)||!["pendiente","configuracion","revision"].includes(d.estado)||!Number.isSafeInteger(d.revision)||d.revision<0)throw Error("Implementación inválida.");
   const s=d.revision===0?q("INSERT INTO central_implementaciones SELECT ?,?,1 WHERE "+guard+" ON CONFLICT(empresa) DO NOTHING RETURNING revision",d.empresa,d.estado,a):q("UPDATE central_implementaciones SET estado=?,revision=revision+1 WHERE empresa=? AND revision=? AND "+guard+" RETURNING revision",d.estado,d.empresa,d.revision,a);
   return escribir(s,a,d.empresa,"implementacion.estado",d.empresa,implementacion(d.empresa,d.revision),implementacion(d.empresa,d.revision+1));
  },
