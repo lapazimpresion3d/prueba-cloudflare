@@ -1,0 +1,11 @@
+import test from "node:test";import assert from "node:assert/strict";import {DatabaseSync} from "node:sqlite";import {readFileSync,readdirSync} from "node:fs";import {crearDashboardCentral} from "../src/dashboard-central.mjs";
+test("snapshot de registros existentes, estados efectivos y precios históricos",async()=>{
+ const sql=new DatabaseSync(":memory:");sql.exec("PRAGMA foreign_keys=ON");const dir=new URL("../migrations-comercios/",import.meta.url);for(const f of readdirSync(dir).filter(x=>x.endsWith(".sql")).sort())sql.exec(readFileSync(new URL(f,dir),"utf8"));
+ const n=1000000,t="a".repeat(64),h=Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(t))),x=>x.toString(16).padStart(2,"0")).join("");
+ sql.exec("INSERT INTO central_operadores(id,emisor,sujeto) VALUES('op','issuer','admin'); INSERT INTO empresas(id,nombre) VALUES('a','A'),('b','B'),('c','C'),('d','D'),('e','E'); INSERT INTO comercial_planes VALUES('p1',1,'Presencia',75000,14900,'MXN',1,1,'[\"web\"]');");
+ sql.prepare("INSERT INTO central_sesiones(hash,operador,creado,expira,ultima) VALUES(?,'op',?,?,?)").run(h,n-1,n+10000,n);
+ const ins=sql.prepare("INSERT INTO comercial_suscripciones VALUES(?,'p1',1,?,?,?,1)");ins.run("a","activa",0,n+1000);ins.run("b","prueba",0,n+1000);ins.run("c","activa",0,n);ins.run("d","activa",n+1,n+1000);
+ const db={prepare(q){return {first:async()=>sql.prepare(q).get()??null,bind(...a){return {q,a}}}},async batch(stm){sql.exec("BEGIN");try{const r=stm.map(({q,a})=>({results:sql.prepare(q).all(...a)}));sql.exec("COMMIT");return r}catch(e){sql.exec("ROLLBACK");throw e}}};
+ const servicio=await crearDashboardCentral({COMMERCE_DB:db},{habilitado:true,reloj:()=>n,autenticarCentral:async()=>({emisor:"issuer",sujeto:"admin"})}),r=new Request("https://central.invalid/interno/central/dashboard",{headers:{Cookie:"__Host-lapaz-central="+t}});
+ const d=await servicio.consultar(r);assert.equal(d.comercios,5);assert.equal(d.estados.activa,1);assert.equal(d.estados.prueba,1);assert.equal(d.estados.vencida,1);assert.equal(d.estados.programada,1);assert.equal(d.estados.sin_contratar,1);assert.equal(d.mrr_centavos,14900);assert.equal(d.vencimientos_total,2);assert.equal(d.pagos.centavos,null);sql.exec("UPDATE central_operadores SET activo=0");await assert.rejects(servicio.consultar(r));
+});
