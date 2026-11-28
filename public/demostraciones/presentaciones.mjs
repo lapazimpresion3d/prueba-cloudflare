@@ -1,7 +1,7 @@
 // Presentaciones públicas independientes de los controles de desarrollo.
 // Las cinco plantillas comparten los datos, no duplican los módulos.
 export const presentaciones={
-  "bahia-tours":{estilo:"turismo",sigla:"BT",distintivo:"ISLAS · MAR · EXPERIENCIAS",titulo:"El mar, a tu ritmo.",entrada:"Paseos y reservaciones bilingües de práctica.",catalogo:"Experiencias",accion:"Explorar experiencias",seccion:"Descubre la bahía",texto:"Recorridos de ejemplo.",destacados:["Islas","Bahía","Atardeceres"],iconos:{Islas:"🏝️",Bahía:"🚤",Atardeceres:"🌅"}},
+  "bahia-tours":{estilo:"turismo",sigla:"BT",distintivo:"ISLAS · MAR · EXPERIENCIAS",titulo:"El mar, a tu ritmo.",entrada:"Explora recorridos, consulta disponibilidad y reserva experiencias en la bahía.",catalogo:"Experiencias",accion:"Explorar experiencias",seccion:"Descubre la bahía",texto:"Recorridos de ejemplo.",destacados:["Islas","Bahía","Atardeceres"],iconos:{Islas:"🏝️",Bahía:"🚤",Atardeceres:"🌅"}},
   "cafe-mirador":{
     estilo:"cafe",sigla:"CM",distintivo:"CAFÉ · REPOSTERÍA · DESAYUNOS",
     titulo:"Una buena pausa empieza con un buen café.",
@@ -54,7 +54,7 @@ export function enlacesDemo(id,plan,practica=false){
 // Ejemplos representativos: no son restricciones comerciales del giro.
 export const planesRepresentativos=Object.freeze({
  "cafe-mirador":"p1","barberia-elite":"p2","mundo-mascotas":"p3",
- "taqueria-el-comal":"p4","auto-servicio-bahia":"p2","bahia-tours":"p3"
+ "taqueria-el-comal":"p4","auto-servicio-bahia":"p2","bahia-tours":"p4"
 });
 export function enlaceGaleria(){return "/demostraciones/ejemplos/";}
 export function enlaceConfigurador(id,plan){return "/demostraciones/configurar/?"+new URLSearchParams({negocio:id,plan});}

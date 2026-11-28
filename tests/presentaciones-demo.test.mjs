@@ -33,7 +33,7 @@ test("especialidades apuntan a categorías existentes de los cinco giros",()=>{
 });
 
 test("galería fija y configurador adicional mantienen los cinco negocios y cuatro planes",()=>{
- assert.deepEqual(planesRepresentativos,{"cafe-mirador":"p1","barberia-elite":"p2","mundo-mascotas":"p3","taqueria-el-comal":"p4","auto-servicio-bahia":"p2","bahia-tours":"p3"});
+ assert.deepEqual(planesRepresentativos,{"cafe-mirador":"p1","barberia-elite":"p2","mundo-mascotas":"p3","taqueria-el-comal":"p4","auto-servicio-bahia":"p2","bahia-tours":"p4"});
  assert.equal(enlaceGaleria(),"/demostraciones/ejemplos/");
  for(const e of establecimientos)for(const p of planes){
   const u=new URL(enlaceConfigurador(e.id,p.id),"https://demo.example");
