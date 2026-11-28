@@ -24,7 +24,7 @@ export async function crearAdministracionComercial(env,{autenticar,habilitado=fa
  async function ejecutar(stm,indice=0){const r=await db.batch(stm);if(!r[indice].results?.length)throw Error("Operación no autorizada o inexistente.");return r[indice].results[0];}
  return Object.freeze({
  async guardarSucursal(r,d){
-  const a=await contexto(r,d.empresa);if(!nombre(d.nombre)||![0,1].includes(d.activa))throw Error("Sucursal inválida.");
+  const a=await contexto(r,d.empresa);if(await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='comercio_altas_prospecto'").first()&&await q("SELECT z.id FROM comercio_altas_pendientes z JOIN comercio_altas_prospecto v ON v.alta=z.id WHERE z.empresa=?",d.empresa).first())throw Error("Usar administración verificada de sucursales.");if(!nombre(d.nombre)||![0,1].includes(d.activa))throw Error("Sucursal inválida.");
   const s=d.id??crypto.randomUUID();if(!id(s))throw Error("Sucursal inválida.");
   const args=[d.empresa,a,"sucursales.administrar"];
   const stmt=d.id?q("UPDATE sucursales SET nombre=?,activa=? WHERE empresa=? AND id=? AND "+guard+" RETURNING id",d.nombre.trim(),d.activa,d.empresa,s,...args):q("INSERT INTO sucursales(empresa,id,nombre,activa) SELECT ?,?,?,? WHERE "+guard+" RETURNING id",d.empresa,s,d.nombre.trim(),d.activa,...args);

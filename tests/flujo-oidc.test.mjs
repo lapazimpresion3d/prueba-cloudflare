@@ -1,3 +1,4 @@
+import {crearSucursalesComerciales} from "../src/sucursales-comerciales.mjs";
 import {jpegPrueba} from "./fixtures/jpeg-prueba.mjs";
 import {crearPerfilComercial} from "../src/perfil-comercial.mjs";
 import {crearContratacionAutorizada} from "../src/contratacion-autorizada.mjs";
@@ -231,6 +232,25 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  await assert.rejects(activacion.guardar(post(cc),{...act,empresa:b.empresa}));
  await activacion.guardar(post(cc),act);
  await activacion.guardar(post(cc),{...act,empresa:b.empresa,modulos:["web"]});
+ const suc=await crearSucursalesComerciales(x.env,{habilitado:true,reloj:x.reloj,autorizarComercial:nucleo.autorizar});
+ const lista=await suc.listar(ca,{empresa:a.empresa});
+ assert.equal(lista.sucursales.length,1);assert.equal(lista.sucursales[0].principal,1);
+ const nueva={empresa:a.empresa,revision:0,nombre:"Norte",activa:1,contacto:{direccion:"Dirección de prueba"},horario:null};
+ await assert.rejects(suc.guardar(rb,nueva));
+ await assert.rejects(suc.guardar(rb,{...nueva,empresa:b.empresa}));
+ const rr=await Promise.allSettled([suc.guardar(ra,nueva),suc.guardar(ra,nueva)]);
+ assert.equal(rr.filter(v=>v.status==="fulfilled").length,1);
+ const secundaria=rr.find(v=>v.status==="fulfilled").value;
+ await assert.rejects(suc.listar(ca,{empresa:b.empresa}));
+ await assert.rejects(suc.guardar(ra,{...nueva,id:a.sucursal,revision:1,activa:0}));
+ await suc.principal(ra,{empresa:a.empresa,id:secundaria.id,revision:1});
+ await assert.rejects(suc.principal(ra,{empresa:a.empresa,id:a.sucursal,revision:1}));
+ await suc.principal(ra,{empresa:a.empresa,id:a.sucursal,revision:2});
+ await suc.guardar(ra,{...nueva,id:secundaria.id,revision:1,activa:0});
+ await assert.rejects(suc.guardar(ra,{...nueva,id:secundaria.id,revision:1,activa:1}));
+ assert.equal((await suc.listar(ca,{empresa:a.empresa})).sucursales.find(v=>v.id===secundaria.id).activa,0);
+ assert.throws(()=>x.sql.prepare("DELETE FROM sucursales WHERE empresa=? AND id=?").run(a.empresa,secundaria.id));
+
  const previa=await perfil.vistaPrevia(ca,{empresa:a.empresa});
  assert.equal(previa.revision,6);assert.equal(previa.version_publicada,0);
  assert.equal(Object.hasOwn(previa.contenido.contacto,"correo"),false);
@@ -304,6 +324,8 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  assert.equal((await compat.consultar(ca,{empresa:a.empresa})).modulos.find(m=>m.id==="web").habilitado,false);
  await assert.rejects(perfil.publicar(ra,{...pub,revision:9,versionActual:4}));
  await acceso.cerrar(ra);
+ await assert.rejects(suc.listar(ca,{empresa:a.empresa}));
+ await assert.rejects(suc.guardar(ra,{...nueva,id:secundaria.id,revision:2}));
  await assert.rejects(perfil.guardar(ra,{...cambioPerfil,revision:9}));
  await assert.rejects(perfil.guardarVisual(ra,{...paleta,revision:9}));
  await assert.rejects(perfil.guardarHorario(ra,{...dh,revision:9}));
