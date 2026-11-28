@@ -419,6 +419,15 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  const av=await asistente2.consultar(ca,{empresa:a.empresa});
  assert.equal(av.progreso.revision,5);assert.equal(av.preparado,false);
  assert.equal(av.implementacion,"configuracion");
+ assert.equal(av.ruta.contrato.plan,"p3");
+ assert.ok(av.ruta.modulos.some(m=>m.id==="cocina"));
+ assert.ok(!av.ruta.modulos.some(m=>m.id==="citas"));
+ const rutaB=(await asistente2.consultar(get(b.cookie),{empresa:b.empresa})).ruta;
+ assert.equal(rutaB.contrato.plan,"p2");
+ assert.ok(rutaB.modulos.some(m=>m.id==="citas"));
+ assert.ok(!rutaB.modulos.some(m=>m.id==="cocina"));
+ await assert.rejects(asistente2.guardar(ra,{...ai,revision:5,plan:"p4"}));
+
  assert.ok(av.pasos.every(p=>p.estado_validacion==="pendiente"));
  assert.equal((await asistente2.consultar(get(b.cookie),{empresa:b.empresa})).progreso.revision,0);
  await assert.rejects(asistente2.historial(ca,{empresa:b.empresa}));
@@ -487,6 +496,12 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  const cambio={empresa:a.empresa,plan:"p2",version:1,revision:1,revisionActivacion:2,vence:n+2000,modulos:["web"],referencia:"reduccion"};
  await cambios.cambiar(post(cc),cambio);
  assert.equal((await gestor.consultar(ra,a.empresa)).plan,"p2");
+ const ajustada=await asistente.consultar(ca,{empresa:a.empresa});
+ assert.equal(ajustada.ruta.contrato.plan,"p2");
+ assert.equal(ajustada.progreso.revision,5);
+ assert.ok(!ajustada.ruta.modulos.some(m=>m.id==="pos"));
+ assert.ok(ajustada.progreso.visitados.includes("perfil"));
+
  assert.equal(x.sql.prepare("SELECT plan FROM comercial_contratos_iniciales WHERE empresa=?").get(a.empresa).plan,"p3");
  assert.equal(x.sql.prepare("SELECT count(*) n FROM comercial_cambios_contractuales WHERE empresa=?").get(b.empresa).n,0);
  await assert.rejects(gestor.autorizarModulo(ra,permiso));
