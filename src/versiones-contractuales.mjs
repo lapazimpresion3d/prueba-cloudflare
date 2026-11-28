@@ -9,7 +9,7 @@ export async function crearVersionesContractuales(env,{habilitado=false,autentic
  if(!db||[env.DB,env.DEMO_DB,env.PROVIDER_DB].includes(db)||typeof autenticarCentral!=="function")throw Error("Catálogo no configurado.");
  if(!(await db.prepare("SELECT clave FROM comercio_identidad WHERE clave='lapaz-comercios-v1'").first()))throw Error("Esquema incorrecto.");
  const q=(s,...a)=>db.prepare(s).bind(...a);
- const guard="SELECT o.id FROM central_operadores o JOIN central_sesiones s ON s.operador=o.id WHERE o.emisor=? AND o.sujeto=? AND s.hash=? AND o.activo=1 AND s.revocado IS NULL AND s.expira>? AND s.ultima>? AND s.creado>?";
+ const guard="SELECT o.id FROM central_operadores o JOIN central_sesiones s ON s.operador=o.id WHERE o.emisor=? AND o.sujeto=? AND s.hash=? AND o.activo=1 AND o.rol IN ('administrador') AND s.revocado IS NULL AND s.expira>? AND s.ultima>? AND s.creado>?";
  async function central(r){
   if(habilitado!==true||r.method!=="POST"||new URL(r.url).protocol!=="https:"||r.headers.get("Origin")!==new URL(r.url).origin)throw Error("Catálogo no autorizado.");
   const a=await autenticarCentral(r),cookies=(r.headers.get("Cookie")||"").split(";").map(x=>x.trim()).filter(x=>x.startsWith("__Host-lapaz-central=")),t=cookies.length===1?cookies[0].slice("__Host-lapaz-central=".length):"",n=reloj();

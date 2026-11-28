@@ -35,7 +35,7 @@ export async function crearCicloComercial(env,{habilitado=false,autenticarCentra
   if(!Number.isSafeInteger(d.revision)||d.revision<1||d.revision>=Number.MAX_SAFE_INTEGER||typeof d.motivo!=="string"||!d.motivo.trim()||d.motivo.length>1000||Object.keys(d).some(k=>!["empresa","revision","motivo"].includes(k)))throw Error("Suspensión inválida.");
   const actual=await q("SELECT estado,inicio,vence FROM comercial_suscripciones WHERE empresa=? AND revision=? AND "+guard,d.empresa,d.revision,...a.args).first();
   if(!actual||resolverTransicionComercial(actual,"suspender",a.n)!=="suspendida")throw Error("Suspensión no disponible.");
-  const operador="SELECT o.id FROM central_operadores o JOIN central_sesiones s ON s.operador=o.id WHERE o.emisor=? AND o.sujeto=? AND s.hash=? AND o.activo=1 AND s.revocado IS NULL AND s.expira>? AND s.ultima>? AND s.creado>?";
+  const operador="SELECT o.id FROM central_operadores o JOIN central_sesiones s ON s.operador=o.id WHERE o.emisor=? AND o.sujeto=? AND s.hash=? AND o.activo=1 AND o.rol IN ('administrador') AND s.revocado IS NULL AND s.expira>? AND s.ultima>? AND s.creado>?";
   const args=[...a.args,a.n-300000];
   const fila=await q("INSERT INTO comercial_ciclo_vida(empresa,revision,anterior,posterior,accion,motivo,operador,fecha) SELECT s.empresa,s.revision+1,s.estado,'suspendida','suspender',?,("+operador+"),? FROM comercial_suscripciones s JOIN comercial_contratos_iniciales k ON k.empresa=s.empresa JOIN empresas e ON e.id=s.empresa WHERE s.empresa=? AND s.revision=? AND s.estado IN ('prueba','activa') AND e.activa=1 AND ("+operador+") IS NOT NULL RETURNING revision,posterior AS estado",d.motivo.trim(),...args,a.n,d.empresa,d.revision,...args).first();
   if(!fila)throw Error("Conflicto de revisión o autorización.");return fila;
@@ -44,7 +44,7 @@ export async function crearCicloComercial(env,{habilitado=false,autenticarCentra
   const a=await contexto(r,d?.empresa,"POST");
   if(!Number.isSafeInteger(d.revision)||d.revision<1||d.revision>=Number.MAX_SAFE_INTEGER||typeof d.motivo!=="string"||!d.motivo.trim()||d.motivo.length>1000||Object.keys(d).some(k=>!["empresa","revision","motivo"].includes(k)))throw Error("Reactivación inválida.");
   const x=await candidato(d.empresa,d.revision,a),posterior=resolverTransicionComercial(x,"reactivar",a.n);
-  const operador="SELECT o.id FROM central_operadores o JOIN central_sesiones s ON s.operador=o.id WHERE o.emisor=? AND o.sujeto=? AND s.hash=? AND o.activo=1 AND s.revocado IS NULL AND s.expira>? AND s.ultima>? AND s.creado>?";
+  const operador="SELECT o.id FROM central_operadores o JOIN central_sesiones s ON s.operador=o.id WHERE o.emisor=? AND o.sujeto=? AND s.hash=? AND o.activo=1 AND o.rol IN ('administrador') AND s.revocado IS NULL AND s.expira>? AND s.ultima>? AND s.creado>?";
   const args=[...a.args,a.n-300000];
   const fila=await q("INSERT INTO comercial_ciclo_vida(empresa,revision,anterior,posterior,accion,motivo,operador,fecha) SELECT s.empresa,s.revision+1,s.estado,?,'reactivar',?,("+operador+"),?"+condiciones+" AND s.plan=? AND s.version=? AND z.giro=? AND p.modulos=? AND ac.revision=? AND ac.modulos=? AND c.anterior=? AND ("+operador+") IS NOT NULL RETURNING revision,posterior AS estado",posterior,d.motivo.trim(),...args,a.n,d.empresa,d.revision,a.n,a.n,x.plan,x.version,x.giro,x.contratados,x.revision_activacion,x.seleccion,posterior,...args).first();
   if(!fila)throw Error("Conflicto de revisión o autorización.");return fila;
@@ -54,7 +54,7 @@ export async function crearCicloComercial(env,{habilitado=false,autenticarCentra
   if(!Number.isSafeInteger(d.revision)||d.revision<1||d.revision>=Number.MAX_SAFE_INTEGER||typeof d.motivo!=="string"||!d.motivo.trim()||d.motivo.length>1000||d.confirmacion!=="CANCELAR:"+d.empresa+":"+d.revision||Object.keys(d).some(k=>!["empresa","revision","motivo","confirmacion"].includes(k)))throw Error("Cancelación inválida.");
   const actual=await q("SELECT estado,inicio,vence FROM comercial_suscripciones WHERE empresa=? AND revision=? AND "+guard,d.empresa,d.revision,...a.args).first();
   if(!actual||resolverTransicionComercial(actual,"cancelar",a.n)!=="cancelada")throw Error("Cancelación no disponible.");
-  const operador="SELECT o.id FROM central_operadores o JOIN central_sesiones s ON s.operador=o.id WHERE o.emisor=? AND o.sujeto=? AND s.hash=? AND o.activo=1 AND s.revocado IS NULL AND s.expira>? AND s.ultima>? AND s.creado>?";
+  const operador="SELECT o.id FROM central_operadores o JOIN central_sesiones s ON s.operador=o.id WHERE o.emisor=? AND o.sujeto=? AND s.hash=? AND o.activo=1 AND o.rol IN ('administrador') AND s.revocado IS NULL AND s.expira>? AND s.ultima>? AND s.creado>?";
   const args=[...a.args,a.n-300000];
   const fila=await q("INSERT INTO comercial_ciclo_vida(empresa,revision,anterior,posterior,accion,motivo,operador,fecha) SELECT s.empresa,s.revision+1,s.estado,'cancelada','cancelar',?,("+operador+"),? FROM comercial_suscripciones s JOIN comercial_contratos_iniciales k ON k.empresa=s.empresa JOIN empresas e ON e.id=s.empresa WHERE s.empresa=? AND s.revision=? AND s.estado IN ('prueba','activa','suspendida') AND e.activa=1 AND ("+operador+") IS NOT NULL RETURNING revision,posterior AS estado",d.motivo.trim(),...args,a.n,d.empresa,d.revision,...args).first();
   if(!fila)throw Error("Conflicto de revisión o autorización.");return fila;
