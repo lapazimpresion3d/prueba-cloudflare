@@ -270,12 +270,11 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  assert.equal((await perfil.vistaPrevia(ca,{empresa:a.empresa})).revision,9);
  const deshabilitado=await crearPerfilComercial(x.env,{habilitado:true,reloj:x.reloj,autorizarComercial:nucleo.autorizar});
  await assert.rejects(deshabilitado.publicar(ra,{empresa:a.empresa,revision:9,versionActual:4}));
- // Permission revocation must affect every profile reader and writer.
+ // Owner permissions are protected at the database layer.
  const actor=x.sql.prepare("SELECT id FROM usuarios WHERE sujeto='owner-a'").get().id;
- x.sql.prepare("INSERT INTO membresia_permisos_denegados(empresa,usuario,permiso) VALUES(?,?,?)").run(a.empresa,actor,"empresa.administrar");
- for(const metodo of ["consultar","consultarVisual","consultarHorario","consultarContacto","vistaPrevia","consultarPublicacion","historialPublicaciones"])await assert.rejects(perfil[metodo](ca,{empresa:a.empresa}));
- await assert.rejects(perfil.publicar(ra,{empresa:a.empresa,revision:9,versionActual:4}));
- x.sql.prepare("DELETE FROM membresia_permisos_denegados WHERE empresa=? AND usuario=? AND permiso=?").run(a.empresa,actor,"empresa.administrar");
+ assert.throws(()=>x.sql.prepare("INSERT INTO membresia_permisos_denegados(empresa,usuario,permiso) VALUES(?,?,?)").run(a.empresa,actor,"empresa.administrar"),/Membresia protegida/);
+ // A missing session must reject every reader; final revocation tests use the actual owner session.
+ for(const metodo of ["consultar","consultarVisual","consultarHorario","consultarContacto","vistaPrevia","consultarPublicacion","historialPublicaciones"])await assert.rejects(perfil[metodo](get(),{empresa:a.empresa}));
  assert.equal((await perfil.vistaPrevia(ca,{empresa:a.empresa})).revision,9);
  // Force audit failure: publication must roll back entirely.
  x.sql.exec("CREATE TRIGGER prueba_publicacion_rollback BEFORE INSERT ON comercio_auditoria WHEN NEW.accion='perfil.publicado' BEGIN SELECT RAISE(ABORT,'rollback'); END");
