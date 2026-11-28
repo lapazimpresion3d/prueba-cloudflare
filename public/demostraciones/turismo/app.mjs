@@ -6,7 +6,7 @@ import {enlacesDemo} from "../presentaciones.mjs";
 import {experiencias,clientes,crearTurismo,cotizarTurismo,enlaceTurismo,planesTurismo} from "../turismo-practica.mjs";
 const $=id=>document.getElementById(id),q=new URLSearchParams(location.search),plan=q.get("plan")??"p3";
 let en=q.get("lang")==="en",s;const tr=(es,eng)=>en?eng:es,el=(tag,t,cls)=>{const x=document.createElement(tag);if(t!==undefined)x.textContent=t;if(cls)x.className=cls;return x;},money=n=>new Intl.NumberFormat(en?"en-US":"es-MX",{style:"currency",currency:"MXN",currencyDisplay:"code"}).format(n/100);
-$("panel-comun").href=enlacesDemo("bahia-tours",plan).administracion;
+$("panel-comun").href=enlacesDemo("bahia-tours",plan).administracion;$("panel-arriba").href=$("panel-comun").href;
 $("agenda-tours").hidden=!["p3","p4"].includes(plan);$("agenda-tours").href="/demostraciones/salidas/?"+new URLSearchParams({negocio:"bahia-tours",plan});
 $("pasajeros-tours").hidden=plan==="p1";$("pasajeros-tours").href="/demostraciones/pasajeros/?"+new URLSearchParams({negocio:"bahia-tours",plan});
 $("editor-tours").href="/demostraciones/experiencias/?"+new URLSearchParams({negocio:"bahia-tours",plan});
