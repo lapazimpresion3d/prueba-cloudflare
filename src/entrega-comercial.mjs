@@ -33,7 +33,7 @@ export async function crearEntregaComercial(env,{habilitado=false,autenticarCent
   const a=await contexto(r,"POST");
   if(!id(d?.empresa)||!Number.isSafeInteger(d.revision)||d.revision<1||!["correccion","rechazada","aprobada","entregada"].includes(d.estado)||typeof d.motivo!=="string"||d.motivo.trim().length<1||d.motivo.length>1000||Object.keys(d).some(k=>!["empresa","revision","estado","motivo"].includes(k)))throw Error("Decisión inválida.");
   const x=await leer(d.empresa,a);
-  if(!x||x.revision!==d.revision||x.estado!==(d.estado==="entregada"?"aprobada":"solicitada"))throw Error("Conflicto de revisión.");
+  if(!x||x.revision!==d.revision||!(d.estado==="correccion"?["solicitada","aprobada"].includes(x.estado):x.estado===(d.estado==="entregada"?"aprobada":"solicitada")))throw Error("Conflicto de revisión.");
   const critico=["aprobada","entregada"].includes(d.estado);
   if(critico&&!revisar(x,a.n).aprobable)throw Error("Entrega bloqueada.");
   const stm=[q("INSERT INTO central_entrega_revisiones(empresa,revision,validacion,estado,motivo,operador,fecha) SELECT ?,?,?,?,?,("+guard+"),? WHERE ("+guard+") IS NOT NULL AND (SELECT MAX(revision) FROM central_entrega_revisiones WHERE empresa=?)=?"+(critico?" AND (SELECT evidencia FROM comercio_evidencia_entrega WHERE empresa=?)=?": "")+" RETURNING revision,estado",d.empresa,d.revision+1,x.validacion,d.estado,d.motivo.trim(),...a.args,a.n,...a.args,d.empresa,d.revision,...(critico?[d.empresa,x.actual]:[]))];

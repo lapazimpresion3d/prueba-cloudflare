@@ -1,0 +1,2 @@
+# Corrección previa a 52.3.7
+Permite al operador central solicitar corrección desde una aprobación anterior, conservando historial y exigiendo nueva solicitud. No permite saltar revisión ni entregar con evidencia obsoleta. Migración 0041. La corrección también puede retirar una aprobación todavía vigente por decisión administrativa justificada. Sin cambios remotos.
