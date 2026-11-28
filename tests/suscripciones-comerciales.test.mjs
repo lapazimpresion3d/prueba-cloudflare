@@ -49,11 +49,11 @@ test("publicación contractual secuencial, autorización y conservación de susc
 test("contrato inicial autorizado, versión acordada, duplicados y separación operativa",async()=>{
  const x=await fixture(),token="a".repeat(64),h=Buffer.from(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(token))).toString("hex");
  x.sql.prepare("INSERT INTO central_sesiones(hash,operador,creado,expira,ultima) VALUES(?,'op',1,999999,1)").run(h);
- x.sql.exec("INSERT INTO usuarios(id,emisor,sujeto) VALUES('u','issuer','owner'); INSERT INTO roles VALUES('a','propietario','Owner'); INSERT INTO membresias VALUES('a','u','propietario',1,'empresa'); INSERT INTO central_implementaciones VALUES('a','configuracion',1); INSERT INTO comercio_altas_pendientes(id,nombre,sucursal,giro,plan,version,emisor,sujeto,operador,creado,expira,estado,empresa) VALUES('alta','A','Centro','tienda','p1',1,'issuer','owner','op',1,2000,'aceptada','a'); INSERT INTO comercio_altas_prospecto VALUES('alta')");
+ x.sql.exec("INSERT INTO usuarios(id,emisor,sujeto) VALUES('u','issuer','owner'); INSERT INTO roles VALUES('a','propietario','Owner'); INSERT INTO membresias VALUES('a','u','propietario',1,'empresa'); INSERT INTO central_implementaciones VALUES('a','configuracion',1); INSERT INTO comercio_altas_pendientes(id,nombre,sucursal,giro,plan,version,emisor,sujeto,operador,creado,expira,estado,empresa) VALUES('alta','A','Centro','tienda','p2',1,'issuer','owner','op',1,2000,'aceptada','a'); INSERT INTO comercio_altas_prospecto VALUES('alta')");
  x.sql.prepare("INSERT INTO comercio_invitaciones_propietario(id,alta,hash,operador,creado,expira,consumido) VALUES('j','alta',?,'op',1,2000,500)").run("b".repeat(64));
  const g=await crearContratacionAutorizada({COMMERCE_DB:x.db},{habilitado:true,reloj:()=>1000,autenticarCentral:async()=>({emisor:"issuer",sujeto:"operador"})});
  const r=new Request("https://example.com/contrato",{method:"POST",headers:{Origin:"https://example.com",Cookie:"__Host-lapaz-central="+token}});
- const d={empresa:"a",alta:"alta",plan:"p1",version:1,referencia:"acuerdo-001"};
+ const d={empresa:"a",alta:"alta",plan:"p2",version:1,referencia:"acuerdo-001"};
  await assert.rejects(g.contratar(x.cliente,d));
  await assert.rejects(g.contratar(r,{...d,empresa:"b"}));
  await assert.rejects(g.contratar(r,{...d,version:2}));
@@ -81,6 +81,7 @@ test("contrato inicial autorizado, versión acordada, duplicados y separación o
  const ar=await Promise.allSettled([activacion.guardar(r,act),activacion.guardar(r,act)]);
  assert.equal(ar.filter(v=>v.status==="fulfilled").length,1);
  await x.g.autorizarModulo(x.cliente,{empresa:"a",permiso:"empresa.ver",modulo:"web"});
+ assert.throws(()=>x.sql.exec("INSERT INTO sucursales(empresa,id,nombre) VALUES('a','s2','Norte')"),/Limite contractual/);
  await assert.rejects(x.g.contratar(x.op,{...x.d,revision:1}));
  await activacion.guardar(r,{empresa:"a",revision:1,modulos:[]});
  await assert.rejects(x.g.autorizarModulo(x.cliente,{empresa:"a",permiso:"empresa.ver",modulo:"web"}));
