@@ -5,7 +5,7 @@ const secciones=[
  ["prospectos","Prospectos y altas","Contratación autorizada","disponible"],
  ["planes","Paquetes y versiones","Catálogo contractual","disponible"],
  ["implementaciones","Implementación y entrega","Seguimiento comercial","disponible"],
- ["ciclo","Ciclo de vida","Suspensión, recuperación y baja","pendiente"],
+ ["ciclo","Ciclo de vida","Suspensión, recuperación y baja","disponible"],
  ["operadores","Operadores y seguridad","Accesos administrativos","pendiente"],
  ["auditoria","Auditoría y exportaciones","Historial y conservación","pendiente"]
 ];
