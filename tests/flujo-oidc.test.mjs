@@ -428,7 +428,16 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  assert.ok(!rutaB.modulos.some(m=>m.id==="cocina"));
  await assert.rejects(asistente2.guardar(ra,{...ai,revision:5,plan:"p4"}));
 
- assert.ok(av.pasos.every(p=>p.estado_validacion==="pendiente"));
+ assert.equal(av.pasos.find(p=>p.id==="perfil").estado_validacion,"valido");
+ assert.equal(av.pasos.find(p=>p.id==="presentacion").estado_validacion,"valido");
+ assert.ok(av.pasos.filter(p=>!["perfil","presentacion"].includes(p.id)).every(p=>p.estado_validacion==="pendiente"));
+ assert.equal(av.perfil.vista_previa.contacto.whatsapp,"+526120000001");
+ assert.equal(Object.hasOwn(av.perfil.vista_previa.contacto,"correo"),false);
+ assert.equal(av.perfil.contacto.correo,"negocio@example.com");
+ const inicialB=await asistente2.consultar(get(b.cookie),{empresa:b.empresa});
+ assert.equal(inicialB.perfil.pasos.presentacion.estado_validacion,"pendiente");
+ assert.equal(inicialB.perfil.identidad.logotipo,null);
+ await assert.rejects(asistente2.consultar(ca,{empresa:b.empresa}));
  assert.equal((await asistente2.consultar(get(b.cookie),{empresa:b.empresa})).progreso.revision,0);
  await assert.rejects(asistente2.historial(ca,{empresa:b.empresa}));
  assert.deepEqual((await asistente2.historial(ca,{empresa:a.empresa,antes:3})).map(v=>v.revision),[2,1]);
@@ -498,6 +507,11 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  assert.equal((await gestor.consultar(ra,a.empresa)).plan,"p2");
  const ajustada=await asistente.consultar(ca,{empresa:a.empresa});
  assert.equal(ajustada.ruta.contrato.plan,"p2");
+ const revisada=await asistente.consultar(ca,{empresa:a.empresa,referencia:av.perfil.referencia});
+ assert.equal(revisada.perfil.cambios.perfil,true);
+ assert.equal(revisada.perfil.cambios.contrato,true);
+ assert.equal(revisada.perfil.pasos.presentacion.estado_validacion,"pendiente");
+ assert.equal(Object.hasOwn(revisada.perfil.vista_previa.contacto,"whatsapp"),false);
  assert.equal(ajustada.progreso.revision,5);
  assert.ok(!ajustada.ruta.modulos.some(m=>m.id==="pos"));
  assert.ok(ajustada.progreso.visitados.includes("perfil"));
