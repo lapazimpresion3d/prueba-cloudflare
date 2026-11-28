@@ -1,0 +1,2 @@
+# 52.4.10.1 — Estabilización de CI
+Base cf03fed: CI 46143796579 exitosa, 350 pruebas Node y 9 Python, sin fallos ni omisiones Node. Se añaden regresiones con SQLite en memoria y todas las migraciones: matriz de navegación real, acceso directo, cambio de rol, revocación y auditoría, prohibición de automodificación, paginación y filtrado de auditoría, aislamiento de bindings. Identidad de autenticación simulada; no prueba MFA real ni navegador. No se alteran servicios productivos. Pendiente CI del nuevo commit y revisión integral de permisos 52.4.10.2.
