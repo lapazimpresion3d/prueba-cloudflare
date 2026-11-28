@@ -23,15 +23,15 @@ export async function crearActivacionComercial(env,{habilitado=false,autenticarC
   if(!id(a?.emisor)||!id(a?.sujeto)||!/^[a-f0-9]{64}$/.test(t)||!Number.isSafeInteger(n)||n<0)throw Error("Activación no autorizada.");
   return {n,args:[a.emisor,a.sujeto,await hash(t),n,n-600000,n-300000]};
  }
- const contexto=" FROM comercial_contratos_iniciales k JOIN comercial_planes p ON p.id=k.plan AND p.version=k.version JOIN comercio_altas_pendientes z ON z.id=k.alta AND z.empresa=k.empresa JOIN empresas e ON e.id=k.empresa WHERE k.empresa=? AND e.activa=1 AND z.estado='aceptada' AND EXISTS(SELECT 1 FROM membresias m JOIN usuarios u ON u.id=m.usuario WHERE m.empresa=e.id AND m.rol='propietario' AND m.activa=1 AND m.alcance='empresa' AND u.activo=1) AND (SELECT count(*) FROM membresias WHERE empresa=e.id AND activa=1)<=p.usuarios AND (SELECT count(*) FROM sucursales WHERE empresa=e.id AND activa=1)<=p.sucursales";
+ const contexto=" FROM comercial_contratos_iniciales k LEFT JOIN comercial_suscripciones s0 ON s0.empresa=k.empresa JOIN comercial_planes p ON p.id=COALESCE(s0.plan,k.plan) AND p.version=COALESCE(s0.version,k.version) JOIN comercio_altas_pendientes z ON z.id=k.alta AND z.empresa=k.empresa JOIN empresas e ON e.id=k.empresa WHERE k.empresa=? AND e.activa=1 AND z.estado='aceptada' AND EXISTS(SELECT 1 FROM membresias m JOIN usuarios u ON u.id=m.usuario WHERE m.empresa=e.id AND m.rol='propietario' AND m.activa=1 AND m.alcance='empresa' AND u.activo=1) AND (SELECT count(*) FROM membresias WHERE empresa=e.id AND activa=1)<=p.usuarios AND (SELECT count(*) FROM sucursales WHERE empresa=e.id AND activa=1)<=p.sucursales";
  return Object.freeze({async guardar(r,d){
   const {n,args}=await central(r);
   if(!id(d?.empresa)||!Number.isSafeInteger(d.revision)||d.revision<0||!lista(d.modulos)||Object.keys(d).some(k=>!["empresa","revision","modulos","inicio","vence"].includes(k)))throw Error("Activación inválida.");
   if(d.revision===0?(!Number.isSafeInteger(d.inicio)||!Number.isSafeInteger(d.vence)||d.inicio<0||d.inicio>n||d.vence<=n||!d.modulos.length):(Object.hasOwn(d,"inicio")||Object.hasOwn(d,"vence")))throw Error("Vigencia inválida.");
-  const x=await q("SELECT k.plan,k.version,p.modulos,z.giro"+contexto+" AND ("+guard+") IS NOT NULL",d.empresa,...args).first();
+  const x=await q("SELECT p.id AS plan,p.version,p.modulos,z.giro"+contexto+" AND ("+guard+") IS NOT NULL",d.empresa,...args).first();
   if(!x)throw Error("Contrato no disponible.");
   const seleccion=JSON.stringify(validarSeleccion({giro:x.giro,contratados:JSON.parse(x.modulos),operativos:disponibles,seleccion:d.modulos}));
-  const filtro="EXISTS(SELECT 1"+contexto+" AND k.plan=? AND k.version=? AND z.giro=?)";
+  const filtro="EXISTS(SELECT 1"+contexto+" AND p.id=? AND p.version=? AND z.giro=?)";
   const f=[d.empresa,x.plan,x.version,x.giro];
   const stm=[];
   if(d.revision===0){
