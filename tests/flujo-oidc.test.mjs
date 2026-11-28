@@ -1,3 +1,4 @@
+import {crearPerfilComercial} from "../src/perfil-comercial.mjs";
 import {crearContratacionAutorizada} from "../src/contratacion-autorizada.mjs";
 import {crearActivacionComercial} from "../src/activacion-comercial.mjs";
 import {crearCambiosContractuales} from "../src/cambios-contractuales.mjs";
@@ -144,6 +145,24 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  }
  const a=await incorporar("owner-a","restaurante","p3"),b=await incorporar("owner-b","barberia","p2");
  const ra=post(a.cookie),rb=post(b.cookie),ca=get(a.cookie);
+ const perfil=await crearPerfilComercial(x.env,{habilitado:true,reloj:x.reloj,autorizarComercial:nucleo.autorizar});
+ const original=await perfil.consultar(ca,{empresa:a.empresa});
+ assert.equal(original.revision,1);assert.equal(original.descripcion,"");
+ const cambioPerfil={empresa:a.empresa,revision:1,nombre_publico:"Restaurante de prueba",descripcion:"Descripción privada",lema:"Bienvenidos"};
+ await assert.rejects(perfil.guardar(rb,cambioPerfil));
+ await assert.rejects(perfil.guardar(post(cc),cambioPerfil));
+ await assert.rejects(perfil.guardar(ra,{...cambioPerfil,giro:"taller"}));
+ await assert.rejects(perfil.guardar(ra,{...cambioPerfil,nombre_publico:" "}));
+ await assert.rejects(perfil.guardar(new Request(origen+"/interno",{method:"POST",headers:{Origin:"https://otro.invalid",Cookie:a.cookie}}),cambioPerfil));
+ const pr=await Promise.allSettled([perfil.guardar(ra,cambioPerfil),perfil.guardar(ra,cambioPerfil)]);
+ assert.equal(pr.filter(v=>v.status==="fulfilled").length,1);
+ const guardado=await perfil.consultar(ca,{empresa:a.empresa});
+ assert.equal(guardado.revision,2);assert.equal(guardado.nombre_publico,cambioPerfil.nombre_publico);
+ assert.equal((await perfil.consultar(get(b.cookie),{empresa:b.empresa})).revision,1);
+ assert.equal(x.sql.prepare("SELECT nombre FROM empresas WHERE id=?").get(a.empresa).nombre,"Negocio owner-a");
+ assert.equal(x.sql.prepare("SELECT count(*) n FROM comercio_auditoria WHERE empresa=? AND accion='perfil.basico_guardado'").get(a.empresa).n,1);
+ await assert.rejects(perfil.consultar(ca,{empresa:b.empresa}));
+
  const permiso={empresa:a.empresa,sucursal:a.sucursal,permiso:"pos.operar",modulo:"pos"};
  assert.equal((await acceso.empresas(ca)).length,1);
  await assert.rejects(acceso.seleccionar(ra,{empresa:a.empresa}));
@@ -178,6 +197,7 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  await assert.rejects(gestor.autorizarModulo(ra,web));
  assert.equal((await compat.consultar(ca,{empresa:a.empresa})).modulos.find(m=>m.id==="web").habilitado,false);
  await acceso.cerrar(ra);
+ await assert.rejects(perfil.guardar(ra,{...cambioPerfil,revision:2}));
  await assert.rejects(gestor.consultar(ra,a.empresa));
  await assert.rejects(compat.consultar(ca,{empresa:a.empresa}));
 });
