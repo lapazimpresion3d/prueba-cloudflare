@@ -1,3 +1,4 @@
+import {crearDisponibilidadLaboral} from "../src/disponibilidad-laboral.mjs";
 import {crearInvitacionesEmpleados} from "../src/invitaciones-empleados.mjs";
 import {crearAsignacionesPersonal} from "../src/asignaciones-personal.mjs";
 import {crearRolesOperativos} from "../src/roles-operativos.mjs";
@@ -310,6 +311,22 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  await asignaciones.asignarAcceso(ra,da);
  await assert.rejects(asignaciones.asignarAcceso(ra,da));
  assert.equal((await asignaciones.consultar(ca,{empresa:a.empresa,empleado:otro.id})).acceso.rol,rol.rol);
+ const disponibilidad=await crearDisponibilidadLaboral(x.env,{habilitado:true,reloj:x.reloj,autorizarComercial:nucleo.autorizar});
+ const turnos={zona_horaria:"America/Mazatlan",sucursales:[{sucursal:a.sucursal,horario_semanal:Array.from({length:7},()=>[[540,780],[900,1260]]),excepciones_horario:{}}],ausencias:[]};
+ const dt={empresa:a.empresa,empleado:otro.id,revision:0,turnos};
+ await assert.rejects(disponibilidad.guardarTurnos(rb,dt));
+ await assert.rejects(disponibilidad.guardarTurnos(ra,{...dt,turnos:{...turnos,sucursales:[{...turnos.sucursales[0],sucursal:b.sucursal}]}}));
+ const tr=await Promise.allSettled([disponibilidad.guardarTurnos(ra,dt),disponibilidad.guardarTurnos(ra,dt)]);
+ assert.equal(tr.filter(v=>v.status==="fulfilled").length,1);
+ assert.equal((await disponibilidad.consultarTurnos(ca,{empresa:a.empresa,empleado:otro.id})).revision,1);
+ const recursoD={empresa:a.empresa,sucursal:a.sucursal,revision:0,codigo:"EST-01",nombre:"Estación",tipo:"estacion",activo:1,horario:null,servicios:[servicio.id]};
+ const recurso=await disponibilidad.guardarRecurso(ra,recursoD);
+ const consulta={empresa:a.empresa,empleado:otro.id,sucursal:a.sucursal,servicio:servicio.id,recurso:recurso.id,inicio:Date.parse("2026-11-30T16:00:00Z"),fin:Date.parse("2026-11-30T17:00:00Z")};
+ assert.equal((await disponibilidad.disponibilidad(ca,consulta)).disponible,true);
+ await assert.rejects(disponibilidad.disponibilidad(get(b.cookie),consulta));
+ await disponibilidad.guardarRecurso(ra,{...recursoD,id:recurso.id,revision:1,activo:0});
+ assert.equal((await disponibilidad.disponibilidad(ca,consulta)).disponible,false);
+ assert.equal((await disponibilidad.listarRecursos(ca,{empresa:a.empresa,sucursal:a.sucursal})).recursos.length,1);
  await asignaciones.guardarServicio(ra,{empresa:a.empresa,id:servicio.id,revision:1,codigo:"PREP",nombre:"Preparación",activo:0});
  assert.deepEqual((await asignaciones.consultar(ca,{empresa:a.empresa,empleado:otro.id})).servicios_efectivos,[]);
  await asignaciones.asignarLabor(ra,{...laboral,revision:1,principal:null,sucursales:[],servicios:[]});

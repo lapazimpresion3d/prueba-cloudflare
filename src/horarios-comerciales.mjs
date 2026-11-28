@@ -62,3 +62,9 @@ export function estadoHorario(config,instante){
  }
  return {abierto:false,proxima_apertura:proxima,fecha_local:c.fecha,minuto_local:c.minuto};
 }
+
+// Compile once for bounded availability queries; do not search next opening for each minute.
+export function compilarHorario(config){
+ const h=validarHorario(config),fmt=formato(h.zona_horaria);
+ return instante=>{if(!Number.isSafeInteger(instante)||!Number.isFinite(new Date(instante).getTime()))error();const c=civil(fmt,instante);return abierto(h,c);};
+}
