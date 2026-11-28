@@ -1,3 +1,4 @@
+import {precioConfirmado} from "./precios-confirmados.mjs";
 // Central onboarding adapter. Delegates mutations to verified existing services.
 const id=x=>typeof x==="string"&&x.length>0&&x.length<=128;
 const hash=async t=>Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(t))),x=>x.toString(16).padStart(2,"0")).join("");
@@ -14,9 +15,8 @@ export async function crearProspectosCentral(env,{habilitado=false,autenticarCen
   return {n,args:[a.emisor,a.sujeto,await hash(t),n,n-600000]};
  }
  // Confirmed commercial reference. Legacy v1 remains immutable; only matching published versions can be used for new onboarding here.
- const precios={p1:14900,p2:24900,p3:34900,p4:49900};
- const opciones="SELECT p.id,p.version,p.nombre,p.implementacion,p.mensualidad,p.usuarios,p.sucursales FROM comercial_planes p WHERE (p.version=1 OR EXISTS(SELECT 1 FROM comercial_plan_publicaciones b WHERE b.plan=p.id AND b.version=p.version)) AND "+guard+" ORDER BY p.id,p.version DESC";
- function vigentes(rows){const vistos=new Set();return rows.filter(p=>{if(vistos.has(p.id))return false;vistos.add(p.id);return Object.hasOwn(precios,p.id)&&p.mensualidad===precios[p.id];});}
+ const opciones="SELECT p.id,p.version,p.nombre,p.implementacion,p.mensualidad,p.moneda,p.usuarios,p.sucursales FROM comercial_planes p WHERE (p.version=1 OR EXISTS(SELECT 1 FROM comercial_plan_publicaciones b WHERE b.plan=p.id AND b.version=p.version)) AND "+guard+" ORDER BY p.id,p.version DESC";
+ function vigentes(rows){const vistos=new Set();return rows.filter(p=>{if(vistos.has(p.id))return false;vistos.add(p.id);return precioConfirmado(p);});}
  const campos=(d,keys)=>{if(!d||typeof d!=="object"||Array.isArray(d)||Object.keys(d).length!==keys.length||keys.some(k=>!Object.hasOwn(d,k)))throw Error("Datos inválidos.");};
  return Object.freeze({
  async listar(r,{offset=0}={}){
