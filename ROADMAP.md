@@ -97,6 +97,11 @@ Evaluar ADR entre D1 compartida con ámbito obligatorio/relaciones compuestas, D
 - Generalizar el escaparate temprano de los cinco establecimientos al módulo web/catálogo autorizado en servidor. Café Mirador será piloto P1, sin esperar P2/P3/P4.
 - Alta guiada, accesibilidad, móvil, respaldo de contenido, costo de operación, documentación comercial y soporte.
 
+### Requisito transversal — Clientes recurrentes (52.6, antes de habilitar citas/pedidos reales)
+- [ ] Incorporar el subbloque 52.6 Clientes recurrentes e identidad de consumidores (ver [plan específico](docs/plan-clientes-recurrentes-52.6.md)). Una ficha por cliente reconocido dentro de cada empresa; operaciones múltiples vinculadas sin duplicar fichas. No confundir consumidores con cuentas de personal ni otorgar acceso comercial por identidad de consumidor.
+- [ ] Reconocimiento opcional del dispositivo con credencial opaca revocable y verificación de posesión del canal al recuperar identidad; no revelar datos por coincidencia de teléfono. Alternativa de invitado, resolución de duplicados y privacidad desde el diseño.
+- [ ] Mantener el orden actual de 52.3.3; requisito previo a pilotar cualquier módulo real que recoja datos de consumidores. Seguridad y retención desde implementación, revisión integral en 52.8.
+
 ### Etapa 5 — Citas y agendas (prioridad 6)
 - Recursos, empleados, horarios, duración, capacidad, bloqueos, disponibilidad, asignación, cancelación/reprogramación y prevención atómica de traslapes; clientes base y privacidad.
 - Barbería Elite como primer piloto de agenda; reusar para servicios y, con adaptador, reservas de mesa. No exigir mesa/personas a una cita de empleado.
