@@ -1,6 +1,6 @@
 import {gruposIconos} from "./iconos-perfil.mjs";
 import {admiteCotizaciones} from "./cotizaciones-practica.mjs";
-import {montarInicioAdmin} from "./panel-admin.mjs?v=admin-2";
+import {montarInicioAdmin} from "./panel-admin.mjs?v=52t8g4";
 import {admitePos} from "./pos-practica.mjs";
 import {montarEmpresa} from "./empresa-practica.mjs";
 import {admiteCuentas} from "./cuentas-practica.mjs";

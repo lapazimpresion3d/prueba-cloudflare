@@ -46,7 +46,8 @@ try{
   page.on("response",res=>{if(res.status()>=400&&/\.(?:mjs|css)(?:\?|$)/.test(res.url()))errs.push(res.status()+" "+res.url());});
   try{
    await abrir(page,"/"+e.id+"/panel?plan="+p.id);await esperarInicio(page);await menu(page,"#admin-menu");
-   await page.locator("#admin-soporte").click();await listo(page);assert.ok(await page.locator("#contenido").isVisible());
+   if(e.id==="bahia-tours"){const grupos=await page.locator("#admin-nav .admin-grupo:not([hidden]) h2").allTextContents();assert.ok(grupos.includes("Experiencias y reservaciones"));assert.equal(grupos.includes("Productos y abastecimiento"),false);assert.equal(grupos.includes("Finanzas"),["p3","p4"].includes(p.id));}
+   await page.locator("#admin-soporte").click();await listo(page);if(e.id==="bahia-tours")assert.ok((await page.locator(".admin-sidebar h2").allTextContents()).includes("Experiencias y reservaciones"));assert.ok(await page.locator("#contenido").isVisible());
    assert.ok((await page.locator("#contexto").textContent()).includes(e.nombre));
    assert.equal(await page.locator(".admin-sidebar a[aria-current=page]").count(),1);
    await menu(page,".admin-menu-toggle");await page.locator('.admin-sidebar a[href*="/suscripcion/"]').click();await listo(page);assert.ok(await page.locator("#contenido").isVisible());
