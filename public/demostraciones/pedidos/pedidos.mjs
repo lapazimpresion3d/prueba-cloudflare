@@ -52,7 +52,7 @@ if(!negocio||!admitePedidos(id,plan)){
     e.preventDefault();const o=objetivoCobro;if(!o||ocupado||comprobando||o.modo!==servidor)return;
     let d;try{d={accion:o.accion,revision:revisionCobro(o.p),...(o.accion==="anular"?{motivo:$("motivo-cobro").value}:{totalEsperado:o.p.total,metodo:$("metodo-cobro").value,recibidoCentavos:centavosCobro($("recibido-cobro").value),referencia:$("referencia-cobro").value.trim()})};}catch(e){$("error-cobro").textContent=e.message;return;}
     ocupado=true;$("confirmar-cobro").disabled=$("cerrar-cobro").disabled=true;
-    try{if(o.modo){const actual=await remoto.leerEstado();if(actual.expira!==o.expira)throw Error("La sesión cambió. Cierra y actualiza.");await remoto.cobrar(o.p.solicitud,d);}else repo.cobrar(o.p.folio,d);dialogo.close();aviso(o.accion==="anular"?"Registro anulado. No se devuelve dinero.":"Cobro confirmado de práctica.");}
+    try{if(o.modo){const actual=await remoto.leerEstado();if(actual.expira!==o.expira)throw Error("La sesión cambió. Cierra y actualiza.");await remoto.cobrar(o.p.solicitud,d);}else repo.cobrar(o.p.folio,d);dialogo.close();aviso(o.accion==="anular"?"Registro anulado. No se devuelve dinero.":"Cobro registrado en la demostración.");}
     catch(e){$("error-cobro").textContent=e.message;}finally{ocupado=false;$("confirmar-cobro").disabled=$("cerrar-cobro").disabled=false;if(!dialogo.open)await render();}
   });
   async function render(){
@@ -86,7 +86,7 @@ if(!negocio||!admitePedidos(id,plan)){
       for(const destino of transicionesPedido(p.estado)){
         if(!guardia.permite(permisoPedido(destino)))continue;const b=el("button",etiquetas[destino]);b.type="button";try{validarCambioPedido(p,destino);}catch(e){b.disabled=true;b.title=e.message;acciones.append(el("p",e.message,"nota"));}b.addEventListener("click",async()=>{
           if(comprobando||ocupado||modo!==servidor||dialogo.open||b.disabled)return;
-          if(destino==="cancelado"&&!confirm("¿Cancelar este pedido de práctica?"))return;
+          if(destino==="cancelado"&&!confirm("¿Cancelar este pedido?"))return;
           ocupado=true;controles();try{if(modo)await remoto.cambiar(p.solicitud,p.estado,destino);else repo.cambiar(p.folio,p.estado,destino);aviso("Estado actualizado: "+nombresEstado[destino]+".");}catch(e){aviso(e.message);}finally{ocupado=false;await render();}
         });acciones.append(b);
       }

@@ -100,7 +100,7 @@ if(!base||!plan||!t){
   $("administracion").href=links.administracion;$("administracion-arriba").href=links.administracion;$("administracion-arriba").hidden=false;$("comparador").href=enlaceGaleria();
   $("salir-practica").href=enlacesDemo(base.id,plan.id).negocio;
   $("aviso-practica-arriba").hidden=!practica;
-  $("plan-visible").textContent=plan.nombre+(plan.id==="p1"?" · Ejemplo de página y catálogo":" · Funciones de práctica disponibles según el giro");
+  $("plan-visible").textContent=plan.nombre+(plan.id==="p1"?" · Ejemplo de página y catálogo":"");
   $("aviso-practica").hidden=!practica;
   render();$("pagina").hidden=false;
   // Al volver desde el panel con el historial del navegador, reconstruir desde la copia de práctica.

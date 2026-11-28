@@ -20,7 +20,7 @@ if(!negocio||!admiteCitas(id,plan)){
  const links=enlacesDemo(id,plan,personalizada),base="/demostraciones/citas/?"+new URLSearchParams({negocio:id,plan,...(personalizada?{practica:"1"}:{})});
  $("nombre").textContent=negocio.nombre;$("volver-negocio").href=links.negocio;$("volver-panel").href=links.administracion;
  $("cambiar-vista").href=admin?base:base+"&vista=agenda";$("cambiar-vista").textContent=admin?"Probar como cliente":"Abrir agenda del encargado";
- $("reservar").hidden=admin;$("filtros").hidden=!admin;$("resumen-agenda").hidden=!admin;$("restaurar").hidden=!admin;$("titulo-listado").textContent=admin?"Agenda de citas":"Mis citas de práctica";
+ $("reservar").hidden=admin;$("filtros").hidden=!admin;$("resumen-agenda").hidden=!admin;$("restaurar").hidden=!admin;$("titulo-listado").textContent=admin?"Agenda de citas":"Mis citas";
  const aviso=s=>{$("aviso").textContent=s;};
  $("cliente-cita").replaceChildren(new Option("Selecciona un cliente",""),...clientesDemo.map(x=>new Option(x.nombre,x.id)));
  $("nota-cita").replaceChildren(...notasCitaDemo.map(x=>new Option(x.nombre,x.id)));
@@ -69,7 +69,7 @@ if(!negocio||!admiteCitas(id,plan)){
   if(!slots.length)$("horas").append(el("p","No hay horarios disponibles para esta fecha y profesional.","nota"));
   const s=slots.find(s=>s.inicio===elegido);$("seleccion").textContent=s?"Horario elegido: "+horaCita(s.inicio)+"–"+horaCita(s.fin):"Selecciona un horario.";
   $("crear").disabled=comprobando||creando||ocupado||(!pendiente&&(!s||!$("cliente-cita").value))||(servidor&&!pendiente&&!listaValida);
-  $("crear").textContent=pendiente?"Reintentar cita pendiente":"Solicitar cita de práctica";
+  $("crear").textContent=pendiente?"Reintentar cita pendiente":"Solicitar cita";
   if(pendiente)$("seleccion").textContent="Solicitud pendiente: "+pendiente.datos.fecha+" · "+horaCita(pendiente.datos.inicio)+". Reintenta sin modificarla.";
   controles();
  }
@@ -85,7 +85,7 @@ if(!negocio||!admiteCitas(id,plan)){
    else a.append(el("p","Cita anterior sin datos de cliente.","nota"));
    const acciones=el("div",undefined,"acciones-demo"),est=admin?transicionesCita(c.estado):transicionesCita(c.estado).filter(s=>s==="cancelada");
    const etiquetas={confirmada:"Confirmar",atendida:"Marcar atendida",no_asistio:"No asistió",cancelada:"Cancelar"};
-   for(const destino of est){if(!guardia.permite(permisoAgenda("citas",destino)))continue;const b=el("button",etiquetas[destino]);b.type="button";b.disabled=ocupado||creando||servidor&&!listaValida;b.addEventListener("click",async()=>{if(ocupado||creando||servidor&&!listaValida)return;if(destino==="cancelada"&&!confirm("¿Cancelar la cita de práctica?"))return;ocupado=true;render();try{if(servidor)await remoto.cambiar(c.solicitud,c.estado,destino);else repo.cambiar(c.folio,c.estado,destino);aviso("Cita actualizada: "+nombresCita[destino]+".");}catch(e){aviso(e.message);}finally{ocupado=false;await actualizar();}});acciones.append(b);}
+   for(const destino of est){if(!guardia.permite(permisoAgenda("citas",destino)))continue;const b=el("button",etiquetas[destino]);b.type="button";b.disabled=ocupado||creando||servidor&&!listaValida;b.addEventListener("click",async()=>{if(ocupado||creando||servidor&&!listaValida)return;if(destino==="cancelada"&&!confirm("¿Cancelar la cita?"))return;ocupado=true;render();try{if(servidor)await remoto.cambiar(c.solicitud,c.estado,destino);else repo.cambiar(c.folio,c.estado,destino);aviso("Cita actualizada: "+nombresCita[destino]+".");}catch(e){aviso(e.message);}finally{ocupado=false;await actualizar();}});acciones.append(b);}
    a.append(acciones);if(admin){const details=el("details"),ul=el("ul");for(const h of c.historial)ul.append(el("li",nombresCita[h.estado]+" · "+new Date(h.fecha).toLocaleString("es-MX",{timeZone:"America/Mazatlan"})));details.append(el("summary","Historial"),ul);a.append(details);}return a;
   }));
   if(!lista.length)$("citas").append(el("p",comprobando?"Consultando agenda…":servidor&&!listaValida?"No se pudo consultar la agenda del servidor. Actualiza o activa la sesión.":servidor?"No hay citas en esta sesión del servidor con estos filtros.":"No hay citas locales en esta pestaña con estos filtros.","nota"));

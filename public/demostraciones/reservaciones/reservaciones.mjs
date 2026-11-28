@@ -26,7 +26,7 @@ else{
  $("cliente").href=links.negocio;$("empresa").href=links.administracion;
  $("rol").textContent=admin?"VISTA DE LA EMPRESA":"VISTA DEL CLIENTE";
  $("titulo").textContent=admin?"Administración de reservaciones y mesas":"Reserva tu mesa";
- $("titulo-lista").textContent=admin?"Agenda de la empresa":"Mis reservaciones de práctica";
+ $("titulo-lista").textContent=admin?"Agenda de la empresa":"Mis reservaciones";
  $("cambiar-vista").textContent=admin?"Solicitar reservación como cliente":"Abrir agenda del encargado";
  $("formulario").hidden=admin;$("filtro-contenedor").hidden=!admin;$("qr").hidden=!admin;
  $("personas").replaceChildren(...Array.from({length:8},(_,i)=>new Option(String(i+1),String(i+1))));

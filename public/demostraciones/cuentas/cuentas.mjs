@@ -68,7 +68,7 @@ else{
   $("saldo-cuenta").textContent="Importe: "+importe(objetivo.total);
   $("campos-cuenta").hidden=!!grupo;$("campo-motivo-cuenta").hidden=!grupo;
   $("metodo-cuenta").value="efectivo";$("recibido-cuenta").value=(objetivo.total/100).toFixed(2);$("folio-cuenta").value="";$("motivo-cuenta").value="";$("error-cuenta").textContent="";
-  $("confirmar-cuenta").textContent=grupo?"Anular registro (no reembolso)":"Confirmar cobro simulado";actualizarImporte();dialogo.showModal();
+  $("confirmar-cuenta").textContent=grupo?"Anular registro (no reembolso)":"Registrar cobro";actualizarImporte();dialogo.showModal();
  }
  $("volver-cuenta").addEventListener("click",()=>{if(!ocupado)dialogo.close();});
  dialogo.addEventListener("cancel",e=>{if(ocupado)e.preventDefault();});dialogo.addEventListener("close",()=>{objetivo=null;});
@@ -91,7 +91,7 @@ else{
   const grupos=new Map();for(const p of s.todos)if(p.cobro?.grupo)grupos.set(p.cobro.grupo.id,{...p.cobro.grupo,metodo:p.cobro.metodo,referencia:p.cobro.referencia});
   for(const g of grupos.values()){card.append(el("p","Cobro agrupado: "+importe(g.total)+" · "+metodosCobroDemo[g.metodo]+(g.referencia?" · "+g.referencia:"")+" · Recibido "+importe(g.recibido)+" · Cambio "+importe(g.cambio)));if(abierta){const b=el("button","Anular cobro agrupado");b.addEventListener("click",()=>abrirDialogo(c,s,g));card.append(b);}}
   if(pm?.datos){const url="/api/demo/pagos-multiples?"+query+"&cuenta="+encodeURIComponent(c.cuenta_id);
-   card.append(panelPagosMultiples(c,pm.datos,{enviar:d=>operar(async()=>{await mutacion(c.cuenta_id,"POST",d);aviso("Abono de prueba registrado.");await cargar();}),anular:d=>operar(async()=>{await mutacion(c.cuenta_id,"PATCH",d);aviso("Registro anulado; saldo actualizado. No implica devolución.");await cargar();}),reasignar:d=>operar(async()=>{await mutacion(c.cuenta_id,"PATCH",d);aviso("Asignaciones actualizadas.");await cargar();}),cerrar:revision=>operar(async()=>{await mutacion(c.cuenta_id,"PATCH",{accion:"cerrar",revision});aviso("Cuenta cerrada. Mesa liberada.");await cargar();})}));
+   card.append(panelPagosMultiples(c,pm.datos,{enviar:d=>operar(async()=>{await mutacion(c.cuenta_id,"POST",d);aviso("Abono registrado en la demostración.");await cargar();}),anular:d=>operar(async()=>{await mutacion(c.cuenta_id,"PATCH",d);aviso("Registro anulado; saldo actualizado. No implica devolución.");await cargar();}),reasignar:d=>operar(async()=>{await mutacion(c.cuenta_id,"PATCH",d);aviso("Asignaciones actualizadas.");await cargar();}),cerrar:revision=>operar(async()=>{await mutacion(c.cuenta_id,"PATCH",{accion:"cerrar",revision});aviso("Cuenta cerrada. Mesa liberada.");await cargar();})}));
   }else if(pm?.error)card.append(el("p",pm.error,"nota"));
   if(abierta&&!multiple&&!pm?.error){
    for(const [texto,origen] of [["Capturar comanda como mesero","mesero"],["Abrir menú del cliente para esta visita","cliente"]]){const a=el("a",texto);a.href=enlaceComanda(c,plan,origen);card.append(a);}

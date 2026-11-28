@@ -8,7 +8,7 @@ import {enlacesDemo} from "../presentaciones.mjs";
 const $=id=>document.getElementById(id),q=new URLSearchParams(location.search),plan=q.get("plan"),el=(tag,t)=>{const n=document.createElement(tag);if(t!==undefined)n.textContent=t;return n;},money=n=>new Intl.NumberFormat("es-MX",{style:"currency",currency:"MXN"}).format(n/100);
 try{if(q.get("negocio")!=="bahia-tours"||q.get("rolVista")==="1"||!["p2","p3","p4"].includes(plan))throw Error("Vista de propietario requerida.");const hoy=hoyTurismo(),r=crearTurismo(sessionStorage,plan,hoy),av=plan!=="p2",w=av?crearEsperaTurismo(sessionStorage,plan,hoy):null,l=enlacesDemo("bahia-tours",plan);$("volver").href=l.administracion;$("publica").href=l.negocio;$("calendario").href="../calendario/?"+new URLSearchParams({negocio:"bahia-tours",plan});
 if(av){$("economia").hidden=false;$("economia").href="../economia-turismo/?"+new URLSearchParams({negocio:"bahia-tours",plan});}
-function ejecutar(fn){try{fn();render();$("aviso").textContent="Operación ficticia guardada.";}catch(e){$("aviso").textContent=e.message;}}
+function ejecutar(fn){try{fn();render();$("aviso").textContent="Operación guardada.";}catch(e){$("aviso").textContent=e.message;}}
 function boton(t,fn){const b=el("button",t);b.type="button";b.onclick=()=>ejecutar(fn);return b;}
 function opciones(n,items){const old=n.value;n.replaceChildren(...items.map(([v,t])=>new Option(t,v)));if(items.some(([v])=>v===old))n.value=old;}
 opciones($("cliente"),[["","Todos"],...clientes.map((x,i)=>[String(i),x])]);

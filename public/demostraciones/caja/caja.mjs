@@ -29,7 +29,7 @@ try{
   if(actual){$("turno").textContent=actual.id+" · Empleado "+(actual.empleado+1);$("movimientos").hidden=ctx.rol==="cajero";$("cerrar").disabled=ctx.rol==="cajero"&&actual.empleado!==a[1];$("totales").replaceChildren(...Object.entries({...campos,...(actual.resumen.anticiposAplicados?{anticiposAplicados:"Anticipos previos aplicados (no caja)"}:{})}).map(([k,n])=>{const div=el("div");div.append(el("span",n),el("strong",importe(actual.resumen[k])));return div;}));$("lista-movimientos").replaceChildren(...actual.movimientos.map(m=>el("p",m.tipo+" · "+m.motivo+" · "+importe(m.importe))));diferencia();}
   $("historial").replaceChildren(...ts.filter(t=>t.estado==="cerrado").map(t=>{const div=el("div"),b=el("button","Ver corte");b.type="button";b.onclick=()=>corte(t);div.append(el("p",t.id+" · "+importe(t.resumen.totalVentas)+" · Diferencia "+importe(t.cierre.diferencia)),b);return div;}));
  }
- function hacer(fn){try{fn();render();aviso("Operación de prueba registrada.");}catch(e){aviso(e.message);}}
+ function hacer(fn){try{fn();render();aviso("Operación registrada.");}catch(e){aviso(e.message);}}
  $("sucursal").onchange=()=>{empleados();$("corte").hidden=true;$("contado").value="";render();};$("empleado").onchange=render;$("tipo").onchange=motivos;$("contado").oninput=diferencia;
  $("abrir").onclick=()=>hacer(()=>store.abrir(...actor(),centavosCobro($("fondo").value)));
  const pendientes={};function ejecutarUnaVez(tipo,args,fn){const firma=JSON.stringify(args);if(pendientes[tipo]?.firma!==firma)pendientes[tipo]={firma,id:crypto.randomUUID()};const r=fn(...args,pendientes[tipo].id);delete pendientes[tipo];return r;}
