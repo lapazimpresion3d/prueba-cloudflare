@@ -1,0 +1,2 @@
+import test from "node:test";import assert from "node:assert/strict";import {celdaCSV,politicaConservacionPropuesta} from "../src/exportaciones-comerciales.mjs";
+test("CSV escapa fórmulas, comillas y saltos",()=>{assert.equal(celdaCSV("=1+1"),'"\'=1+1"');assert.equal(celdaCSV("  @SUM(A1)"),'"\'  @SUM(A1)"');assert.equal(celdaCSV('a"b'),'"a""b"');assert.equal(celdaCSV(null),'""');assert.equal(politicaConservacionPropuesta.borradoAutomatico,false);});

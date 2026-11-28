@@ -1,3 +1,4 @@
+import {crearExportacionesComerciales} from "../src/exportaciones-comerciales.mjs";
 import {crearCicloComercial} from "../src/ciclo-comercial.mjs";
 import {crearEntregaComercial} from "../src/entrega-comercial.mjs";
 import {crearRutasAsistente} from "../src/rutas-http-asistente.mjs";
@@ -683,6 +684,23 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  await assert.rejects(nucleo.autorizar(get(cookieNueva),{empresa:a.empresa,permiso:"empresa.ver"}));
  assert.equal((await nucleo.autorizar(get(cookieNueva),{empresa:b.empresa,permiso:"empresa.ver"})).empresa,b.empresa);
  assert.equal(x.sql.prepare("SELECT revision FROM comercio_perfiles_privados WHERE empresa=?").get(a.empresa).revision,9);
+ const exportador=await crearExportacionesComerciales(x.env,seg);
+ const solicitudExport={empresa:a.empresa,formato:"json",motivo:"Entrega de datos de baja"};
+ await assert.rejects(exportador.exportar(post(cookieNueva),solicitudExport));
+ await assert.rejects(exportador.exportar(post(cc),{...solicitudExport,formato:"sql"}));
+ const copia=await exportador.exportar(post(cc),solicitudExport);
+ const contenido=JSON.parse(copia.payload);
+ assert.equal(contenido.datos.suscripcion[0].estado,"cancelada");
+ assert.equal(contenido.datos.perfil[0].revision,9);
+ assert.ok(Object.values(contenido.datos).flat().every(r=>(r.empresa??r.id)===a.empresa));
+ assert.ok(!copia.payload.includes(cookieNueva));
+ assert.ok(!Object.hasOwn(contenido.datos.personal[0]??{},"correo"));
+ assert.match(copia.sha256,/^[a-f0-9]{64}$/);
+ const csv=await exportador.exportar(post(cc),{...solicitudExport,formato:"csv"});
+ assert.match(csv.payload,/^"tabla",/);
+ assert.equal((await exportador.historial(get(cc),{empresa:a.empresa})).length,2);
+ assert.deepEqual(await exportador.historial(get(cc),{empresa:b.empresa}),[]);
+ assert.throws(()=>x.sql.exec("DELETE FROM comercio_exportaciones"));
  x.expirar();
  await assert.rejects(gestor.autorizarModulo(ra,web));
  await assert.rejects(compat.consultar(ca,{empresa:a.empresa}));
