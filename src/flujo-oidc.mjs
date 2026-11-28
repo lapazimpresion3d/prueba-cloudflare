@@ -10,7 +10,7 @@ function endpoint(v){const u=new URL(v);if(u.protocol!=="https:"||u.username||u.
 function cookie(v,edad){return COOKIE+"="+v+"; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age="+edad;}
 function navegador(r){const x=(r.headers.get("Cookie")||"").split(";").map(v=>v.trim()).filter(v=>v.startsWith(COOKIE+"="));return x.length===1&&valido(x[0].slice(COOKIE.length+1))?x[0].slice(COOKIE.length+1):null;}
 // Internal only: caller must enforce rate limiting and return cookie/redirect without logging.
-export async function crearFlujoOidc(env,{habilitado=false,config,reloj=Date.now,transporte=fetch}={}){
+export async function crearFlujoOidc(env,{habilitado=false,config,reloj=Date.now,transporte=fetch,proposito="acceso",limitarInicio=null}={}){
  const db=env.COMMERCE_DB;
  if(!db||[env.DB,env.DEMO_DB,env.PROVIDER_DB].includes(db)||typeof transporte!=="function")throw Error("Flujo no configurado.");
  if(!(await db.prepare("SELECT clave FROM comercio_identidad WHERE clave='lapaz-comercios-v1'").first()))throw Error("Esquema incorrecto.");
@@ -18,18 +18,20 @@ export async function crearFlujoOidc(env,{habilitado=false,config,reloj=Date.now
  const auth=endpoint(autorizacion),token=endpoint(intercambio),callback=endpoint(retorno);
  if(typeof secreto!=="string"||!secreto||secreto.length>4096)throw Error("Cliente confidencial no configurado.");
  const verificar=crearVerificadorIdentidad({emisor,audiencia,claves,acrCentral,reloj});
- const marca=await hash(JSON.stringify([emisor,audiencia,auth.href,token.href,callback.href,acrCentral]));
+ if(!["acceso","recuperacion"].includes(proposito)||limitarInicio!==null&&typeof limitarInicio!=="function")throw Error("Configuración inválida.");
+ const marca=await hash(JSON.stringify([emisor,audiencia,auth.href,token.href,callback.href,acrCentral,proposito]));
  const q=(sql,...a)=>db.prepare(sql).bind(...a);
  const exigir=()=>{if(habilitado!==true)throw Error("Flujo deshabilitado.");};
  const ahora=()=>{const n=reloj();if(!Number.isSafeInteger(n)||n<0||n>Number.MAX_SAFE_INTEGER-TTL)throw Error("Reloj inválido.");return n;};
  return Object.freeze({
  async iniciar(r,{central=false}={}){
   exigir();const u=new URL(r.url);if(r.method!=="POST"||u.protocol!=="https:"||u.origin!==callback.origin||r.headers.get("Origin")!==callback.origin||typeof central!=="boolean")throw Error("Solicitud no permitida.");
+  if(limitarInicio&&!await limitarInicio(r))throw Error("Intenta nuevamente más tarde.");
   const estado=random(),browser=random(),nonce=random(),verificador=random(),n=ahora();
   // bounded cleanup, no access to other tables; abandoned transactions expire logically.
   await q("DELETE FROM comercio_oidc_solicitudes WHERE estado_hash IN (SELECT estado_hash FROM comercio_oidc_solicitudes WHERE expira<=? ORDER BY expira LIMIT 100)",n).run();
   await q("INSERT INTO comercio_oidc_solicitudes VALUES(?,?,?,?,?,?,?)",await hash(estado),await hash(browser),nonce,verificador,central?"central":"comercial",marca,n+TTL).run();
-  const url=new URL(auth);url.search=new URLSearchParams({response_type:"code",response_mode:"query",client_id:audiencia,redirect_uri:callback.href,scope:"openid email",state:estado,nonce,code_challenge:b64(await digest(verificador)),code_challenge_method:"S256",max_age:"300",...(central?{acr_values:acrCentral}:{})}).toString();
+  const url=new URL(auth);url.search=new URLSearchParams({response_type:"code",response_mode:"query",client_id:audiencia,redirect_uri:callback.href,scope:"openid email",state:estado,nonce,code_challenge:b64(await digest(verificador)),code_challenge_method:"S256",max_age:proposito==="recuperacion"?"0":"300",...(proposito==="recuperacion"?{prompt:"login"}:{}),...(central?{acr_values:acrCentral}:{})}).toString();
   return {url:url.href,cookie:cookie(browser,TTL/1000)};
  },
  async completar(r){
