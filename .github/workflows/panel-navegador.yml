@@ -21,3 +21,4 @@ jobs:
           for i in $(seq 1 60); do if curl -fsS http://127.0.0.1:8787/demostraciones/ejemplos/ >/dev/null; then break; fi; sleep 1; done
           curl -fsS http://127.0.0.1:8787/demostraciones/ejemplos/ >/dev/null
           node tests/browser-panel.mjs || { cat /tmp/demos-worker.log; exit 1; }
+          node tests/browser-estabilidad.mjs || { cat /tmp/demos-worker.log; exit 1; }

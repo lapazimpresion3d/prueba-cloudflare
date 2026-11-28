@@ -1,10 +1,17 @@
-import {contextoVista,accesoVista,urlVista} from "./vista-rol.mjs";
-import {rutaAdmin,montarNavegacion} from "./navegacion-admin.mjs";
-import {enlacesDemo} from "./presentaciones.mjs";
+// Mantiene oculto el documento parcial hasta montar contenido y navegación.
+const raiz=document.documentElement,arranque=document.getElementById("arranque-modulo");
 const q=new URLSearchParams(location.search),id=q.get("negocio"),plan=q.get("plan"),ruta=location.pathname.split("/").filter(Boolean).filter(x=>x!=="index.html").at(-1);
 const modulos={"economia-turismo":"app.mjs","rentabilidad-turismo":"app.mjs",abordaje:"app.mjs",pasajeros:"app.mjs",calendario:"app.mjs",salidas:"app.mjs",experiencias:"app.mjs",suscripcion:"app.mjs",soporte:"app.mjs",auditoria:"app.mjs",alertas:"app.mjs",reportes:"app.mjs",clientes:"app.mjs",fidelizacion:"app.mjs",cotizaciones:"app.mjs",pos:"pos.mjs",caja:"caja.mjs",compras:"app.mjs",recetas:"app.mjs",inventario:"app.mjs",almacen:"app.mjs",comprobantes:"app.mjs",pedidos:"pedidos.mjs",citas:"citas.mjs",reservaciones:"reservaciones.mjs",cocina:"cocina.mjs",cuentas:"cuentas.mjs",terminales:"terminales.mjs"};
-async function iniciar(){const activo=rutaAdmin(ruta,q.get("vista"));let v;if(q.get("rolVista")==="1"&&activo){v=contextoVista(id,plan,q,localStorage);if(v.invalida||!accesoVista(v.d,v.i,activo)){location.replace(v.invalida?enlacesDemo(id,plan).administracion:urlVista(enlacesDemo(id,plan).administracion,v));return;}if(q.get("sucursal")!==String(v.s)){location.replace(urlVista(location.pathname+location.search,v));return;}}
+async function iniciar(){
+ const [{contextoVista,accesoVista,urlVista},{rutaAdmin,montarNavegacion},{enlacesDemo}]=await Promise.all([import("./vista-rol.mjs"),import("./navegacion-admin.mjs"),import("./presentaciones.mjs")]);
+ const activo=rutaAdmin(ruta,q.get("vista"));let v;if(q.get("rolVista")==="1"&&activo){v=contextoVista(id,plan,q,localStorage);if(v.invalida||!accesoVista(v.d,v.i,activo)){location.replace(v.invalida?enlacesDemo(id,plan).administracion:urlVista(enlacesDemo(id,plan).administracion,v));return;}if(q.get("sucursal")!==String(v.s)){location.replace(urlVista(location.pathname+location.search,v));return;}}
  await import("./"+ruta+"/"+modulos[ruta]);if(v?.activa){for(const k of ["empleado","sucursal"]){const n=document.getElementById(k);if(n)n.disabled=true;}for(const a of document.querySelectorAll("main a,header a")){const u=new URL(a.href,location.href);if(u.origin!==location.origin||!u.pathname.startsWith("/demostraciones/"))continue;const destino=u.pathname.split("/").filter(Boolean).filter(x=>x!=="index.html").at(-1),key=rutaAdmin(destino,u.searchParams.get("vista"));if(key&&!accesoVista(v.d,v.i,key)||destino==="demostraciones"&&u.searchParams.get("seccion")){a.hidden=true;continue;}if(key||destino==="demostraciones")a.href=urlVista(u.pathname+u.search,v);}}
  if(v?.activa){document.addEventListener("click",e=>{const a=e.target.closest?.("a[href]");if(!a)return;const u=new URL(a.href,location.href);if(u.origin!==location.origin||!u.pathname.startsWith("/demostraciones/"))return;const dest=u.pathname.split("/").filter(Boolean).filter(x=>x!=="index.html").at(-1),key=rutaAdmin(dest,u.searchParams.get("vista"));if(key&&!accesoVista(v.d,v.i,key)){e.preventDefault();return;}if(key||dest==="demostraciones"){a.href=urlVista(u.pathname+u.search,v);}} ,true);}
- montarNavegacion();}
-iniciar().catch(e=>{const p=document.createElement("p");p.setAttribute("role","alert");p.textContent="No se pudo abrir la vista de práctica: "+e.message;document.querySelector("main")?.prepend(p);});
+ montarNavegacion();
+ raiz.dataset.moduloEstado="listo";if(arranque)arranque.hidden=true;
+}
+iniciar().catch(e=>{
+ console.error("Inicio de módulo:",e);
+ if(arranque){raiz.dataset.moduloEstado="error";const p=document.getElementById("arranque-modulo-texto");p.setAttribute("role","alert");p.textContent="No se pudo preparar la demostración. Reintenta o vuelve a las demostraciones.";const b=document.createElement("button");b.type="button";b.textContent="Reintentar";b.onclick=()=>location.reload();arranque.append(b);}
+ else{const p=document.createElement("p");p.setAttribute("role","alert");p.textContent="No se pudo abrir la vista de práctica.";document.querySelector("main")?.prepend(p);}
+});
