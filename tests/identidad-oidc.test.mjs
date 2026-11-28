@@ -1,0 +1,10 @@
+import test from "node:test";import assert from "node:assert/strict";import {crearVerificadorIdentidad} from "../src/identidad-oidc.mjs";
+const now=1000000,nonce="n".repeat(40),emisor="https://identity.example.invalid",audiencia="comercio-test";
+const keys=await crypto.subtle.generateKey({name:"RSASSA-PKCS1-v1_5",modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:"SHA-256"},true,["sign","verify"]);
+const jwk={...await crypto.subtle.exportKey("jwk",keys.publicKey),kid:"test",alg:"RS256",use:"sig"};
+const verificar=crearVerificadorIdentidad({emisor,audiencia,claves:[jwk],acrCentral:"mfa-test",reloj:()=>now*1000});
+const claims={iss:emisor,aud:audiencia,sub:"subject",email:"test@example.invalid",email_verified:true,nonce,iat:now-10,auth_time:now-20,exp:now+300,acr:"mfa-test"};
+const b64=x=>Buffer.from(x).toString("base64url");
+async function token(c=claims,h={alg:"RS256",kid:"test",typ:"JWT"}){const t=b64(JSON.stringify(h))+"."+b64(JSON.stringify(c));return t+"."+b64(await crypto.subtle.sign("RSASSA-PKCS1-v1_5",keys.privateKey,new TextEncoder().encode(t)));}
+test("verifica firma y devuelve solo identidad autorizable",async()=>{const r=await verificar(await token(),{nonce,central:true});assert.deepEqual(r,{emisor,sujeto:"subject",email:"test@example.invalid",emailVerified:true,mfaCentral:true});assert.equal((await verificar(await token(),{nonce})).mfaCentral,false);});
+test("rechaza tokens manipulados, proveedor, audiencia, nonce, tiempo y MFA",async()=>{for(const c of [{iss:"https://other.invalid"},{aud:"other"},{aud:[audiencia]},{nonce:"other"},{email_verified:false},{exp:now},{iat:now-301},{auth_time:now-301},{nbf:now+1},{acr:"password"}])await assert.rejects(verificar(await token({...claims,...c}),{nonce,central:true}));for(const h of [{alg:"none",kid:"test"},{alg:"RS256",kid:"unknown"},{alg:"RS256",kid:"test",jku:"https://other.invalid"}])await assert.rejects(verificar(await token(claims,h),{nonce}));const t=await token();const [h,p,f]=t.split(".");await assert.rejects(verificar(h+"."+b64(JSON.stringify({...claims,sub:"changed"}))+"."+f,{nonce}));await assert.rejects(verificar(t,{nonce:"x".repeat(40)}));});
