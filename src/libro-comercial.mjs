@@ -11,6 +11,7 @@ const guard=`EXISTS(SELECT 1 FROM membresias m JOIN usuarios u ON u.id=m.usuario
  AND NOT EXISTS(SELECT 1 FROM membresia_permisos_denegados d WHERE d.empresa=m.empresa AND d.usuario=m.usuario AND d.permiso IN(p.permiso,?))
  AND (? IS NULL OR EXISTS(SELECT 1 FROM rol_permisos extra WHERE extra.empresa=m.empresa AND extra.rol=m.rol AND extra.permiso=? AND NOT EXISTS(SELECT 1 FROM membresia_permisos_denegados d WHERE d.empresa=m.empresa AND d.usuario=m.usuario AND d.permiso=extra.permiso)))
  AND (m.alcance='empresa' OR EXISTS(SELECT 1 FROM membresia_sucursales ms WHERE ms.empresa=m.empresa AND ms.usuario=m.usuario AND ms.sucursal=b.id))
+ AND NOT EXISTS(SELECT 1 FROM comercio_acceso_corte ac WHERE ac.empresa=m.empresa AND ac.usuario=m.usuario AND cs.creado<=ac.desde)
  AND sc.estado IN('prueba','activa') AND sc.inicio<=? AND sc.vence>? AND EXISTS(SELECT 1 FROM json_each(cp.modulos) WHERE value='pos')
  AND (SELECT count(*) FROM membresias WHERE empresa=m.empresa AND activa=1)<=cp.usuarios
  AND (SELECT count(*) FROM sucursales WHERE empresa=m.empresa AND activa=1)<=cp.sucursales)`;

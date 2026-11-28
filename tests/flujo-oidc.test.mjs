@@ -437,7 +437,7 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  const ciclo=await crearCicloComercial(x.env,seg);
  const estadoCiclo=await ciclo.consultar(get(cc),{empresa:a.empresa});
  assert.equal(estadoCiclo.estado_efectivo,"activa");
- assert.equal(estadoCiclo.operaciones_habilitadas,false);
+ assert.equal(estadoCiclo.operaciones_habilitadas,true);
  assert.deepEqual(await ciclo.historial(get(cc),{empresa:a.empresa}),[]);
  await assert.rejects(ciclo.consultar(ca,{empresa:a.empresa}));
  await assert.rejects(ciclo.consultar(post(cc),{empresa:a.empresa}));
@@ -616,9 +616,27 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  await assert.rejects(gestor.autorizarModulo(ra,permiso));
  const web={empresa:a.empresa,permiso:"empresa.ver",modulo:"web"};
  await gestor.autorizarModulo(ra,web);
+ // A shared identity must retain access to its other company.
+ x.sql.prepare("INSERT INTO membresias(empresa,usuario,rol,alcance,activa) VALUES(?,?,'propietario','empresa',1)").run(b.empresa,actor);
+ const suspension={empresa:a.empresa,revision:2,motivo:"Suspensión de prueba"};
+ await assert.rejects(ciclo.suspender(ra,suspension));
+ await assert.rejects(ciclo.suspender(post(cc),{...suspension,motivo:" "}));
+ await ciclo.suspender(post(cc),suspension);
+ await assert.rejects(ciclo.suspender(post(cc),suspension));
+ assert.equal((await ciclo.consultar(get(cc),{empresa:a.empresa})).estado_efectivo,"suspendida");
+ assert.equal((await ciclo.historial(get(cc),{empresa:a.empresa}))[0].accion,"suspender");
+ assert.ok(x.sql.prepare("SELECT desde FROM comercio_acceso_corte WHERE empresa=? AND usuario=?").get(a.empresa,actor));
+ assert.equal(x.sql.prepare("SELECT count(*) n FROM comercio_acceso_corte WHERE empresa=? AND usuario=?").get(b.empresa,actor).n,0);
+ await assert.rejects(nucleo.autorizar(ca,{empresa:a.empresa,permiso:"empresa.ver"}));
+ assert.equal((await nucleo.autorizar(ca,{empresa:b.empresa,permiso:"empresa.ver"})).empresa,b.empresa);
+ assert.ok(!(await acceso.empresas(ca)).some(e=>e.id===a.empresa));
+ await assert.rejects(gestor.autorizarModulo(ra,web));
+ await assert.rejects(asistente.consultar(ca,{empresa:a.empresa}));
+ await assert.rejects(perfil.guardar(ra,{...cambioPerfil,revision:9}));
+ assert.equal(x.sql.prepare("SELECT revision FROM comercio_perfiles_privados WHERE empresa=?").get(a.empresa).revision,9);
  x.expirar();
  await assert.rejects(gestor.autorizarModulo(ra,web));
- assert.equal((await compat.consultar(ca,{empresa:a.empresa})).modulos.find(m=>m.id==="web").habilitado,false);
+ await assert.rejects(compat.consultar(ca,{empresa:a.empresa}));
  await assert.rejects(perfil.publicar(ra,{...pub,revision:9,versionActual:4}));
  await acceso.cerrar(ra);
  await assert.rejects(asistente.consultar(ca,{empresa:a.empresa}));

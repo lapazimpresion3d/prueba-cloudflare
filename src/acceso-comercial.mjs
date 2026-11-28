@@ -25,7 +25,7 @@ export async function crearAccesoComercial(env,{habilitado=false,config,reloj=Da
  },
  async empresas(r){
   exigir(r,"GET");const a=await sesiones.autenticar(r);if(!a)throw Error("Autenticación requerida.");const h=await hashSesionComercial(r),n=reloj();
-  const filas=await q("SELECT e.id,e.nombre,m.rol,m.alcance,COALESCE(s.estado,'sin_contratar') AS estado,s.plan,s.inicio,s.vence FROM membresias m JOIN empresas e ON e.id=m.empresa LEFT JOIN comercial_suscripciones s ON s.empresa=e.id WHERE m.usuario=? AND m.activa=1 AND e.activa=1 AND "+alcance+" AND "+guard+" ORDER BY e.id LIMIT 101",a.actor,h,n,n-1800000).all();
+  const filas=await q("SELECT e.id,e.nombre,m.rol,m.alcance,COALESCE(s.estado,'sin_contratar') AS estado,s.plan,s.inicio,s.vence FROM membresias m JOIN empresas e ON e.id=m.empresa LEFT JOIN comercial_suscripciones s ON s.empresa=e.id WHERE m.usuario=? AND m.activa=1 AND e.activa=1 AND NOT EXISTS(SELECT 1 FROM comercial_suscripciones sc WHERE sc.empresa=e.id AND sc.estado IN ('suspendida','cancelada')) AND "+alcance+" AND "+guard+" ORDER BY e.id LIMIT 101",a.actor,h,n,n-1800000).all();
   if(filas.results.length>100)throw Error("Límite de empresas excedido.");
   return filas.results.map(({inicio,vence,...x})=>({...x,vigente:["prueba","activa"].includes(x.estado)&&inicio<=n&&vence>n}));
  },
