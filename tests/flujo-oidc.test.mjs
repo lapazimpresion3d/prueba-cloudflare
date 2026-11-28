@@ -1,3 +1,4 @@
+import {crearRutasAsistente} from "../src/rutas-http-asistente.mjs";
 import {crearAsistenteImplementacion} from "../src/asistente-implementacion.mjs";
 import {crearDisponibilidadLaboral} from "../src/disponibilidad-laboral.mjs";
 import {crearInvitacionesEmpleados} from "../src/invitaciones-empleados.mjs";
@@ -426,6 +427,23 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  assert.equal(validaciones.filter(v=>v.status==="fulfilled").length,1);
  assert.equal((await asistente2.historialValidaciones(ca,{empresa:a.empresa}))[0].resultado.preparado,false);
  assert.equal((await asistente2.consultar(ca,{empresa:a.empresa})).revision_validacion.vigente,true);
+ const interfaz=await crearRutasAsistente(x.env,{habilitado:true,reloj:x.reloj,autorizarComercial:nucleo.autorizar});
+ const rutaUI=origen+"/interno/asistente",rutaDatos=rutaUI+"/datos?empresa="+encodeURIComponent(a.empresa);
+ const leerUI=(url,cookie=a.cookie)=>new Request(url,{headers:{Cookie:cookie}});
+ const enviarUI=(accion,d,cookie=a.cookie,origin=origen)=>new Request(rutaDatos+"&accion="+accion,{method:"POST",headers:{Cookie:cookie,Origin:origin,"Content-Type":"application/json"},body:JSON.stringify(d)});
+ assert.equal((await (await crearRutasAsistente(x.env)) (leerUI(rutaUI+"?empresa="+a.empresa))).status,404);
+ const shell=await interfaz(leerUI(rutaUI+"?empresa="+a.empresa));
+ assert.equal(shell.status,200);assert.match(shell.headers.get("Content-Security-Policy"),/nonce-/);
+ assert.match(await shell.text(),/Asistente de implementación/);
+ assert.equal((await interfaz(leerUI(rutaDatos,b.cookie))).status,403);
+ assert.equal((await interfaz(leerUI(rutaDatos,""))).status,403);
+ assert.equal((await (await interfaz(leerUI(rutaDatos))).json()).progreso.revision,5);
+ assert.equal((await interfaz(enviarUI("validar",{revision:1},a.cookie,"https://otro.invalid"))).status,403);
+ assert.equal((await interfaz(enviarUI("publicar",{revision:1}))).status,403);
+ assert.equal((await interfaz(enviarUI("validar",{revision:1,empresa:b.empresa}))).status,400);
+ assert.equal((await interfaz(enviarUI("progreso",{revision:4,paso:"perfil",accion:"navegar"}))).status,403);
+ assert.equal((await interfaz(leerUI(rutaDatos+"&accion=historial"))).status,200);
+
  await assert.rejects(asistente2.historialValidaciones(ca,{empresa:b.empresa}));
  assert.throws(()=>x.sql.exec("DELETE FROM comercio_asistente_validaciones"));
  assert.equal(av.implementacion,"configuracion");
