@@ -53,7 +53,7 @@ export function enlacesDemo(id,plan,practica=false){
 // Ejemplos representativos: no son restricciones comerciales del giro.
 export const planesRepresentativos=Object.freeze({
  "cafe-mirador":"p1","barberia-elite":"p2","mundo-mascotas":"p3",
- "taqueria-el-comal":"p4","auto-servicio-bahia":"p3"
+ "taqueria-el-comal":"p4","auto-servicio-bahia":"p2"
 });
 export function enlaceGaleria(){return "/demostraciones/ejemplos/";}
 export function enlaceConfigurador(id,plan){return "/demostraciones/configurar/?"+new URLSearchParams({negocio:id,plan});}

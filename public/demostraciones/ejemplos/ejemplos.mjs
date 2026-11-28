@@ -4,6 +4,7 @@ import {planes,capacidades} from "../config.mjs";
 import {ilustracionPortada} from "../ilustraciones.mjs";
 import {portadaDemo,logoDemo} from "../identidad.mjs";
 const el=(tag,t,c)=>{const e=document.createElement(tag);if(t!==undefined)e.textContent=t;if(c)e.className=c;return e;};
+import {planesTurismo,enlaceTurismo} from "../turismo-practica.mjs";
 const cont=document.getElementById("ejemplos");
 for(const negocio of establecimientos){
  const t=presentacionDe(negocio.id),card=el("article",undefined,"ejemplo");
@@ -20,5 +21,8 @@ for(const negocio of establecimientos){
  const resto=mods.filter(m=>m.estadoEfectivo==="en_desarrollo"||m.estadoEfectivo==="ejemplo");detalle.hidden=!resto.length;pendientes.replaceChildren(...resto.map(m=>el("li",m.nombre+" · En desarrollo")));
  const cotizar=el("a","Me interesa este paquete","accion");cotizar.href=enlaceCotizacion(negocio.id,plan.id);
  info.append(el("p",negocio.giroNombre,"etiqueta"),el("h2",negocio.nombre),el("p",plan.nombre+" · Ejemplo representativo","plan-representativo"),el("p",t.entrada),el("strong","Disponible para probar","funciones-titulo"),lista,detalle,a,cotizar);card.append(arte,info);cont.append(card);
+}
+{
+ const card=el("article",undefined,"ejemplo"),arte=el("div",undefined,"arte"),img=el("img"),info=el("div",undefined,"info");card.style.setProperty("--fondo","#dcefeb");img.src="../turismo/bahia.svg";img.alt="Ilustración de una bahía con embarcación";arte.append(img);const a=el("a","Explorar demostración","accion");a.href=enlaceTurismo("p3");const ul=el("ul",undefined,"funciones");for(const f of planesTurismo("p3").disponibles)ul.append(el("li",f));info.append(el("p","Turismo y experiencias","etiqueta"),el("h2","Bahía Tours"),el("p","Gestión comercial · Ejemplo representativo","plan-representativo"),el("p","Paseos, experiencias y reservaciones bilingües de práctica."),ul,a);card.append(arte,info);cont.append(card);
 }
 
