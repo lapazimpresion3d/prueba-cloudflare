@@ -1,3 +1,4 @@
+import {incidenteSeguro} from "./diagnostico-plataforma.mjs";
 import { administrarCobro, administrarPedidos, administrarPreferenciasPagos, consultarEstadisticas, exportarCobros, pedidosPublicos } from "./pedidos.mjs";
 import { administrarAgenda, consultarDisponibilidad } from "./reservaciones.mjs";
 import { aplicarCatalogo, guardarProducto, servirFoto } from "./catalogo.mjs";
@@ -483,8 +484,9 @@ export default {
     } catch (error) {
       if (error instanceof ErrorSolicitud) return json({ error: error.message }, error.status);
       // No registrar cuerpos, contraseñas, tokens ni mensajes de D1 que puedan contener datos personales.
-      console.error("Error interno de API", request.method);
-      return json({ error: "El servicio no pudo completar la solicitud. Intenta nuevamente." }, 503);
+      const incidente=incidenteSeguro(url.pathname.startsWith("/api/demo/")?"api_demo":"api_original");
+      console.error(JSON.stringify(incidente));
+      return json({ error: "El servicio no pudo completar la solicitud. Intenta nuevamente.", incidente:incidente.id }, 503);
     }
   }
 };
