@@ -1,0 +1,20 @@
+// Central audit: explicit metadata and snapshot allowlist, never arbitrary stored JSON.
+const hash=async t=>Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(t))),x=>x.toString(16).padStart(2,"0")).join("");
+const campos=new Set(["estado","plan","version","revision","inicio","vence","implementacion","mensualidad","moneda","usuarios","sucursales","modulos","rol","activo","validacion","anterior","posterior"]);
+export function resumenAuditoria(s){if(s===null)return null;try{const x=JSON.parse(s);if(!x||typeof x!=="object"||Array.isArray(x))return null;return Object.fromEntries(Object.entries(x).filter(([k,v])=>campos.has(k)&&(typeof v==="number"||typeof v==="boolean"||typeof v==="string"&&/^[a-zA-Z0-9_.:-]{1,64}$/.test(v)||v===null||k==="modulos"&&Array.isArray(v)&&v.every(m=>typeof m==="string"&&/^[a-z_]{1,64}$/.test(m)))));}catch{return null;}}
+const id=x=>typeof x==="string"&&x.length>0&&x.length<=128;
+export async function crearAuditoriaCentral(env,{habilitado=false,autenticarCentral,exportaciones,reloj=Date.now}={}){
+ const db=env.COMMERCE_DB;if(!db||[env.DB,env.DEMO_DB,env.PROVIDER_DB].includes(db)||typeof autenticarCentral!=="function"||!exportaciones)throw Error("Auditoría no configurada.");
+ if(!(await db.prepare("SELECT clave FROM comercio_identidad WHERE clave='lapaz-comercios-v1'").first()))throw Error("Esquema incorrecto.");
+ const q=(s,...a)=>db.prepare(s).bind(...a),guard="EXISTS(SELECT 1 FROM central_operadores o JOIN central_sesiones s ON s.operador=o.id WHERE o.emisor=? AND o.sujeto=? AND s.hash=? AND o.activo=1 AND o.rol='administrador' AND s.revocado IS NULL AND s.expira>? AND s.ultima>? AND (?=0 OR s.creado>?))";
+ async function contexto(r,m){if(habilitado!==true||r.method!==m||new URL(r.url).protocol!=="https:"||m==="POST"&&r.headers.get("Origin")!==new URL(r.url).origin)throw Error("Acceso denegado.");const i=await autenticarCentral(r),c=(r.headers.get("Cookie")||"").split(";").map(x=>x.trim()).filter(x=>x.startsWith("__Host-lapaz-central=")),t=c.length===1?c[0].slice("__Host-lapaz-central=".length):"",n=reloj();if(!id(i?.emisor)||!id(i?.sujeto)||!/^[a-f0-9]{64}$/.test(t)||!Number.isSafeInteger(n)||n<0)throw Error("Acceso denegado.");const args=[i.emisor,i.sujeto,await hash(t),n,n-600000,m==="POST"?1:0,n-300000];if(!await q("SELECT 1 AS autorizado WHERE "+guard,...args).first())throw Error("Acceso denegado.");return args;}
+ return Object.freeze({
+ async listar(r,{actor="",empresa="",accion="",desde=0,hasta=Number.MAX_SAFE_INTEGER,antes=Number.MAX_SAFE_INTEGER}={}){
+  const a=await contexto(r,"GET");if(![actor,empresa,accion].every(x=>typeof x==="string"&&x.length<=128)||![desde,hasta,antes].every(x=>Number.isSafeInteger(x)&&x>=0)||desde>hasta)throw Error("Filtros inválidos.");
+  const rows=(await q("SELECT id,actor,empresa,accion,fecha,anterior,posterior FROM central_auditoria WHERE "+guard+" AND (?='' OR actor=?) AND (?='' OR empresa=?) AND (?='' OR accion=?) AND fecha>=? AND fecha<=? AND id<? ORDER BY id DESC LIMIT 51",...a,actor,actor,empresa,empresa,accion,accion,desde,hasta,antes).all()).results;
+  return {items:rows.slice(0,50).map(x=>({...x,anterior:resumenAuditoria(x.anterior),posterior:resumenAuditoria(x.posterior)})),antes:rows.length>50?rows[49].id:null};
+ },
+ async historialExportaciones(r,{empresa}={}){const a=await contexto(r,"GET");if(!id(empresa))throw Error("Empresa inválida.");return (await q("SELECT id,empresa,operador,fecha,formato,sha256,bytes FROM comercio_exportaciones WHERE empresa=? AND "+guard+" ORDER BY fecha DESC,id LIMIT 50",empresa,...a).all()).results;},
+ async exportar(r,d){await contexto(r,"POST");if(!d||Object.keys(d).length!==4||!id(d.empresa)||!["csv","json"].includes(d.formato)||typeof d.motivo!=="string"||!d.motivo.trim()||d.motivo.length>1000||d.confirmacion!=="EXPORTAR:"+d.empresa)throw Error("Exportación inválida.");const v=await exportaciones.exportar(r,{empresa:d.empresa,formato:d.formato,motivo:d.motivo});await contexto(r,"POST");return v;}
+ });
+}
