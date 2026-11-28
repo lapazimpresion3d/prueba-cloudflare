@@ -1,3 +1,4 @@
+import {validarModulosContractuales} from "./compatibilidad-modulos.mjs";
 import {idsPlanes,idsModulos} from "./catalogo-contractual.mjs";
 const id=x=>typeof x==="string"&&x.length>0&&x.length<=128;
 const entero=(x,min,max)=>Number.isSafeInteger(x)&&x>=min&&x<=max;
@@ -18,7 +19,7 @@ export async function crearVersionesContractuales(env,{habilitado=false,autentic
  return Object.freeze({
  async publicar(r,d){
   const {n,args}=await central(r);
-  if(!d||!idsPlanes.includes(d.plan)||!entero(d.versionAnterior,1,2147483646)||typeof d.nombre!=="string"||!d.nombre.trim()||d.nombre.trim().length>120||d.moneda!=="MXN"||!entero(d.implementacion,0,100000000)||!entero(d.mensualidad,0,100000000)||!entero(d.usuarios,1,10000)||!entero(d.sucursales,1,10000)||!Array.isArray(d.modulos)||!d.modulos.length||d.modulos.length>idsModulos.length||new Set(d.modulos).size!==d.modulos.length||d.modulos.some(m=>!idsModulos.includes(m)))throw Error("Versión contractual inválida.");
+  if(!d||!idsPlanes.includes(d.plan)||!entero(d.versionAnterior,1,2147483646)||typeof d.nombre!=="string"||!d.nombre.trim()||d.nombre.trim().length>120||d.moneda!=="MXN"||!entero(d.implementacion,0,100000000)||!entero(d.mensualidad,0,100000000)||!entero(d.usuarios,1,10000)||!entero(d.sucursales,1,10000)||!Array.isArray(d.modulos)||!d.modulos.length||d.modulos.length>idsModulos.length||new Set(d.modulos).size!==d.modulos.length||d.modulos.some(m=>!idsModulos.includes(m))||!validarModulosContractuales(d.modulos))throw Error("Versión contractual inválida.");
   const v=d.versionAnterior+1,modulos=JSON.stringify(idsModulos.filter(m=>d.modulos.includes(m)));
   const res=await db.batch([
    q("INSERT INTO comercial_planes(id,version,nombre,implementacion,mensualidad,moneda,usuarios,sucursales,modulos) SELECT ?,?,?,?,?,?,?,?,? WHERE ("+guard+") IS NOT NULL AND (SELECT MAX(version) FROM comercial_planes WHERE id=?)=? RETURNING version",d.plan,v,d.nombre.trim(),d.implementacion,d.mensualidad,d.moneda,d.usuarios,d.sucursales,modulos,...args,d.plan,d.versionAnterior),

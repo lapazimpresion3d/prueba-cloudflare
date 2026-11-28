@@ -1,3 +1,4 @@
+import {crearConsultaCompatibilidad} from "../src/compatibilidad-modulos.mjs";
 import {crearContratacionAutorizada} from "../src/contratacion-autorizada.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -31,6 +32,7 @@ test("publicación contractual secuencial, autorización y conservación de susc
  const d={plan:"p1",versionAnterior:1,nombre:"Presencia digital",implementacion:75000,mensualidad:15000,moneda:"MXN",usuarios:2,sucursales:1,modulos:["web","catalogo"]};
  await assert.rejects(v.publicar(x.cliente,d));
  await assert.rejects(v.publicar(r,{...d,modulos:["inexistente"]}));
+ await assert.rejects(v.publicar(r,{...d,modulos:["mesas"]}));
  await assert.rejects(v.publicar(r,{...d,versionAnterior:2}));
  const rs=await Promise.allSettled([v.publicar(r,d),v.publicar(r,d)]);
  assert.equal(rs.filter(a=>a.status==="fulfilled").length,1);
@@ -63,4 +65,13 @@ test("contrato inicial autorizado, versión acordada, duplicados y separación o
  await assert.rejects(x.g.contratar(x.op,x.d));
  await assert.rejects(x.g.autorizarModulo(x.cliente,{empresa:"a",permiso:"empresa.ver",modulo:"web"}));
  assert.throws(()=>x.sql.exec("UPDATE comercial_contratos_iniciales SET version=2"));
+ x.sql.exec("INSERT INTO rol_permisos VALUES('a','propietario','empresa.ver')");
+ const compat=await crearConsultaCompatibilidad({COMMERCE_DB:x.db},{habilitado:true,operativos:["web"],autorizarComercial:async()=>({actor:"u",empresa:"a"})});
+ const get=new Request("https://example.com/compatibilidad");
+ const c=await compat.consultar(get,{empresa:"a",giro:"restaurante"});
+ assert.equal(c.giro,"tienda");assert.equal(c.version,1);assert.equal(c.modulos.find(m=>m.id==="web").estado,"candidato_activacion");
+ assert.ok(c.modulos.every(m=>!m.habilitado));
+ await assert.rejects(compat.consultar(get,{empresa:"b"}));
+ x.sql.exec("UPDATE membresias SET activa=0 WHERE empresa='a' AND usuario='u'");
+ await assert.rejects(compat.consultar(get,{empresa:"a"}));
 });
