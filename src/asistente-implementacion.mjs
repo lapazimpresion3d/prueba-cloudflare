@@ -1,3 +1,4 @@
+import {evaluarModulosAsistente} from "./modulos-asistente.mjs";
 import {crearOrganizacionAsistente} from "./organizacion-asistente.mjs";
 import {evaluarPerfilAsistente} from "./perfil-asistente.mjs";
 import {resolverRutaAsistente,reconciliarProgreso,validarOperativosAsistente} from "./rutas-asistente.mjs";
@@ -32,16 +33,16 @@ export async function crearAsistenteImplementacion(env,{habilitado=false,autoriz
  }
  const leer=(e,a)=>q("SELECT (SELECT count(*) FROM sucursales WHERE empresa=p.empresa AND activa=1) AS sucursales_activas,(SELECT count(*) FROM membresias WHERE empresa=p.empresa AND activa=1) AS usuarios_activos,p.empresa,p.nombre_publico,p.descripcion,p.lema,p.color,p.color_secundario,p.color_acento,p.color_fondo,p.color_texto,p.logotipo,p.portada,p.zona_horaria,p.horario_semanal,p.excepciones_horario,p.contacto,p.presentacion,p.giro,c.estado AS implementacion,c.revision AS revision_implementacion,p.revision AS revision_perfil,x.revision,x.esquema,x.paso,x.visitados,x.estado,x.fecha,k.empresa AS contrato,pl.id AS plan,pl.version AS version_plan,pl.usuarios,pl.sucursales,pl.modulos AS contratados,s.estado AS suscripcion,s.inicio,s.vence,COALESCE(s.revision,0) AS revision_contrato,COALESCE(ac.revision,0) AS revision_activacion,ac.modulos AS seleccion,(SELECT count(*) FROM membresias WHERE empresa=p.empresa AND activa=1)<=pl.usuarios AND (SELECT count(*) FROM sucursales WHERE empresa=p.empresa AND activa=1)<=pl.sucursales AS limites FROM comercio_perfiles_privados p JOIN central_implementaciones c ON c.empresa=p.empresa LEFT JOIN comercio_asistente_progreso x ON x.empresa=p.empresa AND x.revision=(SELECT MAX(revision) FROM comercio_asistente_progreso WHERE empresa=p.empresa) LEFT JOIN comercial_contratos_iniciales k ON k.empresa=p.empresa LEFT JOIN comercial_suscripciones s ON s.empresa=k.empresa LEFT JOIN comercial_planes pl ON pl.id=COALESCE(s.plan,k.plan) AND pl.version=COALESCE(s.version,k.version) LEFT JOIN comercial_activaciones ac ON ac.empresa=k.empresa WHERE p.empresa=? AND "+guard,e,...a.args).first();
  const ruta=(x,n)=>resolverRutaAsistente({giro:x.giro,operativos:disponibilidad,ahora:n,contrato:x.contrato?{plan:x.plan,version:x.version_plan,usuarios:x.usuarios,sucursales:x.sucursales,modulos:JSON.parse(x.contratados),seleccion:x.seleccion?JSON.parse(x.seleccion):[],estado:x.suscripcion,inicio:x.inicio,vence:x.vence,limites:x.limites===1,revision:x.revision_contrato,revisionActivacion:x.revision_activacion}:null});
- const vista=(x,n,referencia,estructura)=>{const recorrido=ruta(x,n),progreso=reconciliarProgreso(dec(x.revision===null?null:x),recorrido);const perfil=evaluarPerfilAsistente(x,recorrido,referencia);return {perfil,organizacion:estructura,progreso,giro:x.giro,implementacion:x.implementacion,revision_implementacion:x.revision_implementacion,revision_perfil:x.revision_perfil,preparado:false,validacion:"pendiente",ruta:recorrido,pasos:recorrido.pasos.map(p=>({...p,visitado:progreso.revision>0&&progreso.visitados.includes(p.id),estado_validacion:perfil.pasos[p.id]?.estado_validacion??estructura.pasos[p.id]?.estado_validacion??"pendiente"}))};};
+ const vista=(x,n,referencia,estructura,referenciaModulos)=>{const recorrido=ruta(x,n),progreso=reconciliarProgreso(dec(x.revision===null?null:x),recorrido);const perfil=evaluarPerfilAsistente(x,recorrido,referencia);const modulos=evaluarModulosAsistente(recorrido,perfil,estructura,x.empresa,referenciaModulos);return {perfil,modulos,organizacion:estructura,progreso,giro:x.giro,implementacion:x.implementacion,revision_implementacion:x.revision_implementacion,revision_perfil:x.revision_perfil,preparado:false,validacion:"pendiente",ruta:recorrido,pasos:recorrido.pasos.map(p=>({...p,visitado:progreso.revision>0&&progreso.visitados.includes(p.id),estado_validacion:perfil.pasos[p.id]?.estado_validacion??estructura.pasos[p.id]?.estado_validacion??(p.id==="modulos"?modulos.paso.estado_validacion:"pendiente")}))};};
  return Object.freeze({
- async consultar(r,{empresa,referencia=null}={}){
+ async consultar(r,{empresa,referencia=null,referenciaModulos=null}={}){
   const a=await contexto(r,empresa,"GET"),x=await leer(empresa,a);
   if(!x)throw Error("Asistente no disponible.");
   const estructura=await organizacion(r,empresa,ruta(x,a.n),x);
   // Recheck authorization and route/profile revision after the delegated reads.
   const final=await leer(empresa,await contexto(r,empresa,"GET"));
   if(!final||JSON.stringify(final)!==JSON.stringify(x))throw Error("Conflicto de lectura o autorización.");
-  return vista(x,a.n,referencia,estructura);
+  return vista(x,a.n,referencia,estructura,referenciaModulos);
  },
  async guardar(r,d){
   const a=await contexto(r,d?.empresa,"POST");

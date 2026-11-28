@@ -432,6 +432,12 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  assert.equal(av.pasos.find(p=>p.id==="presentacion").estado_validacion,"valido");
  assert.ok(av.pasos.filter(p=>!["perfil","presentacion","sucursales","personal"].includes(p.id)).every(p=>p.estado_validacion==="pendiente"));
  assert.equal(av.organizacion.pasos.sucursales.estado_validacion,"valido");
+ assert.equal(av.modulos.modulos.find(m=>m.id==="web").estado_validacion,"valido");
+ assert.equal(av.modulos.modulos.find(m=>m.id==="web").habilitado,false);
+ assert.equal(av.modulos.modulos.find(m=>m.id==="pos").estado_configuracion,"sin_integracion");
+ assert.ok(av.modulos.modulos.find(m=>m.id==="caja").dependencias_pendientes.includes("pos"));
+ assert.ok(!av.modulos.modulos.some(m=>m.id==="citas"));
+ assert.equal(av.modulos.paso.estado_validacion,"pendiente");
  assert.equal(av.organizacion.sucursales.activas,1);
  assert.equal(av.organizacion.personal.usuarios_activos,2);
  assert.equal(av.organizacion.personal.fichas.length,3);
@@ -517,9 +523,12 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  assert.equal((await gestor.consultar(ra,a.empresa)).plan,"p2");
  const ajustada=await asistente.consultar(ca,{empresa:a.empresa});
  assert.equal(ajustada.ruta.contrato.plan,"p2");
- const revisada=await asistente.consultar(ca,{empresa:a.empresa,referencia:av.perfil.referencia});
+ const revisada=await asistente.consultar(ca,{empresa:a.empresa,referencia:av.perfil.referencia,referenciaModulos:av.modulos.referencia});
  assert.equal(revisada.perfil.cambios.perfil,true);
  assert.equal(revisada.perfil.cambios.contrato,true);
+ assert.equal(revisada.modulos.cambios.contrato,true);
+ assert.equal(revisada.modulos.cambios.modulos,true);
+ assert.ok(!revisada.modulos.modulos.some(m=>m.id==="pos"));
  assert.equal(revisada.perfil.pasos.presentacion.estado_validacion,"pendiente");
  assert.equal(Object.hasOwn(revisada.perfil.vista_previa.contacto,"whatsapp"),false);
  assert.equal(ajustada.progreso.revision,5);
