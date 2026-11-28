@@ -3,15 +3,15 @@ import assert from "node:assert/strict";
 import { planes, modulos, capacidades } from "../public/demostraciones/config.mjs";
 import { establecimientos, obtenerEstablecimiento, filtrarCatalogo } from "../public/demostraciones/establecimientos.mjs";
 
-test("cinco negocios y cuatro planes con importes exactos en centavos",()=>{
+test("seis negocios y cuatro planes con importes exactos en centavos",()=>{
   assert.deepEqual(establecimientos.map(e=>e.nombre),["Café Mirador","Barbería Elite","Mundo Mascotas","Taquería El Comal","Auto Servicio Bahía","Bahía Tours"]);
   assert.deepEqual(planes.map(p=>[p.implementacion,p.mensualidad]),[[75000,14900],[150000,24900],[250000,34900],[350000,49900]]);
   assert.equal(new Set(establecimientos.map(e=>e.id)).size,6);
 });
-test("20 combinaciones independientes; pedidos de práctica solo en giros y planes compatibles",()=>{
+test("24 combinaciones independientes; pedidos de práctica solo en giros y planes compatibles",()=>{
   for(const e of establecimientos)for(const p of planes){
     const lista=capacidades(e,p.id);
-    if(e.giro==="turismo"){assert.deepEqual(lista.filter(m=>m.estadoEfectivo==="disponible").map(m=>m.id),["turismo_bilingue",...(p.id==="p1"?[]:["turismo_reservas"]),...(["p3","p4"].includes(p.id)?["turismo_recursos"]:[]),"web","catalogo"]);continue;}
+    if(e.giro==="turismo"){assert.deepEqual(lista.filter(m=>m.estadoEfectivo==="disponible").map(m=>m.id),["turismo_bilingue",...(p.id==="p1"?[]:["turismo_reservas"]),...(["p3","p4"].includes(p.id)?["turismo_recursos","turismo_cobros","turismo_reportes"]:[]),"web","catalogo"]);continue;}
     const interactivo=p.id!=="p1"&&["cafeteria","tienda","restaurante"].includes(e.giro);
     const citas=p.id!=="p1"&&["barberia","taller"].includes(e.giro);
     assert.deepEqual(lista.filter(m=>m.estadoEfectivo==="disponible").map(m=>m.id),interactivo?["web","catalogo","pedidos","seguimiento",...(e.giro==="restaurante"?["reservaciones","qr_mesa"]:[]),"clientes",...(["restaurante","cafeteria"].includes(e.giro)?["cocina"]:[]),"pagos",...(["p3","p4"].includes(p.id)?["pos","caja","comprobantes","inventario","almacen","compras","reportes"]:[]),...(e.giro==="restaurante"&&["p3","p4"].includes(p.id)?["mesas"]:[]),...(e.giro==="tienda"&&["p3","p4"].includes(p.id)?["cotizaciones","ordenes_servicio"]:[]),...(p.id==="p4"?["fidelizacion","recetas","automatizaciones"]:[])]:citas?["web","catalogo","citas","agendas","clientes",...(["p3","p4"].includes(p.id)?["pos","caja","comprobantes","inventario","almacen","compras","reportes"]:[]),...(["p3","p4"].includes(p.id)?["cotizaciones","ordenes_servicio"]:[]),...(p.id==="p4"?["fidelizacion","recetas","automatizaciones"]:[])]:["web","catalogo"]);
