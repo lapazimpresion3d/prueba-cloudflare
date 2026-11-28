@@ -1,3 +1,4 @@
+import {crearFlujoOidc} from "./flujo-oidc.mjs";
 import {hashPruebaProspecto,pruebaProspectoValida} from "./prospectos-oidc.mjs";
 import {rolesIniciales} from "./nucleo-comercial.mjs";
 const giros=["restaurante","cafeteria","tienda","barberia","taller","otro"];
@@ -5,13 +6,15 @@ const id=x=>typeof x==="string"&&x.length>0&&x.length<=128;
 const nombre=x=>typeof x==="string"&&x.trim().length>0&&x.trim().length<=120;
 const hash=async t=>Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(t))),x=>x.toString(16).padStart(2,"0")).join("");
 // Server-only onboarding. Identity verifier must consume a dedicated OIDC transaction.
-export async function crearAltaAutorizada(env,{habilitado=false,autenticarCentral,verificarPropietario,reloj=Date.now}={}){
+export async function crearAltaAutorizada(env,{habilitado=false,autenticarCentral,verificarPropietario,reloj=Date.now,configAlta=null,transporte=fetch,limitarInicio=null}={}){
  const db=env.COMMERCE_DB;
  if(!db||[env.DB,env.DEMO_DB,env.PROVIDER_DB].includes(db)||typeof autenticarCentral!=="function"||typeof verificarPropietario!=="function")throw Error("Alta no configurada.");
  if(!(await db.prepare("SELECT clave FROM comercio_identidad WHERE clave='lapaz-comercios-v1'").first()))throw Error("Esquema incorrecto.");
  const q=(s,...a)=>db.prepare(s).bind(...a);
  function exigir(r){if(habilitado!==true||r.method!=="POST"||new URL(r.url).protocol!=="https:"||r.headers.get("Origin")!==new URL(r.url).origin)throw Error("Alta no autorizada.");}
  async function central(r){exigir(r);const a=await autenticarCentral(r);const c=(r.headers.get("Cookie")||"").split(";").map(x=>x.trim()).filter(x=>x.startsWith("__Host-lapaz-central="));const t=c.length===1?c[0].slice("__Host-lapaz-central=".length):"";if(!id(a?.emisor)||!id(a?.sujeto)||!/^[a-f0-9]{64}$/.test(t))throw Error("Alta no autorizada.");return [a.emisor,a.sujeto,await hash(t)];}
+ const flujoAlta=configAlta===null?null:await crearFlujoOidc(env,{habilitado,config:configAlta,reloj,transporte,proposito:"alta",limitarInicio});
+ if(flujoAlta&&typeof limitarInicio!=="function")throw Error("Límite requerido.");
  const guard="SELECT o.id FROM central_operadores o JOIN central_sesiones s ON s.operador=o.id WHERE o.emisor=? AND o.sujeto=? AND s.hash=? AND o.activo=1 AND s.revocado IS NULL AND s.expira>? AND s.ultima>? AND s.creado>?";
  return Object.freeze({
  // New onboarding path: only a verified, server-stored proof supplies identity.
@@ -50,10 +53,26 @@ export async function crearAltaAutorizada(env,{habilitado=false,autenticarCentra
   ]);if(!res[0].results?.length)throw Error("Alta no autorizada.");return {id:k,expira:n+86400000};
  },
  async aceptar(r,k){
-  exigir(r);if(!id(k))throw Error("Alta no disponible.");const i=await verificarPropietario(r);if(i?.emailVerified!==true||!id(i.emisor)||!id(i.sujeto))throw Error("Alta no disponible.");
+  exigir(r);if(!id(k))throw Error("Alta no disponible.");const i=await verificarPropietario(r);return aceptarIdentidad(k,i,null);
+ },
+ async iniciarAceptacion(r,token){
+  if(!flujoAlta||typeof token!=="string"||!/^[a-f0-9]{64}$/.test(token))throw Error("Invitación no disponible.");
+  return flujoAlta.iniciar(r,{invitacionHash:await hash(token)});
+ },
+ async completarAceptacion(r){
+  if(!flujoAlta)throw Error("Alta no disponible.");
+  const x=await flujoAlta.completar(r);
+  if(x.contexto!=="comercial"||typeof x.invitacionHash!=="string"||!/^[a-f0-9]{64}$/.test(x.invitacionHash))throw Error("Alta no disponible.");
+  const j=await q("SELECT alta FROM comercio_invitaciones_propietario WHERE hash=?",x.invitacionHash).first();
+  if(!j)throw Error("Alta no disponible.");
+  return {...await aceptarIdentidad(j.alta,x.identidad,x.invitacionHash),cookie:x.cookie};
+ }
+ });
+ async function aceptarIdentidad(k,i,h){
+  if(i?.emailVerified!==true||!id(i.emisor)||!id(i.sujeto))throw Error("Alta no disponible.");
   const n=reloj(),e=crypto.randomUUID(),s=crypto.randomUUID(),u=crypto.randomUUID();
-  const pendiente="id=? AND NOT EXISTS(SELECT 1 FROM comercio_altas_prospecto v WHERE v.alta=comercio_altas_pendientes.id) AND estado='pendiente' AND expira>? AND emisor=? AND sujeto=? AND EXISTS(SELECT 1 FROM central_operadores WHERE id=comercio_altas_pendientes.operador AND activo=1)";
-  const p=[k,n,i.emisor,i.sujeto], stm=[
+  const pendiente="id=? AND estado='pendiente' AND expira>? AND emisor=? AND sujeto=? AND EXISTS(SELECT 1 FROM central_operadores WHERE id=comercio_altas_pendientes.operador AND activo=1)"+(h===null?" AND NOT EXISTS(SELECT 1 FROM comercio_altas_prospecto v WHERE v.alta=comercio_altas_pendientes.id)":" AND EXISTS(SELECT 1 FROM comercio_invitaciones_propietario j WHERE j.alta=comercio_altas_pendientes.id AND j.hash=? AND j.operador=comercio_altas_pendientes.operador AND j.consumido IS NULL AND j.cancelado IS NULL AND j.expira>?)");
+  const p=[k,n,i.emisor,i.sujeto,...(h===null?[]:[h,n])], stm=[
    q("INSERT INTO empresas(id,nombre) SELECT ?,nombre FROM comercio_altas_pendientes WHERE "+pendiente,e,...p),
    q("UPDATE comercio_altas_pendientes SET estado='aceptada',empresa=? WHERE "+pendiente+" AND EXISTS(SELECT 1 FROM empresas WHERE id=?) RETURNING id",e,...p,e),
    q("INSERT INTO usuarios(id,emisor,sujeto) SELECT ?,?,? WHERE EXISTS(SELECT 1 FROM comercio_altas_pendientes WHERE id=? AND empresa=?) ON CONFLICT(emisor,sujeto) DO NOTHING",u,i.emisor,i.sujeto,k,e),
@@ -65,7 +84,7 @@ export async function crearAltaAutorizada(env,{habilitado=false,autenticarCentra
    q("INSERT INTO central_implementaciones SELECT empresa,'configuracion',1 FROM comercio_altas_pendientes WHERE id=? AND empresa=?",k,e),
    q("INSERT INTO central_auditoria(actor,empresa,accion,objetivo,fecha) SELECT operador,empresa,'alta.aceptada',id,? FROM comercio_altas_pendientes WHERE id=? AND empresa=?",n,k,e),
    q("INSERT INTO comercio_auditoria(empresa,actor,accion,objetivo,fecha) SELECT empresa,(SELECT id FROM usuarios WHERE emisor=? AND sujeto=?),'empresa.alta',empresa,? FROM comercio_altas_pendientes WHERE id=? AND empresa=?",i.emisor,i.sujeto,n,k,e));
+  if(h!==null)stm.push(q("UPDATE comercio_invitaciones_propietario SET consumido=? WHERE hash=? AND alta=? AND EXISTS(SELECT 1 FROM comercio_altas_pendientes WHERE id=? AND empresa=?)",n,h,k,k,e),q("INSERT INTO central_auditoria(actor,empresa,accion,objetivo,fecha) SELECT j.operador,p.empresa,'alta.invitacion_consumida',j.id,? FROM comercio_invitaciones_propietario j JOIN comercio_altas_pendientes p ON p.id=j.alta WHERE j.hash=? AND p.id=? AND p.empresa=?",n,h,k,e));
   const res=await db.batch(stm);if(!res[1].results?.length)throw Error("Alta no disponible.");return {empresa:e,sucursal:s,estado:"configuracion"};
  }
- });
 }
