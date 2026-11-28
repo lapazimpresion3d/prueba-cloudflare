@@ -1,7 +1,11 @@
+import {inspeccionarJpeg} from "./seguridad-imagen-comercial.mjs";
 import {hashSesionComercial} from "./sesiones-comerciales.mjs";
 const id=x=>typeof x==="string"&&x.length>0&&x.length<=128;
 const texto=(x,min,max)=>typeof x==="string"&&x.trim().length>=min&&x.trim().length<=max&&!/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/u.test(x);
 const campos="empresa,giro,nombre_publico,descripcion,lema,color,revision,actualizado";
+const visual="empresa,color,color_secundario,color_acento,color_fondo,color_texto,logotipo,portada,revision,actualizado";
+const colores=["color","color_secundario","color_acento","color_fondo","color_texto"];
+const hex=x=>typeof x==="string"&&/^#[0-9a-fA-F]{6}$/.test(x);
 // Owner-only private draft, no contract or operational module granted by editing.
 export async function crearPerfilComercial(env,{habilitado=false,autorizarComercial,reloj=Date.now}={}){
  const db=env.COMMERCE_DB;
@@ -20,6 +24,25 @@ export async function crearPerfilComercial(env,{habilitado=false,autorizarComerc
   const a=await contexto(r,empresa,"GET");
   const x=await q("SELECT "+campos+" FROM comercio_perfiles_privados WHERE empresa=? AND "+guard,empresa,...a.args).first();
   if(!x)throw Error("Perfil no disponible.");return x;
+ },
+ async consultarVisual(r,{empresa}={}){
+  const a=await contexto(r,empresa,"GET");
+  const x=await q("SELECT "+visual+" FROM comercio_perfiles_privados WHERE empresa=? AND "+guard,empresa,...a.args).first();
+  if(!x)throw Error("Perfil no disponible.");return x;
+ },
+ async guardarVisual(r,d){
+  const a=await contexto(r,d?.empresa,"POST");
+  if(!Number.isSafeInteger(d.revision)||d.revision<1||d.revision>=Number.MAX_SAFE_INTEGER||!colores.every(k=>hex(d[k]))||Object.keys(d).some(k=>!["empresa","revision",...colores,"logotipo","portada"].includes(k)))throw Error("Identidad visual inválida.");
+  // Undefined means preserve; null explicitly removes the image.
+  for(const [k,maximo,lado] of [["logotipo",120000,512],["portada",360000,1600]]){
+   if(Object.hasOwn(d,k)&&d[k]!==null)inspeccionarJpeg(d[k],{maximo,lado});
+  }
+  const res=await db.batch([
+   q("UPDATE comercio_perfiles_privados SET color=?,color_secundario=?,color_acento=?,color_fondo=?,color_texto=?,logotipo=CASE WHEN ?=1 THEN ? ELSE logotipo END,portada=CASE WHEN ?=1 THEN ? ELSE portada END,actualizado=?,revision=revision+1 WHERE empresa=? AND revision=? AND "+guard+" RETURNING "+visual,...colores.map(k=>d[k].toLowerCase()),Object.hasOwn(d,"logotipo")?1:0,d.logotipo??null,Object.hasOwn(d,"portada")?1:0,d.portada??null,a.n,d.empresa,d.revision,...a.args),
+   q("INSERT INTO comercio_auditoria(empresa,actor,accion,objetivo,fecha) SELECT ?,?,'perfil.visual_guardado',?,? WHERE changes()=1",d.empresa,a.actor,d.empresa,a.n)
+  ]);
+  if(!res[0].results?.length)throw Error("Conflicto de revisión o autorización.");
+  return res[0].results[0];
  },
  async guardar(r,d){
   const a=await contexto(r,d?.empresa,"POST");

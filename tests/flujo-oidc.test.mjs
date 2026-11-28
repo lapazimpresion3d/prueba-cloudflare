@@ -1,3 +1,4 @@
+import {jpegPrueba} from "./fixtures/jpeg-prueba.mjs";
 import {crearPerfilComercial} from "../src/perfil-comercial.mjs";
 import {crearContratacionAutorizada} from "../src/contratacion-autorizada.mjs";
 import {crearActivacionComercial} from "../src/activacion-comercial.mjs";
@@ -162,6 +163,26 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  assert.equal(x.sql.prepare("SELECT nombre FROM empresas WHERE id=?").get(a.empresa).nombre,"Negocio owner-a");
  assert.equal(x.sql.prepare("SELECT count(*) n FROM comercio_auditoria WHERE empresa=? AND accion='perfil.basico_guardado'").get(a.empresa).n,1);
  await assert.rejects(perfil.consultar(ca,{empresa:b.empresa}));
+ const visual=await perfil.consultarVisual(ca,{empresa:a.empresa});
+ assert.equal(visual.color_fondo,"#ffffff");assert.equal(visual.logotipo,null);
+ const dv={empresa:a.empresa,revision:2,color:"#123456",color_secundario:"#abcdef",color_acento:"#ff9900",color_fondo:"#ffffff",color_texto:"#111111",logotipo:jpegPrueba({ancho:128,alto:128}),portada:jpegPrueba({ancho:1200,alto:600})};
+ await assert.rejects(perfil.guardarVisual(rb,dv));
+ await assert.rejects(perfil.guardarVisual(ra,{...dv,color:"red"}));
+ await assert.rejects(perfil.guardarVisual(ra,{...dv,logotipo:jpegPrueba({ancho:513})}));
+ await assert.rejects(perfil.guardarVisual(ra,{...dv,portada:"https://example.invalid/x.jpg"}));
+ await assert.rejects(perfil.guardarVisual(ra,{...dv,logotipo:"data:image/svg+xml;base64,AAAA"}));
+ const vr=await Promise.allSettled([perfil.guardarVisual(ra,dv),perfil.guardarVisual(ra,dv)]);
+ assert.equal(vr.filter(v=>v.status==="fulfilled").length,1);
+ const v1=await perfil.consultarVisual(ca,{empresa:a.empresa});
+ assert.equal(v1.revision,3);assert.equal(v1.logotipo,dv.logotipo);assert.equal(v1.portada,dv.portada);
+ assert.equal((await perfil.consultarVisual(get(b.cookie),{empresa:b.empresa})).logotipo,null);
+ await assert.rejects(perfil.consultarVisual(ca,{empresa:b.empresa}));
+ await assert.rejects(perfil.guardar(ra,{...cambioPerfil,revision:2}));
+ const {logotipo,portada,...paleta}=dv;
+ const v2=await perfil.guardarVisual(ra,{...paleta,revision:3,color:"#ABCDEF",logotipo:null});
+ assert.equal(v2.logotipo,null);assert.equal(v2.portada,portada);assert.equal(v2.color,"#abcdef");
+ assert.equal(x.sql.prepare("SELECT count(*) n FROM comercio_auditoria WHERE empresa=? AND accion='perfil.visual_guardado'").get(a.empresa).n,2);
+
 
  const permiso={empresa:a.empresa,sucursal:a.sucursal,permiso:"pos.operar",modulo:"pos"};
  assert.equal((await acceso.empresas(ca)).length,1);
@@ -197,7 +218,8 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  await assert.rejects(gestor.autorizarModulo(ra,web));
  assert.equal((await compat.consultar(ca,{empresa:a.empresa})).modulos.find(m=>m.id==="web").habilitado,false);
  await acceso.cerrar(ra);
- await assert.rejects(perfil.guardar(ra,{...cambioPerfil,revision:2}));
+ await assert.rejects(perfil.guardar(ra,{...cambioPerfil,revision:4}));
+ await assert.rejects(perfil.guardarVisual(ra,{...paleta,revision:4}));
  await assert.rejects(gestor.consultar(ra,a.empresa));
  await assert.rejects(compat.consultar(ca,{empresa:a.empresa}));
 });
