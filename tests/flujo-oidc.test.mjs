@@ -1,3 +1,4 @@
+import {crearRolesOperativos} from "../src/roles-operativos.mjs";
 import {crearEmpleadosComerciales} from "../src/empleados-comerciales.mjs";
 import {crearSucursalesComerciales} from "../src/sucursales-comerciales.mjs";
 import {jpegPrueba} from "./fixtures/jpeg-prueba.mjs";
@@ -280,6 +281,32 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  assert.equal(x.sql.prepare("SELECT activa FROM membresias WHERE empresa=? AND usuario=?").get(a.empresa,"empleado-prueba").activa,1);
  assert.equal(x.sql.prepare("SELECT count(*) n FROM comercio_empleados_vinculos WHERE empresa=? AND empleado=?").get(a.empresa,emp.id).n,2);
  assert.throws(()=>x.sql.prepare("DELETE FROM comercio_empleados WHERE empresa=? AND id=?").run(a.empresa,emp.id));
+ const roles=await crearRolesOperativos(x.env,{habilitado:true,reloj:x.reloj,autorizarComercial:nucleo.autorizar,operativos:["web","pos","pedidos","cocina"]});
+ const dr={empresa:a.empresa,revision:0,nombre:"Cocina",permisos:["cocina.consultar","cocina.modificar"]};
+ await assert.rejects(roles.guardar(rb,dr));
+ await assert.rejects(roles.guardar(ra,{...dr,permisos:["usuarios.administrar"]}));
+ await assert.rejects(roles.guardar(ra,{...dr,permisos:["agendas.modificar"],empresa:b.empresa}));
+ const rol=await roles.guardar(ra,dr);
+ assert.equal((await roles.listar(ca,{empresa:a.empresa}))[0].rol,rol.rol);
+ // Direct fixture assignment, real assignment service follows in 52.3.4.4.
+ x.sql.prepare("UPDATE membresias SET rol=? WHERE empresa=? AND usuario=?").run(rol.rol,a.empresa,"empleado-prueba");
+ x.cambiarSujeto("staff");
+ let accesoStaff=await acceso.iniciar(post());x.ponerAuth(accesoStaff.url);
+ const staff=(await acceso.completar(x.req(accesoStaff))).cookies[1].split(";")[0];
+ const rs=get(staff),opCocina={empresa:a.empresa,sucursal:a.sucursal,permiso:"cocina.consultar"};
+ await roles.autorizarOperacion(rs,opCocina);
+ await assert.rejects(roles.autorizarOperacion(rs,{...opCocina,permiso:"pos.crear"}));
+ await assert.rejects(roles.autorizarOperacion(rs,{...opCocina,sucursal:b.sucursal}));
+ await assert.rejects(roles.guardar(post(staff),{...dr,rol:rol.rol,revision:1}));
+ await roles.restringir(ra,{empresa:a.empresa,usuario:"empleado-prueba",revision:0,denegados:["cocina.consultar"]});
+ await assert.rejects(roles.autorizarOperacion(rs,opCocina));
+ await roles.restringir(ra,{empresa:a.empresa,usuario:"empleado-prueba",revision:1,denegados:[]});
+ await roles.autorizarOperacion(rs,opCocina);
+ const cambiosRol=await Promise.allSettled([roles.guardar(ra,{...dr,rol:rol.rol,revision:1,permisos:["cocina.modificar"]}),roles.guardar(ra,{...dr,rol:rol.rol,revision:1,permisos:["cocina.modificar"]})]);
+ assert.equal(cambiosRol.filter(v=>v.status==="fulfilled").length,1);
+ await assert.rejects(roles.autorizarOperacion(rs,opCocina));
+ assert.throws(()=>x.sql.exec("DELETE FROM comercio_roles_operativos"));
+
 
 
  const previa=await perfil.vistaPrevia(ca,{empresa:a.empresa});
