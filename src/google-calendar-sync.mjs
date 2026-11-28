@@ -1,0 +1,13 @@
+// Server-only reconciliation. Inject authenticated tenant source and durable leased store.
+// Never deletes events not owned by this integration.
+const enc=new TextEncoder();
+export async function idEventoGoogle(empresa,calendario,origen){const bytes=new Uint8Array(await crypto.subtle.digest("SHA-256",enc.encode(JSON.stringify(["lapaz-calendar-v1",empresa,calendario,origen]))));return Array.from(bytes,b=>b.toString(16).padStart(2,"0")).join("");}
+export function crearSincronizadorGoogle({almacen,fuente,cliente,habilitado=false}){
+ return async function sincronizar(empresa){if(!habilitado)throw Error("Sincronización deshabilitada.");const l=await almacen.reservar(empresa);if(!l)return {estado:"ocupado"};try{
+ const cfg=await almacen.configuracion(l);if(!cfg?.activo||!["p2","p3","p4"].includes(cfg.plan))return {estado:"no_disponible"};
+ const datos=await fuente(empresa);if(datos?.empresa!==empresa||datos.completa!==true||!Array.isArray(datos.eventos)||datos.eventos.length>500)throw Error("Fuente incompleta.");
+ const deseados=new Map();for(const e of datos.eventos){if(typeof e.id!=="string"||typeof e.titulo!=="string"||!Array.isArray(e.recursos)||typeof e.inicio!=="string"||typeof e.fin!=="string"||e.fin<=e.inicio)throw Error("Evento inválido.");const destinos=[cfg.general,...(cfg.plan==="p2"?[]:e.recursos.map(r=>cfg.recursos?.[r]).filter(Boolean))];for(const cal of new Set(destinos)){if(!cal)throw Error("Calendario no seleccionado.");const id=await idEventoGoogle(empresa,cal,e.id),clave=JSON.stringify([cal,id]);if(deseados.has(clave))throw Error("Evento duplicado.");deseados.set(clave,{cal,id,body:{id,summary:e.titulo.slice(0,140),start:{dateTime:e.inicio,timeZone:"America/Mazatlan"},end:{dateTime:e.fin,timeZone:"America/Mazatlan"},extendedProperties:{private:{lapaz:id}}}});}}
+ const prev=await almacen.eventos(l);let altas=0,bajas=0;for(const [clave,e] of deseados){await cliente.upsertPropio(empresa,e.cal,e.id,e.body);await almacen.registrar(l,clave,e.cal,e.id);altas++;}for(const p of prev){if(!deseados.has(p.clave)){await cliente.eliminarPropio(empresa,p.cal,p.id);await almacen.retirar(l,p.clave);bajas++;}}
+ await almacen.resultado(l,"sincronizado");return {estado:"sincronizado",procesados:altas,retirados:bajas};
+ }catch{await almacen.resultado(l,"reintentar");return {estado:"reintentar"};}finally{await almacen.liberar(l);}};
+}
