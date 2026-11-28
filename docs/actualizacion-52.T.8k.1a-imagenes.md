@@ -1,0 +1,2 @@
+# 52.T.8k.1a — Limpieza visual
+Las seis páginas públicas conservan imágenes, dimensiones y funciones. Se retiran las leyendas individuales de Bahía Tours y se mueve la aclaración de la plantilla común al pie de página. Aviso turístico bilingüe con aclaración de que no es operador real. Se mantiene la galería general y la distinción entre imágenes de ejemplo y fotografías del propietario. Sin cambios en administración, precios, rutas ni producción. Pruebas actualizadas para las 24 combinaciones y dos tamaños.
