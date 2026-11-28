@@ -146,7 +146,7 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  }
  const a=await incorporar("owner-a","restaurante","p3"),b=await incorporar("owner-b","barberia","p2");
  const ra=post(a.cookie),rb=post(b.cookie),ca=get(a.cookie);
- const perfil=await crearPerfilComercial(x.env,{habilitado:true,reloj:x.reloj,autorizarComercial:nucleo.autorizar});
+ const perfil=await crearPerfilComercial(x.env,{habilitado:true,reloj:x.reloj,autorizarComercial:nucleo.autorizar,operativos:["web"]});
  const original=await perfil.consultar(ca,{empresa:a.empresa});
  assert.equal(original.revision,1);assert.equal(original.descripcion,"");
  const cambioPerfil={empresa:a.empresa,revision:1,nombre_publico:"Restaurante de prueba",descripcion:"Descripción privada",lema:"Bienvenidos"};
@@ -230,6 +230,26 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  await assert.rejects(activacion.guardar(post(cc),{...act,empresa:b.empresa}));
  await activacion.guardar(post(cc),act);
  await activacion.guardar(post(cc),{...act,empresa:b.empresa,modulos:["web"]});
+ const previa=await perfil.vistaPrevia(ca,{empresa:a.empresa});
+ assert.equal(previa.revision,6);assert.equal(previa.version_publicada,0);
+ assert.equal(Object.hasOwn(previa.contenido.contacto,"correo"),false);
+ const pub={empresa:a.empresa,revision:6,versionActual:0};
+ await assert.rejects(perfil.publicar(rb,pub));
+ const pp=await Promise.allSettled([perfil.publicar(ra,pub),perfil.publicar(ra,pub)]);
+ assert.equal(pp.filter(v=>v.status==="fulfilled").length,1);
+ assert.equal((await perfil.consultarPublicacion(ca,{empresa:a.empresa})).version,1);
+ assert.equal(await perfil.consultarPublicacion(get(b.cookie),{empresa:b.empresa}),null);
+ await perfil.guardarPresentacion(ra,{empresa:a.empresa,revision:6,presentacion:{estilo:"compacto",secciones:["descripcion"]}});
+ assert.equal((await perfil.vistaPrevia(ca,{empresa:a.empresa})).contenido.estilo,"compacto");
+ assert.equal((await perfil.consultarPublicacion(ca,{empresa:a.empresa})).contenido.estilo,"clasico");
+ await assert.rejects(perfil.publicar(ra,{...pub,versionActual:1}));
+ await perfil.publicar(ra,{...pub,revision:7,versionActual:1});
+ const restaurada=await perfil.restaurarPublicacion(ra,{...pub,revision:7,versionActual:2,versionOrigen:1});
+ assert.equal(restaurada.version,3);assert.equal(restaurada.contenido.estilo,"clasico");assert.equal(Object.hasOwn(restaurada.contenido,"contacto"),false);
+ assert.equal((await perfil.historialPublicaciones(ca,{empresa:a.empresa})).length,3);
+ assert.throws(()=>x.sql.exec("DELETE FROM comercio_publicaciones_perfil"));
+ await assert.rejects(perfil.historialPublicaciones(ca,{empresa:b.empresa}));
+
  await gestor.autorizarModulo(ra,permiso);
  await assert.rejects(gestor.autorizarModulo(rb,permiso));
  await assert.rejects(gestor.autorizarModulo(ra,{...permiso,sucursal:b.sucursal}));
@@ -248,6 +268,7 @@ test("52.3.2 integral: prospecto firmado, central MFA, dos comercios, contrato, 
  x.expirar();
  await assert.rejects(gestor.autorizarModulo(ra,web));
  assert.equal((await compat.consultar(ca,{empresa:a.empresa})).modulos.find(m=>m.id==="web").habilitado,false);
+ await assert.rejects(perfil.publicar(ra,{...pub,revision:7,versionActual:3}));
  await acceso.cerrar(ra);
  await assert.rejects(perfil.guardar(ra,{...cambioPerfil,revision:4}));
  await assert.rejects(perfil.guardarVisual(ra,{...paleta,revision:5}));

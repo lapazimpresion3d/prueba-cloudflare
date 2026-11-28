@@ -1,3 +1,4 @@
+import {validarPresentacion,proyectarPresentacion} from "./presentacion-comercial.mjs";
 import {validarContacto,proyectarContacto} from "./contacto-comercial.mjs";
 import {validarHorario,estadoHorario} from "./horarios-comerciales.mjs";
 import {inspeccionarJpeg} from "./seguridad-imagen-comercial.mjs";
@@ -13,7 +14,7 @@ const visual="empresa,color,color_secundario,color_acento,color_fondo,color_text
 const colores=["color","color_secundario","color_acento","color_fondo","color_texto"];
 const hex=x=>typeof x==="string"&&/^#[0-9a-fA-F]{6}$/.test(x);
 // Owner-only private draft, no contract or operational module granted by editing.
-export async function crearPerfilComercial(env,{habilitado=false,autorizarComercial,reloj=Date.now}={}){
+export async function crearPerfilComercial(env,{habilitado=false,autorizarComercial,reloj=Date.now,operativos=[]}={}){
  const db=env.COMMERCE_DB;
  if(!db||[env.DB,env.DEMO_DB,env.PROVIDER_DB].includes(db)||typeof autorizarComercial!=="function")throw Error("Perfil no configurado.");
  if(!(await db.prepare("SELECT clave FROM comercio_identidad WHERE clave='lapaz-comercios-v1'").first()))throw Error("Esquema incorrecto.");
@@ -25,7 +26,67 @@ export async function crearPerfilComercial(env,{habilitado=false,autorizarComerc
   if(a?.empresa!==e||!id(a.actor)||!h||!Number.isSafeInteger(n)||n<0)throw Error("Perfil no disponible.");
   return {actor:a.actor,n,args:[a.actor,h,n,n-1800000]};
  }
+ // Publication is an internal approved snapshot, not deployment. Web entitlement is checked atomically.
+ const web="EXISTS(SELECT 1 FROM comercial_suscripciones s JOIN comercial_planes p ON p.id=s.plan AND p.version=s.version JOIN comercial_activaciones a ON a.empresa=s.empresa WHERE s.empresa=comercio_perfiles_privados.empresa AND s.estado IN ('activa','prueba') AND s.inicio<=? AND s.vence>? AND EXISTS(SELECT 1 FROM json_each(p.modulos) WHERE value='web') AND EXISTS(SELECT 1 FROM json_each(a.modulos) WHERE value='web') AND (SELECT count(*) FROM membresias WHERE empresa=s.empresa AND activa=1)<=p.usuarios AND (SELECT count(*) FROM sucursales WHERE empresa=s.empresa AND activa=1)<=p.sucursales)";
+ const webDisponible=Array.isArray(operativos)&&operativos.includes("web");
+ const versionValida=x=>Number.isSafeInteger(x)&&x>=0&&x<Number.MAX_SAFE_INTEGER;
+ async function publicarVersion(r,d,restaurar){
+  const a=await contexto(r,d?.empresa,"POST");
+  if(!webDisponible||!versionValida(d.revision)||d.revision<1||!versionValida(d.versionActual)||Object.keys(d).some(k=>!["empresa","revision","versionActual",...(restaurar?["versionOrigen"]:[])].includes(k))||restaurar&&(!versionValida(d.versionOrigen)||d.versionOrigen<1||d.versionOrigen>=d.versionActual))throw Error("Publicación inválida.");
+  const x=await q("SELECT * FROM comercio_perfiles_privados WHERE empresa=? AND revision=? AND "+guard,d.empresa,d.revision,...a.args).first();
+  if(!x)throw Error("Perfil no disponible.");
+  let contenido,revision=d.revision;
+  if(restaurar){
+   const previa=await q("SELECT contenido,revision_perfil FROM comercio_publicaciones_perfil WHERE empresa=? AND version=?",d.empresa,d.versionOrigen).first();
+   if(!previa)throw Error("Publicación no disponible.");
+   // Never restore historical contact visibility: historical content may contain withdrawn personal details.
+   const historica=JSON.parse(previa.contenido),actual=proyectarPresentacion(x);
+   delete historica.contacto;
+   if(historica.secciones.includes("contacto")&&actual.contacto)historica.contacto=actual.contacto;
+   contenido=JSON.stringify(historica);revision=previa.revision_perfil;
+  }else contenido=JSON.stringify(proyectarPresentacion(x));
+  if(contenido.length>600000)throw Error("Publicación inválida.");
+  const v=d.versionActual+1;
+  const res=await db.batch([
+   q("INSERT INTO comercio_publicaciones_perfil(empresa,version,revision_perfil,restaurada_de,actor,fecha,contenido) SELECT empresa,?,?,?,?,?,? FROM comercio_perfiles_privados WHERE empresa=? AND revision=? AND "+guard+" AND "+web+" AND (SELECT COALESCE(MAX(version),0) FROM comercio_publicaciones_perfil WHERE empresa=?)=? RETURNING version,revision_perfil,restaurada_de",v,revision,restaurar?d.versionOrigen:null,a.actor,a.n,contenido,d.empresa,d.revision,...a.args,a.n,a.n,d.empresa,d.versionActual),
+   q("INSERT INTO comercio_auditoria(empresa,actor,accion,objetivo,fecha) SELECT ?,?,?,?,? WHERE changes()=1",d.empresa,a.actor,restaurar?"perfil.publicacion_restaurada":"perfil.publicado",String(v),a.n)
+  ]);
+  if(!res[0].results?.length)throw Error("Conflicto de publicación o autorización.");
+  return {...res[0].results[0],contenido:JSON.parse(contenido)};
+ }
  return Object.freeze({
+ async vistaPrevia(r,{empresa}={}){
+  const a=await contexto(r,empresa,"GET");
+  const x=await q("SELECT *, (SELECT COALESCE(MAX(version),0) FROM comercio_publicaciones_perfil WHERE empresa=comercio_perfiles_privados.empresa) AS version_publicada FROM comercio_perfiles_privados WHERE empresa=? AND "+guard,empresa,...a.args).first();
+  if(!x)throw Error("Perfil no disponible.");
+  return {revision:x.revision,version_publicada:x.version_publicada,configuracion:validarPresentacion(JSON.parse(x.presentacion)),contenido:proyectarPresentacion(x)};
+ },
+ async guardarPresentacion(r,d){
+  const a=await contexto(r,d?.empresa,"POST");
+  if(!versionValida(d.revision)||d.revision<1||!Object.hasOwn(d,"presentacion")||Object.keys(d).some(k=>!["empresa","revision","presentacion"].includes(k)))throw Error("Presentación inválida.");
+  const p=validarPresentacion(d.presentacion);
+  const res=await db.batch([
+   q("UPDATE comercio_perfiles_privados SET presentacion=?,actualizado=?,revision=revision+1 WHERE empresa=? AND revision=? AND "+guard+" RETURNING revision",JSON.stringify(p),a.n,d.empresa,d.revision,...a.args),
+   q("INSERT INTO comercio_auditoria(empresa,actor,accion,objetivo,fecha) SELECT ?,?,'perfil.presentacion_guardada',?,? WHERE changes()=1",d.empresa,a.actor,d.empresa,a.n)
+  ]);
+  if(!res[0].results?.length)throw Error("Conflicto de revisión o autorización.");
+  return {revision:res[0].results[0].revision,presentacion:p};
+ },
+ async publicar(r,d){return publicarVersion(r,d,false);},
+ async restaurarPublicacion(r,d){return publicarVersion(r,d,true);},
+ async consultarPublicacion(r,{empresa,version=null}={}){
+  const a=await contexto(r,empresa,"GET");
+  if(version!==null&&(!versionValida(version)||version<1))throw Error("Publicación inválida.");
+  const x=await q("SELECT p.version,p.revision_perfil,p.restaurada_de,p.fecha,p.contenido FROM comercio_perfiles_privados JOIN comercio_publicaciones_perfil p ON p.empresa=comercio_perfiles_privados.empresa WHERE comercio_perfiles_privados.empresa=? AND "+guard+" AND (? IS NULL OR p.version=?) ORDER BY p.version DESC LIMIT 1",empresa,...a.args,version,version).first();
+  return x?{...x,contenido:JSON.parse(x.contenido)}:null;
+ },
+ async historialPublicaciones(r,{empresa,antes=null}={}){
+  const a=await contexto(r,empresa,"GET");
+  if(antes!==null&&(!versionValida(antes)||antes<1))throw Error("Publicación inválida.");
+  const autorizado=await q("SELECT empresa FROM comercio_perfiles_privados WHERE empresa=? AND "+guard,empresa,...a.args).first();
+  if(!autorizado)throw Error("Perfil no disponible.");
+  return (await q("SELECT p.version,p.revision_perfil,p.restaurada_de,p.fecha FROM comercio_perfiles_privados JOIN comercio_publicaciones_perfil p ON p.empresa=comercio_perfiles_privados.empresa WHERE comercio_perfiles_privados.empresa=? AND "+guard+" AND (? IS NULL OR p.version<?) ORDER BY p.version DESC LIMIT 50",empresa,...a.args,antes,antes).all()).results;
+ },
  async consultar(r,{empresa}={}){
   const a=await contexto(r,empresa,"GET");
   const x=await q("SELECT "+campos+" FROM comercio_perfiles_privados WHERE empresa=? AND "+guard,empresa,...a.args).first();
